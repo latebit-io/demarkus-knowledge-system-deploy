@@ -7,7 +7,7 @@ knowledge system on GKE. The repo will also serve as a GitHub template so others
 can stand up their own.
 
 - **Hostname (target):** `knowledge.demarkus.io`
-- **Cloud:** GCP / GKE Standard, single region (`us-central1`)
+- **Cloud:** GCP / GKE Standard, single region (`northamerica-northeast2`, Toronto)
 - **IaC:** [OpenTofu](https://opentofu.org/)
 - **Secrets:** [OpenBao](https://openbao.org/) + bank-vaults webhook
 - **GitOps:** ArgoCD + ApplicationSet, charts from `ghcr.io/latebit-io/charts`

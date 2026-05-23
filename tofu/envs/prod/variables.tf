@@ -28,5 +28,5 @@ variable "folder_id" {
 variable "region" {
   description = "Default GCP region for resources in this environment."
   type        = string
-  default     = "us-central1"
+  default     = "northamerica-northeast2"
 }
