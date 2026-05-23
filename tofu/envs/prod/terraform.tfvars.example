@@ -1,0 +1,12 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+
+project_id      = "knowledge-demarkus"
+project_name    = "Demarkus Knowledge System"
+billing_account = "XXXXXX-XXXXXX-XXXXXX"
+
+# Set exactly one of org_id or folder_id.
+# Find your org id with: gcloud organizations list
+org_id = "000000000000"
+# folder_id = "000000000000"
+
+region = "us-central1"
