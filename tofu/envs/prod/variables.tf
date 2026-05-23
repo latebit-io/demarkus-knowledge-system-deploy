@@ -30,3 +30,9 @@ variable "region" {
   type        = string
   default     = "northamerica-northeast2"
 }
+
+variable "dns_name" {
+  description = "Fully-qualified DNS name for the Cloud DNS zone, with trailing dot."
+  type        = string
+  default     = "knowledge.demarkus.io."
+}

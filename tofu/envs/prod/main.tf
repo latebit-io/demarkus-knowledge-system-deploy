@@ -7,3 +7,17 @@ module "project" {
   org_id          = var.org_id
   folder_id       = var.folder_id
 }
+
+module "network" {
+  source = "../../modules/network"
+
+  project_id = module.project.project_id
+  region     = var.region
+}
+
+module "dns" {
+  source = "../../modules/dns"
+
+  project_id = module.project.project_id
+  dns_name   = var.dns_name
+}
