@@ -1,7 +1,6 @@
 terraform {
   backend "gcs" {
-    # Replace with the hand-created state bucket name.
-    bucket = "REPLACE_ME"
+    bucket = "latebit-knowledge-tofu-state"
     prefix = "knowledge-system/prod"
   }
 }
