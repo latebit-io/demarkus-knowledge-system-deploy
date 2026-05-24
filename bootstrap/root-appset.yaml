@@ -1,0 +1,79 @@
+# Root ApplicationSets. ArgoCD watches this repo and generates one Application
+# per directory under platform/ and apps/. Both are empty until Phase 5 — the
+# generators will produce zero Applications until content lands there.
+#
+# Sync waves (set on individual app manifests / chart values):
+#   -2  cert-manager
+#   -1  openbao, bank-vaults-webhook
+#    0  external-dns, ingress
+#    1  demarkus-broker, demarkus-worlds
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        directories:
+          - path: platform/*
+  template:
+    metadata:
+      name: 'platform-{{path.basename}}'
+      labels:
+        managed-by: argocd
+        layer: platform
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        directories:
+          - path: apps/*
+  template:
+    metadata:
+      name: 'apps-{{path.basename}}'
+      labels:
+        managed-by: argocd
+        layer: apps
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

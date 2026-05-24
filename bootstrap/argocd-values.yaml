@@ -1,0 +1,50 @@
+# ArgoCD helm chart values for the knowledge-system reference deploy.
+# Single-replica everything — no HA. Tunable per env.
+
+global:
+  # Fully-qualified domain comes online in Phase 5 once ingress + cert-manager
+  # are wired. For now, ArgoCD is only reachable via kubectl port-forward.
+  domain: argocd.knowledge.demarkus.io
+
+# Server: HTTP only (TLS terminates at the ingress in Phase 5).
+server:
+  replicas: 1
+  service:
+    type: ClusterIP
+  extraArgs:
+    - --insecure
+
+# Application controller: single shard, single replica.
+controller:
+  replicas: 1
+
+# Repo server: single replica.
+repoServer:
+  replicas: 1
+
+# ApplicationSet controller: single replica.
+applicationSet:
+  replicas: 1
+
+# Redis: single replica, no HA, default chart image.
+redis:
+  enabled: true
+redis-ha:
+  enabled: false
+
+# Dex: off. We'll add OIDC later (Phase 6+) once OpenBao + broker are seeded.
+dex:
+  enabled: false
+
+# Notifications: off for now to save resources; enable when there's a real
+# downstream consumer (Slack, etc.).
+notifications:
+  enabled: false
+
+configs:
+  params:
+    server.insecure: true
+  cm:
+    timeout.reconciliation: 60s
+    # Allow ArgoCD to manage cluster-scoped resources without prompting.
+    application.resourceTrackingMethod: annotation
