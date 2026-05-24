@@ -36,3 +36,9 @@ variable "dns_name" {
   type        = string
   default     = "knowledge.demarkus.io."
 }
+
+variable "zone" {
+  description = "Single zone for the GKE cluster. Must be in the same region as the subnet."
+  type        = string
+  default     = "northamerica-northeast2-a"
+}

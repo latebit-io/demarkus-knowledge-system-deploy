@@ -27,3 +27,18 @@ output "dns_ds_records" {
   description = "DS records to add at the parent zone for DNSSEC chain of trust."
   value       = module.dns.ds_records
 }
+
+output "cluster_name" {
+  description = "GKE cluster name."
+  value       = module.gke.cluster_name
+}
+
+output "cluster_location" {
+  description = "Zone of the GKE cluster."
+  value       = module.gke.cluster_location
+}
+
+output "get_credentials_command" {
+  description = "Run this to populate kubeconfig for the new cluster."
+  value       = "gcloud container clusters get-credentials ${module.gke.cluster_name} --zone=${module.gke.cluster_location} --project=${module.project.project_id}"
+}

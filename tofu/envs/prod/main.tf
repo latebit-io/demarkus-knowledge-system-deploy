@@ -21,3 +21,14 @@ module "dns" {
   project_id = module.project.project_id
   dns_name   = var.dns_name
 }
+
+module "gke" {
+  source = "../../modules/gke"
+
+  project_id          = module.project.project_id
+  zone                = var.zone
+  vpc_self_link       = module.network.vpc_id
+  subnet_self_link    = module.network.subnet_id
+  pods_range_name     = module.network.pods_range_name
+  services_range_name = module.network.services_range_name
+}
