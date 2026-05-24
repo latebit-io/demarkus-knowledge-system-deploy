@@ -31,4 +31,11 @@ module "gke" {
   subnet_self_link    = module.network.subnet_id
   pods_range_name     = module.network.pods_range_name
   services_range_name = module.network.services_range_name
+
+  # Dynamic ISP IP makes CIDR pinning impractical; kubeconfig + RBAC still
+  # required to do anything against the control plane.
+  authorized_networks = [{
+    cidr_block   = "0.0.0.0/0"
+    display_name = "open"
+  }]
 }

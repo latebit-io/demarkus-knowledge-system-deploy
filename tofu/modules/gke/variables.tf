@@ -41,15 +41,12 @@ variable "master_ipv4_cidr" {
 }
 
 variable "authorized_networks" {
-  description = "CIDR blocks allowed to reach the public control-plane endpoint."
+  description = "CIDR blocks allowed to reach the public control-plane endpoint. Defaults to empty (fail closed) — callers must explicitly opt in."
   type = list(object({
     cidr_block   = string
     display_name = string
   }))
-  default = [{
-    cidr_block   = "0.0.0.0/0"
-    display_name = "open"
-  }]
+  default = []
 }
 
 variable "release_channel" {

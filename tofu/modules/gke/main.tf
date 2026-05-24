@@ -90,6 +90,10 @@ resource "google_container_node_pool" "primary" {
     disk_type    = var.disk_type
     image_type   = "COS_CONTAINERD"
 
+    metadata = {
+      "disable-legacy-endpoints" = "true"
+    }
+
     service_account = google_service_account.nodes.email
     oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
 

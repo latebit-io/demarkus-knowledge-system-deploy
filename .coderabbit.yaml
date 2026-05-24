@@ -24,7 +24,6 @@ reviews:
   # leaves it reviewable.
   path_filters:
     - "!**/.terraform/**"
-    - "!**/.terraform.lock.hcl"
     - "!**/*.tfstate"
     - "!**/*.tfstate.*"
     - "!**/*.tfplan"
