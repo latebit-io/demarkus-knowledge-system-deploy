@@ -16,9 +16,14 @@ resource "helm_release" "argocd" {
 # Split the root ApplicationSet document on `---` boundaries so each manifest
 # can be applied separately via the kubectl provider.
 locals {
+  # Filter out any chunk that doesn't parse as a Kubernetes resource —
+  # pure-comment blocks (like the file header) decode to null and would
+  # otherwise be sent to kubectl_manifest as an invalid "manifest".
   root_appset_manifests = [
     for doc in split("\n---\n", var.root_appset_yaml) :
-    doc if length(trimspace(doc)) > 0
+    trimspace(doc)
+    if try(yamldecode(doc).apiVersion, null) != null
+    && try(yamldecode(doc).kind, null) != null
   ]
 }
 
