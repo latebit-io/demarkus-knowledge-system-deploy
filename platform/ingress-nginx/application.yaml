@@ -1,0 +1,92 @@
+# ingress-nginx: the cluster's public HTTP/HTTPS entry point.
+# Provisions a Layer 4 Network Load Balancer in GCP that external-dns
+# (Phase 5d) will register A records against. TLS terminates here, with
+# certs issued by cert-manager (Phase 5b).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    chart: ingress-nginx
+    targetRevision: 4.11.3
+    helm:
+      releaseName: ingress-nginx
+      values: |
+        controller:
+          replicaCount: 1
+
+          # Pin image by tag AND digest. Chart 4.11.3's default image is
+          # v1.11.3 — making it explicit + digest-pinning means a re-pushed
+          # tag at the registry can't change what runs on our cluster.
+          image:
+            tag: "v1.11.3"
+            digest: "sha256:d56f135b6462cfc476447cfe564b83a45e8bb7da2774963b00d12161112270b7"
+
+          # Default ingress class for the cluster. Ingresses without explicit
+          # ingressClassName get routed here. The cert-manager HTTP-01 solver
+          # in 5b uses ingressClassName: nginx — this matches.
+          ingressClassResource:
+            name: nginx
+            default: true
+          watchIngressWithoutClass: true
+
+          service:
+            enabled: true
+            type: LoadBalancer
+            externalTrafficPolicy: Local
+            annotations:
+              # Force a regional Network LB (Standard tier). Cheaper than
+              # Premium tier global LB and matches our single-region deploy.
+              cloud.google.com/load-balancer-type: "External"
+              networking.gke.io/load-balancer-type: "External"
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              memory: 256Mi
+
+          # No HPA, no PDB — single replica intentionally.
+          autoscaling:
+            enabled: false
+          podDisruptionBudget:
+            enabled: false
+
+          # Metrics off — no prometheus yet.
+          metrics:
+            enabled: false
+
+          # Standard admission webhook config; chart self-signs.
+          admissionWebhooks:
+            enabled: true
+            patch:
+              enabled: true
+              image:
+                tag: "v1.4.1"
+                digest: "sha256:36d05b4077fb8e3d13663702fa337f124675ba8667cbd949c03a8e8ea6fa4366"
+
+        # No default backend pod (saves a Running pod). 404s served by the
+        # controller itself.
+        defaultBackend:
+          enabled: false
+
+        # tcp/udp services off — we only need HTTP/HTTPS.
+        tcp: {}
+        udp: {}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-nginx
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
