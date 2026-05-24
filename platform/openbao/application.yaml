@@ -69,10 +69,19 @@ spec:
               config: |
                 ui = true
 
+                # In-cluster listener. TLS is intentionally disabled today —
+                # we'll terminate TLS at the ingress when we expose OpenBao
+                # externally (Phase 5f+). To enable in-cluster TLS, follow
+                # the 3 steps in the "TLS enable path" comment block below
+                # the raft.config — then flip tls_disable to 0 and uncomment
+                # the tls_*_file lines here.
                 listener "tcp" {
-                  tls_disable     = 1
                   address         = "[::]:8200"
                   cluster_address = "[::]:8201"
+                  tls_disable     = 1
+                  # tls_cert_file   = "/openbao/tls/tls.crt"
+                  # tls_key_file    = "/openbao/tls/tls.key"
+                  # tls_min_version = "tls12"
                 }
 
                 storage "raft" {
@@ -87,6 +96,39 @@ spec:
                 }
 
                 service_registration "kubernetes" {}
+
+          # ─── TLS enable path (currently disabled) ─────────────────────────
+          # Today OpenBao serves plaintext on 8200 inside the cluster. To
+          # enable in-cluster TLS:
+          #
+          # 1. Add a cert-manager Certificate to platform/openbao/ that emits
+          #    a Secret named `openbao-server-tls`:
+          #
+          #      apiVersion: cert-manager.io/v1
+          #      kind: Certificate
+          #      metadata:
+          #        name: openbao-server-tls
+          #        namespace: openbao
+          #      spec:
+          #        secretName: openbao-server-tls
+          #        issuerRef:
+          #          name: letsencrypt-prod    # or a self-signed ClusterIssuer
+          #          kind: ClusterIssuer
+          #        dnsNames:
+          #          - openbao.openbao.svc
+          #          - openbao.openbao.svc.cluster.local
+          #          - openbao-0.openbao-internal.openbao.svc.cluster.local
+          #
+          # 2. Uncomment the `extraVolumes` block below to mount the secret
+          #    at /openbao/tls inside the pod.
+          #
+          # 3. In the raft.config above, set `tls_disable = 0` and uncomment
+          #    the three `tls_*` lines.
+          # ───────────────────────────────────────────────────────────────────
+          # extraVolumes:
+          #   - type: secret
+          #     name: openbao-server-tls
+          #     path: /openbao/tls
 
           dataStorage:
             enabled: true
