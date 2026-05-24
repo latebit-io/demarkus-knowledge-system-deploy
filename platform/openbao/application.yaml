@@ -42,14 +42,14 @@ spec:
           enabled: true
 
         server:
-          # Chart 0.28.3 defaults image tag to appVersion v2.5.4. Pin
-          # explicitly. ghcr.io is the source-of-truth registry that the
-          # OpenBao project's release pipeline publishes to; quay.io
-          # mirrors can lag behind for newer tags.
+          # ghcr.io publishes container tags as bare semver (no `v` prefix)
+          # even though the chart's appVersion and the project's git release
+          # tags use the `v` prefix. The chart's default of v2.5.4 doesn't
+          # resolve; we have to override to bare 2.5.4 here.
           image:
             registry: ghcr.io
             repository: openbao/openbao
-            tag: v2.5.4
+            tag: "2.5.4"
             pullPolicy: IfNotPresent
 
           # Workload Identity: the KSA `openbao` impersonates the GSA
