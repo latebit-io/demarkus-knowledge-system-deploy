@@ -45,3 +45,17 @@ spec:
       - http01:
           ingress:
             ingressClassName: nginx
+---
+# Self-signed issuer for internal cluster DNS names (.svc, .cluster.local)
+# that Let's Encrypt cannot validate. Used by OpenBao TLS scaffold (Phase 5e)
+# and any future internal mTLS work. Consumers must skip-verify or be
+# pre-loaded with the issued CA cert.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selfSigned: {}

@@ -102,7 +102,11 @@ spec:
           # enable in-cluster TLS:
           #
           # 1. Add a cert-manager Certificate to platform/openbao/ that emits
-          #    a Secret named `openbao-server-tls`:
+          #    a Secret named `openbao-server-tls`. Must use the `selfsigned`
+          #    ClusterIssuer (defined in platform/cert-manager/cluster-issuers.yaml)
+          #    — Let's Encrypt cannot issue certificates for internal
+          #    .svc / .cluster.local DNS names since they aren't publicly
+          #    verifiable.
           #
           #      apiVersion: cert-manager.io/v1
           #      kind: Certificate
@@ -112,7 +116,7 @@ spec:
           #      spec:
           #        secretName: openbao-server-tls
           #        issuerRef:
-          #          name: letsencrypt-prod    # or a self-signed ClusterIssuer
+          #          name: selfsigned
           #          kind: ClusterIssuer
           #        dnsNames:
           #          - openbao.openbao.svc
