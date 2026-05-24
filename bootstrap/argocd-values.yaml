@@ -44,6 +44,12 @@ notifications:
 configs:
   params:
     server.insecure: true
+    # Delegate diff computation to the apiserver instead of ArgoCD's bundled
+    # OpenAPI schema. Fixes "field not declared in schema" errors when the
+    # live cluster has fields ArgoCD's bundled schema doesn't know about
+    # (e.g. Deployment.status.terminatingReplicas added in k8s 1.33+).
+    # https://argo-cd.readthedocs.io/en/stable/user-guide/diff-strategies/
+    controller.diff.server.side: "true"
   cm:
     timeout.reconciliation: 60s
     # Allow ArgoCD to manage cluster-scoped resources without prompting.
