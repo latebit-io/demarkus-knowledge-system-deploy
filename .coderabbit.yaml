@@ -1,0 +1,121 @@
+# CodeRabbit configuration
+# https://docs.coderabbit.ai/guides/configure-coderabbit
+
+language: en-US
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  path_filters:
+    - "!**/.terraform/**"
+    - "!**/.terraform.lock.hcl"
+    - "!**/*.tfstate"
+    - "!**/*.tfstate.*"
+    - "!**/*.tfplan"
+    - "!**/*.tfvars"
+    - "**/*.tfvars.example"
+
+  path_instructions:
+    - path: "tofu/**/*.tf"
+      instructions: |
+        This is OpenTofu (>= 1.8.0), not Terraform. Provider pin is hashicorp/google ~> 6.0.
+        Layout: modules in tofu/modules/<name>/, environments in tofu/envs/<name>/.
+        Each module ships versions.tf, variables.tf, main.tf, outputs.tf.
+
+        Flag:
+        - Hardcoded secrets, billing accounts, OAuth client secrets, or service-account
+          keys in committed files. (project IDs, org IDs, and bucket names are public
+          and OK; *.tfvars is gitignored.)
+        - Resources missing explicit `project = var.project_id` in modules consumed by
+          the prod env. The provider has a default project but explicit is safer.
+        - Drift from the Canadian region (northamerica-northeast2). Flag any
+          us-central1 / us-east1 references unless they're in template-user example
+          values.
+        - Public GCS buckets without `public_access_prevention = "enforced"`.
+        - IAM bindings broader than needed (e.g. roles/owner, roles/editor on user
+          principals or service accounts).
+        - Missing `disable_dependent_services = false` on google_project_service
+          (we deliberately avoid cascade-disabling on destroy).
+        - Resources that should be guarded by lifecycle.prevent_destroy or
+          deletion_protection but aren't (projects, KMS keys, GCS state buckets).
+    - path: "tofu/**/*.tfvars.example"
+      instructions: |
+        Example values committed for template users. Must use clearly-fake placeholders
+        (000000000000, XXXXXX-XXXXXX-XXXXXX) rather than real org/billing IDs.
+    - path: "**/*.md"
+      instructions: |
+        Documentation. Keep concise. Flag any leaked secrets — project IDs and bucket
+        names already in public commits are fine, but billing accounts, tokens, keys,
+        and OAuth secrets are not.
+    - path: ".github/workflows/**"
+      instructions: |
+        GitHub Actions workflows. Phase 8 introduces these for `tofu plan` on PR and
+        `tofu apply` on merge. Hard requirements:
+        - Auth to GCP MUST use Workload Identity Federation, never long-lived JSON
+          service-account keys.
+        - Pin third-party actions by full commit SHA, not by tag (e.g. v4 is unsafe).
+        - Concurrency groups should serialize applies per environment.
+    - path: "platform/**"
+      instructions: |
+        Kubernetes manifests / Helm values for cluster prerequisites (cert-manager,
+        OpenBao, bank-vaults webhook, external-dns, ingress).
+        - Secrets MUST come from OpenBao via bank-vaults webhook (`vault:` env refs),
+          never inline secret values or Kubernetes Secret manifests with literal data.
+        - Pin chart versions and image tags; never use `:latest`.
+    - path: "apps/**"
+      instructions: |
+        ArgoCD Application / ApplicationSet manifests for demarkus components.
+        Charts come from ghcr.io/latebit-io/charts (broker, server, agent).
+        - Pin chart targetRevision; never use a moving tag.
+        - Per-pod secret access goes through bank-vaults annotations
+          (vault.security.banzaicloud.io/vault-addr) + `vault:` env refs.
+
+  tools:
+    # IaC linting + security
+    tflint:
+      enabled: true
+    checkov:
+      enabled: true
+
+    # Repo hygiene
+    gitleaks:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    hadolint:
+      enabled: true
+
+    # Off — languages we don't use
+    ast-grep:
+      enabled: false
+    biome:
+      enabled: false
+    eslint:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    pylint:
+      enabled: false
+    ruff:
+      enabled: false
+
+chat:
+  auto_reply: true
