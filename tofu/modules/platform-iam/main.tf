@@ -4,6 +4,12 @@ resource "google_kms_key_ring" "platform" {
   project  = var.project_id
   name     = var.kms_key_ring_name
   location = var.region
+
+  # Locking the key ring locks the keys it contains. To actually tear this
+  # down, remove the lifecycle block first.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_kms_crypto_key" "openbao_unseal" {
@@ -12,10 +18,10 @@ resource "google_kms_crypto_key" "openbao_unseal" {
   purpose         = "ENCRYPT_DECRYPT"
   rotation_period = var.openbao_unseal_key_rotation_period
 
-  # KMS keys cannot actually be deleted (only their versions). Tofu will
-  # destroy the resource from state and orphan the key. Allow that.
+  # Losing this key = OpenBao becomes permanently unsealable = total data
+  # loss for everything OpenBao has ever encrypted.
   lifecycle {
-    prevent_destroy = false
+    prevent_destroy = true
   }
 }
 
