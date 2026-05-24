@@ -18,6 +18,10 @@ reviews:
     base_branches:
       - main
 
+  # Only `!` patterns here — adding a positive include flips this into
+  # allow-list mode and silently drops every file that doesn't match.
+  # *.tfvars.example doesn't end in .tfvars, so the *.tfvars exclude
+  # leaves it reviewable.
   path_filters:
     - "!**/.terraform/**"
     - "!**/.terraform.lock.hcl"
@@ -25,7 +29,6 @@ reviews:
     - "!**/*.tfstate.*"
     - "!**/*.tfplan"
     - "!**/*.tfvars"
-    - "**/*.tfvars.example"
 
   path_instructions:
     - path: "tofu/**/*.tf"
