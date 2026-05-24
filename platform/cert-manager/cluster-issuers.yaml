@@ -1,0 +1,41 @@
+# Let's Encrypt ClusterIssuers. Cluster-scoped so any namespace can request
+# certs by name. Sync-wave -1 so they're applied after the inner cert-manager
+# Application (wave -2) — they'll error initially until cert-manager pods are
+# up and CRDs exist; self-heal converges in a few minutes.
+#
+# Use letsencrypt-staging while validating ingress/DNS — LE rate-limits prod
+# heavily on repeated failures.
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: fritz@latebit.io
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: fritz@latebit.io
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
