@@ -1,0 +1,149 @@
+# OpenBao: secrets store. Single-node Raft for bootstrap (master plan
+# recommendation — scale to 3 replicas before going live).
+#
+# Depends on Phase 5a's KMS key + Workload Identity binding:
+#   - GSA `openbao-unseal` has cloudkms.cryptoKeyEncrypterDecrypter on
+#     projects/.../keyRings/demarkus-platform/cryptoKeys/openbao-unseal
+#   - openbao/openbao KSA is WI-bound to that GSA
+#   - gcpckms seal stanza below references the same key
+#
+# Sync wave: -1. Bank-vaults webhook (5f) depends on this.
+#
+# ────────────────────────────────────────────────────────────────────────
+# ONE-TIME INIT AFTER FIRST DEPLOY (cannot be automated — bao operator
+# init outputs root token + recovery keys that must be stored securely):
+#
+#   kubectl -n openbao exec -ti openbao-0 -- bao operator init \
+#     -recovery-shares=5 -recovery-threshold=3
+#
+# Save the 5 recovery keys and the initial root token somewhere durable
+# (1Password, Bitwarden, GCS bucket with CMEK + tight IAM, etc.).
+# Auto-unseal happens automatically via gcpckms — you do NOT need the
+# recovery keys to unseal day-to-day; they only matter for regenerating
+# a lost root token.
+# ────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openbao
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: https://openbao.github.io/openbao-helm
+    chart: openbao
+    targetRevision: 0.28.3
+    helm:
+      releaseName: openbao
+      values: |
+        global:
+          enabled: true
+
+        server:
+          # Chart 0.28.3 defaults image tag to appVersion v2.5.4. Pin explicitly.
+          image:
+            registry: quay.io
+            repository: openbao/openbao
+            tag: v2.5.4
+            pullPolicy: IfNotPresent
+
+          # Workload Identity: the KSA `openbao` impersonates the GSA
+          # `openbao-unseal@...` (created in Phase 5a), which holds
+          # cryptoKeyEncrypterDecrypter on the gcpckms unseal key.
+          serviceAccount:
+            create: true
+            name: openbao
+            annotations:
+              iam.gke.io/gcp-service-account: openbao-unseal@knowledge-49722.iam.gserviceaccount.com
+
+          # HA with Raft storage. Single replica today; scale by bumping
+          # `replicas` without recreating the StatefulSet (Raft adds members).
+          ha:
+            enabled: true
+            replicas: 1
+            raft:
+              enabled: true
+              setNodeId: true
+              config: |
+                ui = true
+
+                listener "tcp" {
+                  tls_disable     = 1
+                  address         = "[::]:8200"
+                  cluster_address = "[::]:8201"
+                }
+
+                storage "raft" {
+                  path = "/openbao/data"
+                }
+
+                seal "gcpckms" {
+                  project    = "knowledge-49722"
+                  region     = "northamerica-northeast2"
+                  key_ring   = "demarkus-platform"
+                  crypto_key = "openbao-unseal"
+                }
+
+                service_registration "kubernetes" {}
+
+          dataStorage:
+            enabled: true
+            size: 1Gi
+            mountPath: /openbao/data
+            # storageClassName: leave default (GKE pd-standard)
+
+          # Audit log via separate volume — recommended even at small scale
+          # so audit failures don't block writes.
+          auditStorage:
+            enabled: true
+            size: 1Gi
+            mountPath: /openbao/audit
+
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+
+          readinessProbe:
+            enabled: true
+            # On a fresh install OpenBao starts sealed; readiness returns
+            # not-ready until init. After init, gcpckms auto-unseals.
+            execCommand:
+              - /bin/sh
+              - -c
+              - bao status -tls-skip-verify || [ $? -eq 2 ]
+
+          livenessProbe:
+            enabled: true
+            execCommand:
+              - /bin/sh
+              - -c
+              - bao status -tls-skip-verify || [ $? -eq 2 ]
+            initialDelaySeconds: 60
+
+        # The Kubernetes injector ships with this chart but we use
+        # bank-vaults (Phase 5f) instead, which is more flexible.
+        injector:
+          enabled: false
+
+        csi:
+          enabled: false
+
+        # UI Service off — reach the UI via kubectl port-forward to
+        # openbao-0:8200. We'll wire ingress later if needed.
+        ui:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openbao
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
