@@ -52,3 +52,18 @@ output "argocd_initial_password_command" {
   description = "Read the auto-generated ArgoCD admin password."
   value       = module.argocd_bootstrap.initial_password_command
 }
+
+output "openbao_unseal_key" {
+  description = "KMS key path for OpenBao seal config (gcpckms stanza)."
+  value       = module.platform_iam.openbao_unseal_key_self_link
+}
+
+output "openbao_gsa_email" {
+  description = "GSA to annotate on the openbao KSA (iam.gke.io/gcp-service-account)."
+  value       = module.platform_iam.openbao_gsa_email
+}
+
+output "external_dns_gsa_email" {
+  description = "GSA to annotate on the external-dns KSA (iam.gke.io/gcp-service-account)."
+  value       = module.platform_iam.external_dns_gsa_email
+}
