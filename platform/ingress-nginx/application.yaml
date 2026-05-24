@@ -21,6 +21,13 @@ spec:
         controller:
           replicaCount: 1
 
+          # Pin image by tag AND digest. Chart 4.11.3's default image is
+          # v1.11.3 — making it explicit + digest-pinning means a re-pushed
+          # tag at the registry can't change what runs on our cluster.
+          image:
+            tag: "v1.11.3"
+            digest: "sha256:d56f135b6462cfc476447cfe564b83a45e8bb7da2774963b00d12161112270b7"
+
           # Default ingress class for the cluster. Ingresses without explicit
           # ingressClassName get routed here. The cert-manager HTTP-01 solver
           # in 5b uses ingressClassName: nginx — this matches.
@@ -61,6 +68,9 @@ spec:
             enabled: true
             patch:
               enabled: true
+              image:
+                tag: "v1.4.1"
+                digest: "sha256:36d05b4077fb8e3d13663702fa337f124675ba8667cbd949c03a8e8ea6fa4366"
 
         # No default backend pod (saves a Running pod). 404s served by the
         # controller itself.
