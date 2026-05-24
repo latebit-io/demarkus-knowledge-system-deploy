@@ -42,3 +42,13 @@ output "get_credentials_command" {
   description = "Run this to populate kubeconfig for the new cluster."
   value       = "gcloud container clusters get-credentials ${module.gke.cluster_name} --zone=${module.gke.cluster_location} --project=${module.project.project_id}"
 }
+
+output "argocd_port_forward_command" {
+  description = "Reach the ArgoCD UI locally (Phase 4) before ingress (Phase 5) is wired."
+  value       = module.argocd_bootstrap.port_forward_command
+}
+
+output "argocd_initial_password_command" {
+  description = "Read the auto-generated ArgoCD admin password."
+  value       = module.argocd_bootstrap.initial_password_command
+}

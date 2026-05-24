@@ -39,3 +39,15 @@ module "gke" {
     display_name = "open"
   }]
 }
+
+module "argocd_bootstrap" {
+  source = "../../modules/argocd-bootstrap"
+
+  values_yaml      = file("${path.module}/../../../bootstrap/argocd-values.yaml")
+  root_appset_yaml = file("${path.module}/../../../bootstrap/root-appset.yaml")
+
+  # The helm + kubectl providers are wired in providers.tf; this module just
+  # consumes them. depends_on ensures the cluster + node pool exist before
+  # we try to install anything.
+  depends_on = [module.gke]
+}
