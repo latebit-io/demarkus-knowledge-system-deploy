@@ -42,6 +42,11 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
+          # Lets a wrapper App apply both a chart's CRDs and resources using
+          # those CRDs in the same sync — pre-sync dry-run is skipped for
+          # GVKs that aren't on the cluster yet, the actual apply happens
+          # in wave order so the CRD lands before its users.
+          - SkipDryRunOnMissingResource=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -77,3 +82,8 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
+          # Lets a wrapper App apply both a chart's CRDs and resources using
+          # those CRDs in the same sync — pre-sync dry-run is skipped for
+          # GVKs that aren't on the cluster yet, the actual apply happens
+          # in wave order so the CRD lands before its users.
+          - SkipDryRunOnMissingResource=true
