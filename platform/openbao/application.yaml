@@ -42,9 +42,12 @@ spec:
           enabled: true
 
         server:
-          # Chart 0.28.3 defaults image tag to appVersion v2.5.4. Pin explicitly.
+          # Chart 0.28.3 defaults image tag to appVersion v2.5.4. Pin
+          # explicitly. ghcr.io is the source-of-truth registry that the
+          # OpenBao project's release pipeline publishes to; quay.io
+          # mirrors can lag behind for newer tags.
           image:
-            registry: quay.io
+            registry: ghcr.io
             repository: openbao/openbao
             tag: v2.5.4
             pullPolicy: IfNotPresent
@@ -58,44 +61,42 @@ spec:
             annotations:
               iam.gke.io/gcp-service-account: openbao-unseal@knowledge-49722.iam.gserviceaccount.com
 
-          # HA with Raft storage. Single replica today; scale by bumping
-          # `replicas` without recreating the StatefulSet (Raft adds members).
-          ha:
+          # Standalone (single-node, file storage). HA with one replica is
+          # all complexity, no benefit — same SPOF, but with the Raft
+          # cluster/quorum machinery on top. If we ever genuinely need HA,
+          # we'd do a one-time export/redeploy/import migration.
+          standalone:
             enabled: true
-            replicas: 1
-            raft:
-              enabled: true
-              setNodeId: true
-              config: |
-                ui = true
+            config: |
+              ui = true
 
-                # In-cluster listener. TLS is intentionally disabled today —
-                # we'll terminate TLS at the ingress when we expose OpenBao
-                # externally (Phase 5f+). To enable in-cluster TLS, follow
-                # the 3 steps in the "TLS enable path" comment block below
-                # the raft.config — then flip tls_disable to 0 and uncomment
-                # the tls_*_file lines here.
-                listener "tcp" {
-                  address         = "[::]:8200"
-                  cluster_address = "[::]:8201"
-                  tls_disable     = 1
-                  # tls_cert_file   = "/openbao/tls/tls.crt"
-                  # tls_key_file    = "/openbao/tls/tls.key"
-                  # tls_min_version = "tls12"
-                }
+              # In-cluster listener. TLS is intentionally disabled today —
+              # we'll terminate TLS at the ingress when we expose OpenBao
+              # externally (Phase 5f+). To enable in-cluster TLS, follow
+              # the 3 steps in the "TLS enable path" comment block below
+              # the standalone.config — then flip tls_disable to 0 and
+              # uncomment the tls_*_file lines here.
+              listener "tcp" {
+                address     = "[::]:8200"
+                tls_disable = 1
+                # tls_cert_file   = "/openbao/tls/tls.crt"
+                # tls_key_file    = "/openbao/tls/tls.key"
+                # tls_min_version = "tls12"
+              }
 
-                storage "raft" {
-                  path = "/openbao/data"
-                }
+              storage "file" {
+                path = "/openbao/data"
+              }
 
-                seal "gcpckms" {
-                  project    = "knowledge-49722"
-                  region     = "northamerica-northeast2"
-                  key_ring   = "demarkus-platform"
-                  crypto_key = "openbao-unseal"
-                }
+              seal "gcpckms" {
+                project    = "knowledge-49722"
+                region     = "northamerica-northeast2"
+                key_ring   = "demarkus-platform"
+                crypto_key = "openbao-unseal"
+              }
 
-                service_registration "kubernetes" {}
+          ha:
+            enabled: false
 
           # ─── TLS enable path (currently disabled) ─────────────────────────
           # Today OpenBao serves plaintext on 8200 inside the cluster. To
