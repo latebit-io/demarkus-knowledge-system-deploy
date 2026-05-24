@@ -51,3 +51,12 @@ module "argocd_bootstrap" {
   # we try to install anything.
   depends_on = [module.gke]
 }
+
+module "platform_iam" {
+  source = "../../modules/platform-iam"
+
+  project_id             = module.project.project_id
+  region                 = var.region
+  dns_zone_name          = module.dns.zone_name
+  workload_identity_pool = module.gke.workload_identity_pool
+}
