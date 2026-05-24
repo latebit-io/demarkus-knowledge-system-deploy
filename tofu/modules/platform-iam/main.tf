@@ -53,7 +53,18 @@ resource "google_service_account" "external_dns" {
   display_name = "external-dns (Cloud DNS record management)"
 }
 
-# Zone-scoped IAM (not project-scoped) — least privilege.
+# external-dns needs LIST permission on managed zones at the project level
+# to discover which zone matches its domain filter. roles/dns.reader is
+# read-only (managedZones.list/get + resourceRecordSets.list) and doesn't
+# allow modifying anything.
+resource "google_project_iam_member" "external_dns_reader" {
+  project = var.project_id
+  role    = "roles/dns.reader"
+  member  = "serviceAccount:${google_service_account.external_dns.email}"
+}
+
+# Write access scoped to the specific managed zone only — even with reader
+# at the project level, the GSA can only modify records in this zone.
 resource "google_dns_managed_zone_iam_member" "external_dns" {
   project      = var.project_id
   managed_zone = var.dns_zone_name
