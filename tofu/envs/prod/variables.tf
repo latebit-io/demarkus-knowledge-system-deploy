@@ -42,3 +42,15 @@ variable "zone" {
   type        = string
   default     = "northamerica-northeast2-a"
 }
+
+variable "budget_amount" {
+  description = "Monthly budget cap in USD. Soft cap — alerts only, doesn't stop spend."
+  type        = number
+  default     = 200
+}
+
+variable "budget_alert_email" {
+  description = "Email to receive budget threshold notifications."
+  type        = string
+  default     = "fritz@latebit.io"
+}
