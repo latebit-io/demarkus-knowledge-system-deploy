@@ -33,9 +33,25 @@ resource "google_service_account" "openbao_unseal" {
   display_name = "OpenBao auto-unseal (Cloud KMS encrypt/decrypt)"
 }
 
-resource "google_kms_crypto_key_iam_member" "openbao_unseal" {
+# Renamed from `openbao_unseal` when the viewer binding was added below;
+# moved block preserves state continuity (no destroy/recreate).
+moved {
+  from = google_kms_crypto_key_iam_member.openbao_unseal
+  to   = google_kms_crypto_key_iam_member.openbao_unseal_encrypter_decrypter
+}
+
+resource "google_kms_crypto_key_iam_member" "openbao_unseal_encrypter_decrypter" {
   crypto_key_id = google_kms_crypto_key.openbao_unseal.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:${google_service_account.openbao_unseal.email}"
+}
+
+# OpenBao's gcpckms seal calls cryptoKeys.get at startup to verify the key
+# exists before attempting encrypt/decrypt. EncrypterDecrypter doesn't
+# include that permission; cloudkms.viewer scoped to this single key does.
+resource "google_kms_crypto_key_iam_member" "openbao_unseal_viewer" {
+  crypto_key_id = google_kms_crypto_key.openbao_unseal.id
+  role          = "roles/cloudkms.viewer"
   member        = "serviceAccount:${google_service_account.openbao_unseal.email}"
 }
 
