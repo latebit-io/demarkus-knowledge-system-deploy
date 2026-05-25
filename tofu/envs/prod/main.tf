@@ -60,3 +60,13 @@ module "platform_iam" {
   dns_zone_name          = module.dns.zone_name
   workload_identity_pool = module.gke.workload_identity_pool
 }
+
+module "billing_budget" {
+  source = "../../modules/billing-budget"
+
+  project_id      = module.project.project_id
+  project_number  = module.project.project_number
+  billing_account = var.billing_account
+  alert_email     = var.budget_alert_email
+  amount          = var.budget_amount
+}

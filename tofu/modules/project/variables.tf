@@ -36,6 +36,7 @@ variable "apis" {
     "dns.googleapis.com",
     "iam.googleapis.com",
     "cloudkms.googleapis.com",
+    "billingbudgets.googleapis.com",
   ]
 }
 
