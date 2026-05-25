@@ -72,17 +72,23 @@ reviews:
     - path: "platform/**"
       instructions: |
         Kubernetes manifests / Helm values for cluster prerequisites (cert-manager,
-        OpenBao, bank-vaults webhook, external-dns, ingress).
-        - Secrets MUST come from OpenBao via bank-vaults webhook (`vault:` env refs),
-          never inline secret values or Kubernetes Secret manifests with literal data.
+        OpenBao, bank-vaults webhook, external-secrets operator, external-dns, ingress).
+        - Never inline secret values or commit Kubernetes Secret manifests with
+          literal data. Secret material lives in OpenBao; pods consume it via one
+          of the two patterns documented under apps/**.
         - Pin chart versions and image tags; never use `:latest`.
     - path: "apps/**"
       instructions: |
         ArgoCD Application / ApplicationSet manifests for demarkus components.
         Charts come from ghcr.io/latebit-io/charts (broker, server, agent).
         - Pin chart targetRevision; never use a moving tag.
-        - Per-pod secret access goes through bank-vaults annotations
-          (vault.security.banzaicloud.io/vault-addr) + `vault:` env refs.
+        - Secrets come from OpenBao via one of two patterns:
+          - Helm charts with `secretKeyRef`-shaped env (e.g., demarkus-broker):
+            ESO `ExternalSecret` bridges materialize a native k8s Secret in the
+            app's namespace; the chart's `existingSecretRef` consumes it.
+          - Bespoke pods with arbitrary env injection: bank-vaults annotations
+            (`vault.security.banzaicloud.io/vault-addr`) + `vault:` env refs.
+        - Never inline secret values or commit literal Secret manifests.
 
   tools:
     # IaC linting + security

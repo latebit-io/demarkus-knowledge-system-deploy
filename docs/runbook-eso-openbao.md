@@ -28,6 +28,19 @@ export BAO_TOKEN=<root>
 bao status   # expect Sealed=false, Initialized=true
 ```
 
+## Step 0.5 — Confirm broker secrets exist
+
+The ESO policy only grants `read` — the secrets themselves come from
+Phase 6. If they're missing, ExternalSecret resources will reconcile to
+`SecretSyncedError` until they're seeded. Catch that here:
+
+```sh
+bao kv get secret/broker/oidc-client       # expect key client_secret
+bao kv get secret/broker/jwks-signing-key  # expect key pem
+```
+
+If either fails, stop and run `runbook-openbao-seed.md` (Phase 6) first.
+
 ## Step 1 — Write the ESO policy + auth role
 
 ```sh
