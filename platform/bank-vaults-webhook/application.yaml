@@ -70,7 +70,7 @@ spec:
         # scoped to user namespaces and explicitly avoid creating circular
         # admission loops on the webhook's own namespace.
         namespaceSelector:
-          matchExpressionsForNamespaceSelector:
+          matchExpressions:
             - key: kubernetes.io/metadata.name
               operator: NotIn
               values:
