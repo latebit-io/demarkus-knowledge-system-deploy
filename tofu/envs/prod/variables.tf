@@ -44,7 +44,7 @@ variable "zone" {
 }
 
 variable "budget_amount" {
-  description = "Monthly budget cap in USD. Soft cap — alerts only, doesn't stop spend."
+  description = "Monthly budget cap, denominated in `budget_currency`. Soft cap — alerts only, doesn't stop spend."
   type        = number
   default     = 200
 }
