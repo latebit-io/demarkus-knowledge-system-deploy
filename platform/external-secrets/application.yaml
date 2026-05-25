@@ -1,0 +1,96 @@
+# External Secrets Operator (ESO). Bridges OpenBao secrets into native
+# Kubernetes Secrets so helm charts that expect `secretKeyRef`-shaped env
+# (like demarkus-broker) can consume them without modification.
+#
+# Sync wave: -1. ESO doesn't depend on OpenBao to install — it only calls
+# OpenBao when an ExternalSecret resource references a ClusterSecretStore
+# backed by it. The first apps/* ExternalSecret lands in Phase 7b.
+#
+# ────────────────────────────────────────────────────────────────────────
+# ONE-TIME OPENBAO WIRING (after this Application is Synced+Healthy):
+#
+#   kubectl -n openbao exec -ti openbao-0 -- /bin/sh -c '
+#     export BAO_TOKEN=<root>
+#     bao policy write external-secrets - <<POLICY
+#   path "secret/data/broker/*" { capabilities = ["read"] }
+#   POLICY
+#     bao write auth/kubernetes/role/external-secrets \
+#       bound_service_account_names="external-secrets" \
+#       bound_service_account_namespaces="external-secrets" \
+#       policies="external-secrets" \
+#       ttl="1h"
+#   '
+#
+# See docs/runbook-eso-openbao.md for the operator-facing version.
+# ────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-secrets
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: https://charts.external-secrets.io
+    chart: external-secrets
+    targetRevision: 2.5.0
+    helm:
+      releaseName: external-secrets
+      values: |
+        # Pin image to the chart's appVersion so an out-of-band image
+        # bump can't pull in a controller newer than what was reviewed
+        # alongside this chart pin.
+        image:
+          tag: v2.5.0
+
+        # Single-replica controller. ESO is stateless (state lives in the
+        # ExternalSecret CRs themselves) so the only HA benefit is faster
+        # failover. The cluster is 3 small nodes; one replica is enough.
+        replicaCount: 1
+
+        # The webhook also defaults to 1 replica. Same reasoning.
+        webhook:
+          replicaCount: 1
+          # cert-controller manages the webhook's serving cert (rotates
+          # before expiry). Keeping it on means we don't have to wire
+          # cert-manager into the ESO webhook path.
+          certManager:
+            enabled: false
+
+        certController:
+          replicaCount: 1
+
+        # ServiceAccount name is the identity OpenBao's kubernetes-auth
+        # role binds against (bound_service_account_names=external-secrets,
+        # bound_service_account_namespaces=external-secrets). Explicit so
+        # a future chart default change can't silently break the auth
+        # binding.
+        serviceAccount:
+          create: true
+          name: external-secrets
+
+        # Install the bundled CRDs — ClusterSecretStore, SecretStore,
+        # ExternalSecret. SkipDryRunOnMissingResource on the root
+        # ApplicationSet means apps/* manifests referencing these CRDs
+        # apply cleanly even before this Application completes its first
+        # sync.
+        installCRDs: true
+
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-secrets
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
