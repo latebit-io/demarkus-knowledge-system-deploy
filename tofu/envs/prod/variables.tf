@@ -44,7 +44,7 @@ variable "zone" {
 }
 
 variable "budget_amount" {
-  description = "Monthly budget cap in USD. Soft cap — alerts only, doesn't stop spend."
+  description = "Monthly budget cap, denominated in `budget_currency`. Soft cap — alerts only, doesn't stop spend."
   type        = number
   default     = 200
 }
@@ -52,4 +52,10 @@ variable "budget_amount" {
 variable "budget_alert_email" {
   description = "Email to receive budget threshold notifications. Required — set in terraform.tfvars."
   type        = string
+}
+
+variable "budget_currency" {
+  description = "ISO 4217 currency code for the budget. MUST match the billing account's currency (the API rejects mismatches)."
+  type        = string
+  default     = "CAD"
 }
