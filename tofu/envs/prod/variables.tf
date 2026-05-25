@@ -50,7 +50,6 @@ variable "budget_amount" {
 }
 
 variable "budget_alert_email" {
-  description = "Email to receive budget threshold notifications."
+  description = "Email to receive budget threshold notifications. Required — set in terraform.tfvars."
   type        = string
-  default     = "fritz@latebit.io"
 }

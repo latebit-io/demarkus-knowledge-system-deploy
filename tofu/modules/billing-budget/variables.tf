@@ -23,6 +23,11 @@ variable "amount" {
   description = "Monthly budget amount (whole currency units, no decimals)."
   type        = number
   default     = 200
+
+  validation {
+    condition     = var.amount > 0 && floor(var.amount) == var.amount
+    error_message = "amount must be a positive whole number — the Cloud Billing Budget API's specified_amount.units only accepts whole currency units (fractions would need to go through .nanos, which this module doesn't expose)."
+  }
 }
 
 variable "currency_code" {
