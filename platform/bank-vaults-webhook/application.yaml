@@ -1,0 +1,112 @@
+# bank-vaults vault-secrets-webhook: mutating admission webhook that rewrites
+# pod spec at admission time. Pods annotated with vault.security.banzaicloud.io/*
+# get an injected vault-env init container that fetches secrets from OpenBao
+# at pod start (env values like `vault:secret/data/path#key` are replaced
+# before the main container starts).
+#
+# Sync wave -1 (alongside OpenBao). The webhook itself doesn't need OpenBao
+# at install time — it only calls OpenBao when admission requests with
+# vault: env refs come in (starts in Phase 7 with the broker).
+#
+# OpenBao is API-compatible with Vault 1.14 so the bank-vaults webhook works
+# unchanged — it speaks the Vault HTTP API.
+#
+# ────────────────────────────────────────────────────────────────────────
+# AUTH WIRING (one-time, AFTER OpenBao is initialized in Phase 5e):
+#
+# bank-vaults uses OpenBao's Kubernetes auth method to authenticate
+# admission-mutation requests. To wire it up:
+#
+#   kubectl -n openbao exec -ti openbao-0 -- /bin/sh -c '
+#     export BAO_TOKEN=<root-token>
+#     bao auth enable kubernetes
+#     bao write auth/kubernetes/config \
+#       kubernetes_host="https://kubernetes.default.svc:443"
+#   '
+#
+# Per-app roles + policies are created when that app needs to read its
+# secrets (e.g. Phase 7 wires `secret/broker/*` for the broker).
+# ────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bank-vaults-webhook
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: ghcr.io/bank-vaults/helm-charts
+    chart: vault-secrets-webhook
+    targetRevision: 1.22.2
+    helm:
+      releaseName: vault-secrets-webhook
+      values: |
+        # Webhook container — chart's appVersion field is the placeholder
+        # "latest" at source-time and gets rewritten on release. Pin explicit.
+        image:
+          repository: ghcr.io/bank-vaults/vault-secrets-webhook
+          tag: "v1.22.2"
+          pullPolicy: IfNotPresent
+
+        # vault-env init container the webhook injects into mutated pods.
+        # Chart's default for 1.22.2 is v1.22.1; pin to that.
+        vaultEnv:
+          repository: ghcr.io/bank-vaults/vault-env
+          tag: "v1.22.1"
+
+        replicaCount: 1
+
+        # Mutate secrets but not configmaps (default config). Failure policy
+        # Ignore so a webhook outage doesn't block all cluster admissions —
+        # any pod that genuinely needs secrets will fail to start on its own.
+        configMapMutation: false
+        secretsMutation: true
+        configMapFailurePolicy: Ignore
+        secretsFailurePolicy: Ignore
+
+        # Don't mutate pods in system namespaces — keep the webhook narrowly
+        # scoped to user namespaces and explicitly avoid creating circular
+        # admission loops on the webhook's own namespace.
+        namespaceSelector:
+          matchExpressionsForNamespaceSelector:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+                - kube-node-lease
+                - kube-public
+                - argocd
+                - cert-manager
+                - ingress-nginx
+                - external-dns
+                - openbao
+                - bank-vaults-webhook
+                - gke-system
+                - gke-managed-system
+                - gmp-system
+                - gmp-public
+
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
+
+        metrics:
+          enabled: false
+
+        podDisruptionBudget:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bank-vaults-webhook
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
