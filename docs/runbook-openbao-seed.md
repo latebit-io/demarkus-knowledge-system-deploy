@@ -129,7 +129,8 @@ bao policy read broker                           # path "secret/data/broker/*" r
 ```
 
 All five must succeed. If any does not, re-run the seed script — it
-reports which step failed and exits non-zero.
+exits non-zero on the first failing command; use the last `==>` log line
+to identify where it failed.
 
 ## Step 4 — Tear down
 

@@ -81,8 +81,10 @@ bao write auth/kubernetes/config \
 
 # ── 2. kv-v2 secrets engine at secret/ ────────────────────────────────────
 log "Ensuring kv-v2 is mounted at secret/"
-if bao secrets list -format=json | jq -e '."secret/" | select(.type=="kv")' >/dev/null; then
+if bao secrets list -format=json | jq -e '."secret/" | select(.type=="kv" and (.options.version=="2" or .version==2))' >/dev/null; then
   log "  already mounted — skipping enable"
+elif bao secrets list -format=json | jq -e '."secret/"' >/dev/null; then
+  die "secret/ is mounted but not kv-v2; remount as kv-v2 before seeding"
 else
   bao secrets enable -path=secret -version=2 kv
 fi
