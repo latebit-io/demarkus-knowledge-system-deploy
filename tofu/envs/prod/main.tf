@@ -69,4 +69,5 @@ module "billing_budget" {
   billing_account = var.billing_account
   alert_email     = var.budget_alert_email
   amount          = var.budget_amount
+  currency_code   = var.budget_currency
 }
