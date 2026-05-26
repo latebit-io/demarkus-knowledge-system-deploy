@@ -1,0 +1,74 @@
+# Demarkus worlds. One Argo Application per entry in
+# generators[0].list.elements; each installs the demarkus-server chart
+# into its own namespace.
+#
+# Pattern from deploy/k8s/examples/applicationset.yaml in the demarkus
+# monorepo. Per-world isolation via namespace boundary; per-world
+# RBAC for the broker is provisioned by the broker chart's worlds[]
+# list (see apps/demarkus-broker/application.yaml).
+#
+# Sync wave: 1 (per bootstrap/root-appset.yaml). Runs in parallel with
+# the broker Application — the broker's per-world Role+RoleBinding apply
+# may race world-a's namespace creation on first sync, but Argo retries
+# until both converge.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demarkus-worlds
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  generators:
+    - list:
+        elements:
+          - name: world-a
+  template:
+    metadata:
+      name: "{{name}}"
+    spec:
+      project: default
+      source:
+        repoURL: ghcr.io/latebit-io/charts
+        chart: demarkus-server
+        targetRevision: 0.17.10
+        helm:
+          releaseName: "{{name}}"
+          values: |
+            # ClusterIP service — the broker reaches each world via the
+            # standard in-cluster Service DNS (`{name}.{name}.svc.
+            # cluster.local:6309`), no external mark:// exposure yet.
+            service:
+              type: ClusterIP
+            storage:
+              size: 1Gi
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{name}}"
+      # The StatefulSet's volumeClaimTemplates picks up server-side
+      # defaults (volumeMode, apiVersion/kind, status) the Helm-rendered
+      # manifest doesn't carry. volumeClaimTemplates is immutable on a
+      # StatefulSet, so ignoring drift on the whole block costs nothing
+      # operationally and stops Argo from looping on a sync it cannot
+      # converge.
+      #
+      # The world's tokens Secret holds runtime state — the broker
+      # appends per-mint hash entries to data.tokens.toml on each token
+      # mint. Without ignoring /data, Argo's selfHeal would revert every
+      # mint immediately back to the chart-rendered admin-only contents.
+      ignoreDifferences:
+        - group: apps
+          kind: StatefulSet
+          jsonPointers:
+            - /spec/volumeClaimTemplates
+        - kind: Secret
+          name: "{{name}}-demarkus-server-tokens"
+          jsonPointers:
+            - /data
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
