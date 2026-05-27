@@ -31,7 +31,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.17.10
+        targetRevision: 0.17.11
         helm:
           releaseName: "{{name}}"
           values: |
