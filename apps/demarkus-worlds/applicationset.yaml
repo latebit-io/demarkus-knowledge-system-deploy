@@ -35,6 +35,14 @@ spec:
         helm:
           releaseName: "{{name}}"
           values: |
+            # Pin image.tag explicitly because the demarkus-server chart's
+            # appVersion drifted from its version (chart 0.17.11 renders
+            # image 0.17.10). Without this override the fsnotify
+            # hot-reload fix in server 0.17.11 doesn't ship to the pod
+            # even after a chart bump. Remove once the upstream chart
+            # release pipeline keeps appVersion == version.
+            image:
+              tag: "0.17.11"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
