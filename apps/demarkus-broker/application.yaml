@@ -26,7 +26,7 @@ spec:
   source:
     repoURL: ghcr.io/latebit-io/charts
     chart: demarkus-broker
-    targetRevision: 0.1.19
+    targetRevision: 0.1.20
     helm:
       releaseName: demarkus-broker
       values: |
@@ -36,11 +36,11 @@ spec:
         # posture.
         replicaCount: 2
 
-        # Image tag defaults to .Chart.appVersion (0.1.19); explicit pin
+        # Image tag defaults to .Chart.appVersion (0.1.20); explicit pin
         # so an unexpected chart bump can't pull in a controller newer
         # than what was reviewed here.
         image:
-          tag: "0.1.19"
+          tag: "0.1.20"
 
         server:
           # Management API base URL. Advertised as `issuer` in
@@ -92,10 +92,13 @@ spec:
             # mark:// client). Adding it later requires a publicly-
             # routable mark:// endpoint (LoadBalancer or QUIC ingress).
             allow:
-              # Lock down to the OAuth client's only test user during
-              # bootstrap. Broaden once the consent screen is published
-              # and more real users need access.
+              # Test-user allowlist while the Google OAuth consent
+              # screen is in Testing mode. Both addresses are Fritz's;
+              # listing both means a sign-in from either account
+              # completes the world-mint step. Broaden once the consent
+              # screen is published and more real users need access.
               emails:
+                - fritz@latebit.io
                 - fredrick.seitz@gmail.com
             defaultToken:
               paths: ["/*"]
