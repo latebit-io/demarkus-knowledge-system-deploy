@@ -26,7 +26,7 @@ spec:
   source:
     repoURL: ghcr.io/latebit-io/charts
     chart: demarkus-broker
-    targetRevision: 0.1.20
+    targetRevision: 0.1.21
     helm:
       releaseName: demarkus-broker
       values: |
@@ -40,11 +40,11 @@ spec:
         # Revisit when upstream broker grows a Secret-backed store.
         replicaCount: 1
 
-        # Image tag defaults to .Chart.appVersion (0.1.20); explicit pin
+        # Image tag defaults to .Chart.appVersion (0.1.21); explicit pin
         # so an unexpected chart bump can't pull in a controller newer
         # than what was reviewed here.
         image:
-          tag: "0.1.20"
+          tag: "0.1.21"
 
         server:
           # Management API base URL. Advertised as `issuer` in
@@ -132,6 +132,17 @@ spec:
                 issuerRef:
                   kind: ClusterIssuer
                   name: letsencrypt-prod
+
+        # Broker → world QUIC dial posture. Each world's cert is
+        # issued by the `selfsigned` ClusterIssuer (no shared CA the
+        # broker can trust), so strict TLS chain verification fails
+        # with "signed by unknown authority". Skip-verify is the
+        # in-cluster trust model: QUIC still encrypts on the wire,
+        # and NetworkPolicy + cluster RBAC do the real isolation.
+        # Flip back to false once a shared CA Issuer + broker-side
+        # caBundle config is wired.
+        worldDialer:
+          insecureSkipVerify: true
 
         # rbac.create stays true (default) so the chart provisions the
         # broker-namespace Role for the sweeper Lease + issuances Secret
