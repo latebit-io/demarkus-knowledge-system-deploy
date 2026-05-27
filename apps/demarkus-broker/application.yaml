@@ -30,11 +30,15 @@ spec:
     helm:
       releaseName: demarkus-broker
       values: |
-        # Two replicas — broker is stateless modulo k8s Secret writes
-        # (resourceVersion optimistic concurrency); sweeper coordinates
-        # via a coordination.k8s.io/Lease, so N>=2 is the production
-        # posture.
-        replicaCount: 2
+        # Single replica until the broker has shared state for the
+        # in-memory deviceStore + authCodeStore. With N>=2 the OAuth
+        # callback can land on a different pod than /device/authorize
+        # did and fail with "authorization session expired" because the
+        # device_code lives only in the originating pod's memory. The
+        # signed state cookie is replica-agnostic (HMAC keyed off a
+        # shared secret), but the device/auth-code stores aren't.
+        # Revisit when upstream broker grows a Secret-backed store.
+        replicaCount: 1
 
         # Image tag defaults to .Chart.appVersion (0.1.20); explicit pin
         # so an unexpected chart bump can't pull in a controller newer
