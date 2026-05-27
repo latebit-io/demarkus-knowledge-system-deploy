@@ -172,6 +172,39 @@ spec:
               - bao status -tls-skip-verify || [ $? -eq 2 ]
             initialDelaySeconds: 60
 
+          # Admin ingress at openbao.knowledge.demarkus.io. Gated by
+          # oauth2-proxy at auth.knowledge.demarkus.io (GitHub OAuth,
+          # org latebit-io). Cookie domain `.knowledge.demarkus.io` so
+          # a single login covers openbao + argocd + future admin
+          # hosts.
+          #
+          # The ingress points at the openbao Service's HTTP port
+          # (8200); in-cluster TLS to OpenBao stays disabled today
+          # (see TLS-enable path above). Edge TLS (Let's Encrypt)
+          # terminates at ingress-nginx; admin traffic between nginx
+          # and OpenBao traverses the pod network unencrypted until
+          # the in-cluster TLS path is flipped on. Acceptable for the
+          # admin UI given the low rate of use.
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - host: openbao.knowledge.demarkus.io
+                paths: []
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+              nginx.ingress.kubernetes.io/auth-url: "https://auth.knowledge.demarkus.io/oauth2/auth"
+              nginx.ingress.kubernetes.io/auth-signin: "https://auth.knowledge.demarkus.io/oauth2/start?rd=$escaped_request_uri"
+              nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Preferred-Username"
+              # OpenBao UI loads a chunky JS bundle; raise the proxy
+              # body size cap so admin actions like uploading a
+              # policy file via UI don't 413.
+              nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+            tls:
+              - hosts:
+                  - openbao.knowledge.demarkus.io
+                secretName: openbao-tls
+
         # The Kubernetes injector ships with this chart but we use
         # bank-vaults (Phase 5f) instead, which is more flexible.
         injector:
@@ -180,8 +213,13 @@ spec:
         csi:
           enabled: false
 
-        # UI Service off — reach the UI via kubectl port-forward to
-        # openbao-0:8200. We'll wire ingress later if needed.
+        # UI Service off — the chart's `ui` block creates a separate
+        # LoadBalancer/ClusterIP for direct UI access (used when no
+        # ingress controller). We route through ingress-nginx instead
+        # (see server.ingress above). The OpenBao binary serves the
+        # UI at /ui/ on the API port (port 8200, enabled via `ui = true`
+        # in the HCL standalone.config above) — the ingress lands
+        # there via the existing openbao Service.
         ui:
           enabled: false
   destination:

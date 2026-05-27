@@ -6,13 +6,35 @@ global:
   # are wired. For now, ArgoCD is only reachable via kubectl port-forward.
   domain: argocd.knowledge.demarkus.io
 
-# Server: HTTP only (TLS terminates at the ingress in Phase 5).
+# Server: HTTP only (TLS terminates at the ingress).
 server:
   replicas: 1
   service:
     type: ClusterIP
   extraArgs:
     - --insecure
+  # Admin ingress at argocd.knowledge.demarkus.io. Gated by oauth2-proxy
+  # at auth.knowledge.demarkus.io — every request the proxy hasn't already
+  # authenticated gets redirected through GitHub OAuth (org=latebit-io).
+  # A single login covers argocd + openbao + any future admin host
+  # (cookie domain = .knowledge.demarkus.io).
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: argocd.knowledge.demarkus.io
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      # auth-url returns 202 if the cookie is valid, 401 otherwise.
+      # auth-signin handles the 401 case by redirecting to oauth2-proxy's
+      # /oauth2/start, which in turn redirects to GitHub for login.
+      nginx.ingress.kubernetes.io/auth-url: "https://auth.knowledge.demarkus.io/oauth2/auth"
+      nginx.ingress.kubernetes.io/auth-signin: "https://auth.knowledge.demarkus.io/oauth2/start?rd=$escaped_request_uri"
+      # Forward the authenticated user's GitHub identity to ArgoCD so
+      # audit logs and RBAC (if wired) see who did what. Headers come
+      # from oauth2-proxy and are stripped+re-set by ingress-nginx to
+      # prevent header smuggling.
+      nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Preferred-Username"
+    tls: true
 
 # Application controller: single shard, single replica.
 controller:

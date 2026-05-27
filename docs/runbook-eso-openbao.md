@@ -48,6 +48,13 @@ bao policy write external-secrets - <<'POLICY'
 path "secret/data/broker/*" {
   capabilities = ["read"]
 }
+# Extend as new apps need ESO-bridged secrets. Each app gets its own
+# path prefix under secret/data/ so a misbehaving consumer of one
+# can't read another's secrets. Current additions:
+#   - oauth2-proxy/* (Phase 7c admin auth — see runbook-oauth2-proxy.md)
+path "secret/data/oauth2-proxy/*" {
+  capabilities = ["read"]
+}
 POLICY
 
 bao write auth/kubernetes/role/external-secrets \
