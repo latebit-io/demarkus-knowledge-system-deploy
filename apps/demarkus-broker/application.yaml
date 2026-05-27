@@ -26,7 +26,7 @@ spec:
   source:
     repoURL: ghcr.io/latebit-io/charts
     chart: demarkus-broker
-    targetRevision: 0.1.22
+    targetRevision: 0.1.23
     helm:
       releaseName: demarkus-broker
       values: |
@@ -40,11 +40,11 @@ spec:
         # Revisit when upstream broker grows a Secret-backed store.
         replicaCount: 1
 
-        # Image tag defaults to .Chart.appVersion (0.1.22); explicit pin
+        # Image tag defaults to .Chart.appVersion (0.1.23); explicit pin
         # so an unexpected chart bump can't pull in a controller newer
         # than what was reviewed here.
         image:
-          tag: "0.1.22"
+          tag: "0.1.23"
 
         server:
           # Management API base URL. Advertised as `issuer` in
