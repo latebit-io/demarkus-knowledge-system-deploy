@@ -59,6 +59,20 @@ spec:
           # config Secret across upgrades.
           cookieKey: ""
 
+          # MCP gateway first-mint retry budget. Chart defaults
+          # (6 attempts, max 8s backoff) total ~16s — observed on
+          # this cluster to fall ~1s short of kubelet's Secret-volume
+          # propagation lag after world-a-tokens was re-bootstrapped,
+          # so the first publish following a world Secret recreate
+          # failed with "broker: world X rejected write token after N
+          # attempts." Tuned up here until the chart's defaults catch
+          # up upstream. Total budget: 250ms+500ms+1s+2s+4s+8s+
+          # 15s+15s+15s+15s ≈ 76s, comfortably past kubelet's worst-
+          # case syncFrequency (60s).
+          mcp:
+            firstMintMaxAttempts: 10
+            firstMintMaxBackoff: 15s
+
         oidc:
           issuer: "https://accounts.google.com"
           # client_id is a public identifier — Google embeds it in the
