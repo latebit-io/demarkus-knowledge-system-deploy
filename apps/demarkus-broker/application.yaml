@@ -106,7 +106,17 @@ spec:
                 - fredrick.seitz@gmail.com
             defaultToken:
               paths: ["/*"]
-              operations: ["read", "publish"]
+              # Publish-only. The broker's read path (mcp_tools_read.go)
+              # deliberately sends an empty bearer to world servers,
+              # relying on the world's "no token has `read` operation →
+              # reads are public" invariant. If any token (including the
+              # broker's own write token) carries `read`, the world flips
+              # to read-auth-required and the broker's empty-bearer reads
+              # fail with `unauthorized`. Keep this list write-only and
+              # rely on the world's default public-read posture; the
+              # broker token only needs `publish` to write what the
+              # MCP gateway proxies through.
+              operations: ["publish"]
               expiresAfter: 24h
 
         ingress:
