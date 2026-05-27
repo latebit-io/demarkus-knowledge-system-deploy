@@ -35,6 +35,16 @@ spec:
         helm:
           releaseName: "{{name}}"
           values: |
+            # fullnameOverride pins every chart-rendered resource name
+            # to the bare world name (Service, StatefulSet, tokens
+            # Secret, ServiceAccount) instead of the chart's default
+            # `<releaseName>-demarkus-server` suffix. With Service name
+            # == world name, the broker's MCP gateway's default DNS
+            # lookup `<worldName>.<namespace>.svc.cluster.local:6309`
+            # resolves cleanly and no per-world internalAddress
+            # override is needed. Future worlds added via this
+            # ApplicationSet inherit the same convention.
+            fullnameOverride: "{{name}}"
             # ClusterIP service — the broker reaches each world via the
             # standard in-cluster Service DNS (`{name}.{name}.svc.
             # cluster.local:6309`), no external mark:// exposure yet.
@@ -62,7 +72,7 @@ spec:
           jsonPointers:
             - /spec/volumeClaimTemplates
         - kind: Secret
-          name: "{{name}}-demarkus-server-tokens"
+          name: "{{name}}-tokens"
           jsonPointers:
             - /data
       syncPolicy:
