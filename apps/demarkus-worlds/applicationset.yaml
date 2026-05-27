@@ -52,6 +52,25 @@ spec:
               type: ClusterIP
             storage:
               size: 1Gi
+            # TLS — Mark Protocol speaks QUIC, so TLS is mandatory.
+            # Without this block the chart falls into the dev-mode
+            # self-signed cert path with SAN=localhost only, which the
+            # broker rejects when it dials the cluster Service DNS.
+            #
+            # The `selfsigned` ClusterIssuer (from
+            # platform/cert-manager/cluster-issuers.yaml) is the right
+            # issuer for in-cluster .svc.cluster.local names —
+            # Let's Encrypt cannot validate those over HTTP-01.
+            # dnsNames defaults to `<release>.<namespace>.svc.cluster.
+            # local` per the chart, which resolves to
+            # `{{name}}.{{name}}.svc.cluster.local` here — exactly the
+            # host the broker's MCP gateway dials.
+            tls:
+              certManager:
+                enabled: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: selfsigned
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{name}}"
