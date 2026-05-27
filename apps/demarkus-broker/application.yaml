@@ -90,6 +90,15 @@ spec:
           - name: world-a
             namespace: world-a
             tokensSecret: world-a-demarkus-server-tokens
+            # Override the gateway's default Service-DNS lookup. The
+            # broker's MCP gateway defaults to
+            # `<worldName>.<namespace>.svc.cluster.local:6309`, but the
+            # demarkus-server chart names its Service
+            # `<releaseName>-demarkus-server`, not bare `<releaseName>`
+            # — so the default lookup misses. Explicit override matches
+            # `kubectl -n world-a get svc`. Host:port only; the
+            # `mark://` scheme is implicit.
+            internalAddress: world-a-demarkus-server.world-a:6309
             # No publicURL — world is reachable through the broker's MCP
             # gateway, not via mark:// directly. /me/install will omit
             # this world from its response (no address to hand to a
