@@ -60,6 +60,18 @@ spec:
               type: ClusterIP
             storage:
               size: 1Gi
+            # Bootstrap admin token publish-only for the same reason the
+            # broker's defaultToken.operations is publish-only (see
+            # apps/demarkus-broker/application.yaml). Any token with
+            # `read` in operations flips the world into
+            # read-auth-required mode, which breaks the broker's
+            # empty-bearer reads. The chart's bootstrap Job writes this
+            # admin token into the world's tokens.toml once at install
+            # time; making it publish-only keeps the read surface public
+            # so the broker can proxy reads without a token.
+            tokens:
+              admin:
+                operations: ["publish"]
             # TLS — Mark Protocol speaks QUIC, so TLS is mandatory.
             # Without this block the chart falls into the dev-mode
             # self-signed cert path with SAN=localhost only, which the
