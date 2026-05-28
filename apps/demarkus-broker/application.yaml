@@ -119,7 +119,15 @@ spec:
                 - fritz@latebit.io
                 - fredrick.seitz@gmail.com
             defaultToken:
-              paths: ["/*"]
+              # `/**` is recursive; `/*` would limit the broker's
+              # write token to root-level paths only because Go's
+              # path.Match treats `*` as "any sequence of
+              # non-Separator chars" — so `/*` matches `/foo.md` but
+              # rejects `/sub/foo.md`. World servers use this Go
+              # matcher (server/internal/auth/auth.go:matchPath); the
+              # broker needs `/**` to write into any non-trivial
+              # document tree.
+              paths: ["/**"]
               # Publish-only. The broker's read path (mcp_tools_read.go)
               # deliberately sends an empty bearer to world servers,
               # relying on the world's "no token has `read` operation →
