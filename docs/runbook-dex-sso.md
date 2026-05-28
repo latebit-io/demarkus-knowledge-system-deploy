@@ -214,20 +214,27 @@ bao write auth/oidc/role/viewer \
   oidc_scopes="openid,email,profile,groups" \
   ttl="8h"
 
-# Admin role gated on the email claim. Add more entries to the
-# bound_claims email list as operators come on. To switch to GitHub
-# team-based gating later, change `bound_claims` to
-# {"groups": ["latebit-io:admins"]} (Dex's teamNameField=both emits
-# the org:team form) and create a corresponding GitHub team.
-bao write auth/oidc/role/admin \
-  bound_audiences="openbao" \
-  allowed_redirect_uris="https://openbao.knowledge.demarkus.io/ui/vault/auth/oidc/oidc/callback,http://localhost:8250/oidc/callback" \
-  user_claim="email" \
-  bound_claims_type="string" \
-  bound_claims='{"email":["fritz@latebit.io"]}' \
-  token_policies="admin" \
-  oidc_scopes="openid,email,profile,groups" \
-  ttl="8h"
+# Admin role gated on the email claim. The bao CLI's `key=value`
+# parser doesn't JSON-decode nested values, so bound_claims has to
+# come in via stdin as a real JSON object — pass `-` after the path
+# and pipe the payload. Add more entries to bound_claims.email as
+# operators come on. To switch to GitHub team-based gating later,
+# change bound_claims to {"groups": ["latebit-io:admins"]} (Dex's
+# teamNameField=both emits the org:team form) and create a
+# corresponding GitHub team.
+bao write auth/oidc/role/admin - <<'EOF'
+{
+  "bound_audiences": "openbao",
+  "allowed_redirect_uris": "https://openbao.knowledge.demarkus.io/ui/vault/auth/oidc/oidc/callback,http://localhost:8250/oidc/callback",
+  "user_claim": "email",
+  "bound_claims": {
+    "email": ["fritz@latebit.io"]
+  },
+  "token_policies": "admin",
+  "oidc_scopes": "openid,email,profile,groups",
+  "ttl": "8h"
+}
+EOF
 ```
 
 Verify:
