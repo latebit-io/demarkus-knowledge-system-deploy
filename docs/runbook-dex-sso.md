@@ -139,10 +139,10 @@ curl -sS https://dex.knowledge.demarkus.io/.well-known/openid-configuration | jq
 
 ArgoCD's chart values changed (oidc.config added, oauth2-proxy
 annotations removed). Tofu manages ArgoCD's chart, so the values bump
-needs a tofu apply:
+needs a tofu apply. From the repo root:
 
 ```sh
-cd /Users/fritz/latebit/demarkus-knowledge-system-deploy/tofu/envs/prod
+cd tofu/envs/prod
 tofu state list | grep -i argocd
 tofu apply -target=module.<argocd-module-name>
 ```
@@ -168,26 +168,63 @@ bao write auth/oidc/config \
   oidc_discovery_url="https://dex.knowledge.demarkus.io" \
   oidc_client_id="openbao" \
   oidc_client_secret="$OPENBAO_CLIENT_SECRET" \
-  default_role="admin"
+  default_role="viewer"
 ```
 
-Create a role that maps OIDC logins to OpenBao policies. For now,
-single `admin` role mapped to a permissive policy:
+`default_role=viewer` means a plain `bao login -method=oidc` (no
+`role=` argument) lands the user in the read-only role. Admins
+explicitly opt in with `bao login -method=oidc role=admin`, and the
+admin role is gated on an `email` claim match so only the listed
+operators can take it.
+
+Create the two policies first — least-privilege `viewer`, full-access
+`admin`:
 
 ```sh
+bao policy write viewer - <<'POLICY'
+# Read-only OpenBao access for OIDC-authed org members. Enough to
+# explore mounts and read non-sensitive values from secret/. Does NOT
+# include the broker/* or oauth2-proxy/* or dex/* prefixes — those
+# carry actual credentials, gated on the admin role.
+path "sys/health"          { capabilities = ["read"] }
+path "sys/mounts"          { capabilities = ["read", "list"] }
+path "sys/auth"            { capabilities = ["read", "list"] }
+path "auth/oidc/config"    { capabilities = ["read"] }
+POLICY
+
 bao policy write admin - <<'POLICY'
-# Admin policy for OIDC-authed users. Grants full access to the kv
-# mount + auth/token management. Tighten when there are multiple
-# personas; team-based mapping uses `groups_claim` per role.
+# Admin policy. Grants full access. Issued only to OIDC role `admin`,
+# which itself is bound to a specific email claim (see role config
+# below). Scope down further by splitting into per-team roles when
+# more than one operator needs distinct authority.
 path "*" {
   capabilities = ["create", "read", "update", "delete", "list", "sudo"]
 }
 POLICY
+```
 
+Create the two roles:
+
+```sh
+bao write auth/oidc/role/viewer \
+  bound_audiences="openbao" \
+  allowed_redirect_uris="https://openbao.knowledge.demarkus.io/ui/vault/auth/oidc/oidc/callback,http://localhost:8250/oidc/callback" \
+  user_claim="email" \
+  token_policies="viewer" \
+  oidc_scopes="openid,email,profile,groups" \
+  ttl="8h"
+
+# Admin role gated on the email claim. Add more entries to the
+# bound_claims email list as operators come on. To switch to GitHub
+# team-based gating later, change `bound_claims` to
+# {"groups": ["latebit-io:admins"]} (Dex's teamNameField=both emits
+# the org:team form) and create a corresponding GitHub team.
 bao write auth/oidc/role/admin \
   bound_audiences="openbao" \
   allowed_redirect_uris="https://openbao.knowledge.demarkus.io/ui/vault/auth/oidc/oidc/callback,http://localhost:8250/oidc/callback" \
   user_claim="email" \
+  bound_claims_type="string" \
+  bound_claims='{"email":["fritz@latebit.io"]}' \
   token_policies="admin" \
   oidc_scopes="openid,email,profile,groups" \
   ttl="8h"
@@ -197,6 +234,7 @@ Verify:
 
 ```sh
 bao read auth/oidc/config
+bao read auth/oidc/role/viewer
 bao read auth/oidc/role/admin
 ```
 
@@ -213,10 +251,18 @@ Browser:
 CLI:
 
 ```sh
+# Default role (viewer) — works for any latebit-io org member
+bao login -method=oidc
+bao token lookup
+# expect: policies=[viewer, default]
+
+# Admin role — only succeeds for emails in the bound_claims list
 bao login -method=oidc role=admin
-# Opens browser flow; on success returns a Vault token
 bao token lookup
 # expect: policies=[admin, default]
+# If your email isn't in the bound_claims list, this fails with
+# `Code: 400. Errors: error validating claims: claim "email" does
+# not match any of the bound claim values`.
 ```
 
 ## Step 9 — Tear down
@@ -237,5 +283,5 @@ unset BAO_TOKEN BAO_ADDR ARGOCD_CLIENT_SECRET OPENBAO_CLIENT_SECRET
 ## What's deferred
 
 - **ArgoCD RBAC.** OIDC currently authenticates everyone to ArgoCD's default `readonly` role. Wire `configs.rbac.policy.csv` with team → role mappings when there are real admins vs. observers.
-- **OpenBao multi-role.** Single `admin` role maps every OIDC login to full access. Add per-team roles (`role/observers`, `role/engineers`, etc.) with bound `groups_claim` when role separation matters.
+- **OpenBao team-based admin.** Admin role is gated on an email allowlist (`bound_claims.email`). To scale beyond a handful of operators, create a GitHub team (e.g. `latebit-io/admins`) and switch `bound_claims` to `{"groups": ["latebit-io:admins"]}` — Dex's `teamNameField=both` emits the org:team form.
 - **oauth2-proxy retirement.** Once Dex is the standard for admin auth, oauth2-proxy at `auth.knowledge.demarkus.io` is only useful for non-OIDC hosts. Reassess when adding the next admin app; if it speaks OIDC, drop oauth2-proxy entirely.
