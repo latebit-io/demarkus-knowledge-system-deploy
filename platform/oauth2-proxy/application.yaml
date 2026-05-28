@@ -101,13 +101,23 @@ spec:
 
         # Ingress at auth.knowledge.demarkus.io. cert-manager issues
         # the TLS cert from letsencrypt-prod; external-dns creates the
-        # A record from the ingress hostname.
+        # A record from the ingress host.
+        #
+        # The chart's ingress schema uses `hosts:` (a list) rather than
+        # the more common `hostname:` (singular) — getting this wrong
+        # silently skips rendering the Ingress entirely (no template
+        # error; the conditional just falls through). Initial values
+        # used `hostname:` and produced no Ingress at all, leaving
+        # nginx-ingress's auth subrequest unable to resolve
+        # auth.knowledge.demarkus.io and returning 500 to admin-host
+        # visitors.
         ingress:
           enabled: true
           className: nginx
-          hostname: auth.knowledge.demarkus.io
           path: /
           pathType: Prefix
+          hosts:
+            - auth.knowledge.demarkus.io
           annotations:
             cert-manager.io/cluster-issuer: letsencrypt-prod
           tls:
