@@ -52,7 +52,11 @@ path "secret/data/broker/*" {
 # path prefix under secret/data/ so a misbehaving consumer of one
 # can't read another's secrets. Current additions:
 #   - oauth2-proxy/* (Phase 7c admin auth — see runbook-oauth2-proxy.md)
+#   - dex/*          (Phase 7c SSO — see runbook-dex-sso.md)
 path "secret/data/oauth2-proxy/*" {
+  capabilities = ["read"]
+}
+path "secret/data/dex/*" {
   capabilities = ["read"]
 }
 POLICY

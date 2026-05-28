@@ -172,19 +172,22 @@ spec:
               - bao status -tls-skip-verify || [ $? -eq 2 ]
             initialDelaySeconds: 60
 
-          # Admin ingress at openbao.knowledge.demarkus.io. Gated by
-          # oauth2-proxy at auth.knowledge.demarkus.io (GitHub OAuth,
-          # org latebit-io). Cookie domain `.knowledge.demarkus.io` so
-          # a single login covers openbao + argocd + future admin
-          # hosts.
+          # Admin ingress at openbao.knowledge.demarkus.io. OpenBao
+          # now uses its native OIDC auth method against the
+          # standalone Dex (see docs/runbook-dex-sso.md) — the
+          # oauth2-proxy edge gate has been dropped here because
+          # gating Dex's downstream consumer behind oauth2-proxy
+          # (which also uses GitHub OAuth) would force a double-login.
+          # OpenBao's own login screen is the auth surface; UI access
+          # requires a valid OpenBao token, which the OIDC method
+          # mints from a Dex-issued id_token.
           #
-          # The ingress points at the openbao Service's HTTP port
-          # (8200); in-cluster TLS to OpenBao stays disabled today
-          # (see TLS-enable path above). Edge TLS (Let's Encrypt)
-          # terminates at ingress-nginx; admin traffic between nginx
-          # and OpenBao traverses the pod network unencrypted until
-          # the in-cluster TLS path is flipped on. Acceptable for the
-          # admin UI given the low rate of use.
+          # In-cluster TLS to OpenBao stays disabled (see TLS-enable
+          # path above). Edge TLS (Let's Encrypt) terminates at
+          # ingress-nginx; admin traffic between nginx and OpenBao
+          # traverses the pod network unencrypted until the in-cluster
+          # TLS path is flipped on. Acceptable for the admin UI given
+          # the low rate of use.
           ingress:
             enabled: true
             ingressClassName: nginx
@@ -193,9 +196,6 @@ spec:
                 paths: []
             annotations:
               cert-manager.io/cluster-issuer: letsencrypt-prod
-              nginx.ingress.kubernetes.io/auth-url: "https://auth.knowledge.demarkus.io/oauth2/auth"
-              nginx.ingress.kubernetes.io/auth-signin: "https://auth.knowledge.demarkus.io/oauth2/start?rd=$escaped_request_uri"
-              nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Preferred-Username"
               # OpenBao UI loads a chunky JS bundle; raise the proxy
               # body size cap so admin actions like uploading a
               # policy file via UI don't 413.

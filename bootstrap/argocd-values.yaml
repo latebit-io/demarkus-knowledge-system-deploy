@@ -13,27 +13,18 @@ server:
     type: ClusterIP
   extraArgs:
     - --insecure
-  # Admin ingress at argocd.knowledge.demarkus.io. Gated by oauth2-proxy
-  # at auth.knowledge.demarkus.io — every request the proxy hasn't already
-  # authenticated gets redirected through GitHub OAuth (org=latebit-io).
-  # A single login covers argocd + openbao + any future admin host
-  # (cookie domain = .knowledge.demarkus.io).
+  # Admin ingress at argocd.knowledge.demarkus.io. ArgoCD now speaks
+  # OIDC natively via Dex (see configs.cm.oidc.config below), so the
+  # oauth2-proxy edge gate is dropped — keeping both would mean
+  # double-GitHub-auth (oauth2-proxy AND Dex hit the same provider)
+  # for a worse UX. oauth2-proxy stays installed for any future admin
+  # host that doesn't speak OIDC natively.
   ingress:
     enabled: true
     ingressClassName: nginx
     hostname: argocd.knowledge.demarkus.io
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      # auth-url returns 202 if the cookie is valid, 401 otherwise.
-      # auth-signin handles the 401 case by redirecting to oauth2-proxy's
-      # /oauth2/start, which in turn redirects to GitHub for login.
-      nginx.ingress.kubernetes.io/auth-url: "https://auth.knowledge.demarkus.io/oauth2/auth"
-      nginx.ingress.kubernetes.io/auth-signin: "https://auth.knowledge.demarkus.io/oauth2/start?rd=$escaped_request_uri"
-      # Forward the authenticated user's GitHub identity to ArgoCD so
-      # audit logs and RBAC (if wired) see who did what. Headers come
-      # from oauth2-proxy and are stripped+re-set by ingress-nginx to
-      # prevent header smuggling.
-      nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Preferred-Username"
     tls: true
 
 # Application controller: single shard, single replica.
@@ -54,7 +45,10 @@ redis:
 redis-ha:
   enabled: false
 
-# Dex: off. We'll add OIDC later (Phase 6+) once OpenBao + broker are seeded.
+# ArgoCD's bundled Dex stays disabled — we run a STANDALONE Dex
+# (platform/dex/) that ArgoCD + OpenBao both consume as a shared OIDC
+# identity provider. ArgoCD points at the standalone Dex via
+# configs.cm.oidc.config below, not at its bundled copy.
 dex:
   enabled: false
 
@@ -76,3 +70,25 @@ configs:
     timeout.reconciliation: 60s
     # Allow ArgoCD to manage cluster-scoped resources without prompting.
     application.resourceTrackingMethod: annotation
+    # OIDC config pointing at the standalone Dex (platform/dex/).
+    # clientSecret references an ESO-materialized Secret named
+    # `argocd-oidc-client` in the argocd namespace (see
+    # platform/dex/argocd-oidc-client-secret.yaml). ArgoCD's parser
+    # resolves `$<secretName>:<key>` against Secrets in its own
+    # namespace at runtime; the value never lands in helm release
+    # history.
+    #
+    # `groups` scope is requested so ArgoCD's RBAC (configs.rbac.csv,
+    # not wired here yet) can map GitHub team membership claims to
+    # ArgoCD roles. Without it, the id_token carries no group info.
+    url: https://argocd.knowledge.demarkus.io
+    oidc.config: |
+      name: Dex
+      issuer: https://dex.knowledge.demarkus.io
+      clientID: argocd
+      clientSecret: $argocd-oidc-client:client-secret
+      requestedScopes:
+        - openid
+        - profile
+        - email
+        - groups
