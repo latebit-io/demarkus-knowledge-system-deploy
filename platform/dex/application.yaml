@@ -70,119 +70,27 @@ spec:
 
         replicaCount: 1
 
-        # Mount the ESO-bridged Secret as env so Dex's config template
-        # can substitute the credentials at startup. Dex 2.x supports
-        # the $VAR syntax in its YAML config natively — see the
-        # connectors[].config.* and staticClients[].secret fields
-        # below.
-        envFrom:
-          - secretRef:
-              name: dex-credentials
-
-        config:
-          # Issuer URL — the canonical OIDC identifier. Every consuming
-          # app's OIDC config (ArgoCD, OpenBao) MUST set this exact
-          # value as `issuer`, byte-for-byte. Trailing slash matters.
-          issuer: https://dex.knowledge.demarkus.io
-
-          # Storage: kubernetes CRDs. Single source of truth for
-          # refresh tokens + dynamic client state, no external DB.
-          # Survives Dex pod restarts. The chart provisions a Role +
-          # RoleBinding for Dex's SA to manage the storage CRDs in its
-          # own namespace.
-          storage:
-            type: kubernetes
-            config:
-              inCluster: true
-
-          # Web server listen address. Chart handles the Service +
-          # Deployment plumbing; Ingress block below puts it behind
-          # TLS at dex.knowledge.demarkus.io.
-          web:
-            http: 0.0.0.0:5556
-
-          # GitHub OAuth connector — Dex's north-bound identity source.
-          # Credentials come from the dex-credentials Secret (ESO-
-          # materialized from OpenBao secret/dex/github-client).
-          connectors:
-            - type: github
-              id: github
-              name: GitHub
-              config:
-                clientID: $GITHUB_CLIENT_ID
-                clientSecret: $GITHUB_CLIENT_SECRET
-                redirectURI: https://dex.knowledge.demarkus.io/callback
-                # Restrict authentication to verified members of the
-                # latebit-io GitHub org. Same gate as oauth2-proxy; a
-                # user revoked from the org loses access on next login
-                # (existing sessions stay valid until their TTL —
-                # documented in the runbook).
-                orgs:
-                  - name: latebit-io
-                # loadAllGroups=true asks GitHub for the user's full
-                # team list across all visible orgs. Required for
-                # team-based authorization downstream (OpenBao role
-                # mapping uses team claims). Without this, the
-                # `groups` claim in the id_token is empty.
-                loadAllGroups: true
-                # teamNameField=both emits both the team's slug and
-                # name as group claims, so OpenBao roles can match on
-                # either form without operators having to know which
-                # one GitHub uses.
-                teamNameField: both
-                useLoginAsID: false
-
-          # Static OIDC clients for ArgoCD and OpenBao. Each gets its
-          # own client_id (chosen here; trust boundary) and a
-          # client_secret materialized via ESO. Adding a new app =
-          # adding a static client + its callback URL.
-          staticClients:
-            - id: argocd
-              name: ArgoCD
-              secret: $ARGOCD_CLIENT_SECRET
-              redirectURIs:
-                # ArgoCD's standard OIDC callback path. Matches the
-                # bootstrap/argocd-values.yaml configs.cm.oidc.config
-                # `clientID: argocd` and the ArgoCD server's
-                # ${dex.url}/api/dex/callback default.
-                - https://argocd.knowledge.demarkus.io/auth/callback
-            - id: openbao
-              name: OpenBao
-              secret: $OPENBAO_CLIENT_SECRET
-              redirectURIs:
-                # OpenBao UI's OIDC callback path. The path shape
-                # `/ui/vault/auth/<mount>/oidc/callback` is fixed by
-                # the OpenBao UI; <mount> defaults to "oidc" when the
-                # operator enables the auth method at the default
-                # path (see docs/runbook-dex-sso.md).
-                - https://openbao.knowledge.demarkus.io/ui/vault/auth/oidc/oidc/callback
-                # CLI flow uses localhost callback during `bao login
-                # -method=oidc` — listing it lets developers log in
-                # with the CLI in addition to the UI.
-                - http://localhost:8250/oidc/callback
-
-          # OAuth2 config — keep skipApprovalScreen on so the Dex
-          # consent screen doesn't double-confirm what GitHub already
-          # consented to. We're not running an open identity provider
-          # for arbitrary clients; static clients are pre-trusted.
-          oauth2:
-            skipApprovalScreen: true
-            # PKCE support: required for any OIDC client that doesn't
-            # have a confidential client_secret (CLI tools, future
-            # SPAs). ArgoCD + OpenBao both use confidential clients
-            # but enabling PKCE costs nothing and broadens the surface.
-            alwaysShowLoginScreen: false
-
-          # Expire id_tokens / refresh tokens at sane defaults.
-          # 24h id_token, 30d refresh: matches typical SSO ergonomics
-          # — users sign in once per workday, refresh transparently
-          # over the month-long window.
-          expiry:
-            idTokens: 24h
-            signingKeys: 6h
-            refreshTokens:
-              validIfNotUsedFor: 720h
-              absoluteLifetime: 720h
+        # Dex's runtime config.yaml lives entirely in
+        # platform/dex/external-secret.yaml — ESO renders an `Opaque`
+        # Secret named `dex-config` with the values substituted from
+        # OpenBao. The chart's `configSecret.create: false` +
+        # `configSecret.name: dex-config` skips
+        # templates/secret.yaml so the chart doesn't fight ESO over
+        # who owns it.
+        #
+        # Why not the chart's own `config:` block: Dex 2.45.0 doesn't
+        # expand `$VAR` in its config file (no `os.ExpandEnv` pass at
+        # startup), so `secret: $ARGOCD_CLIENT_SECRET` from chart
+        # values would land as a literal string in the static-client
+        # store — every token exchange returns invalid_client because
+        # Dex compares the literal `$ARGOCD_CLIENT_SECRET` against the
+        # actual bytes the OIDC client presents. ESO-rendered config
+        # produces a fully-baked YAML the Dex binary reads as-is, and
+        # credentials still never round-trip through helm release
+        # history.
+        configSecret:
+          create: false
+          name: dex-config
 
         # Ingress at dex.knowledge.demarkus.io. TLS via cert-manager
         # letsencrypt-prod; external-dns creates the A record.
