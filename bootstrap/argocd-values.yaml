@@ -92,3 +92,23 @@ configs:
         - profile
         - email
         - groups
+  # RBAC for OIDC-authed users. Without explicit policy, every Dex
+  # login lands in a no-role state and the user sees zero apps —
+  # ArgoCD's default for OIDC subjects is no grant (separate from the
+  # built-in admin/password user, which always has full access).
+  #
+  # `scopes` tells ArgoCD which id_token claims to consult when
+  # matching `g, <subject>, role:*` lines. We map by `email` (granted
+  # via the email scope in oidc.config above) so the policy.csv reads
+  # naturally. `groups` is included so future team-based mapping
+  # (`g, latebit-io:admins, role:admin`) works without revisiting this
+  # config.
+  rbac:
+    scopes: '[email,groups]'
+    # role:admin is ArgoCD's built-in full-access role. Operators
+    # added to this list see + manage every Application. Tighten to
+    # a `latebit-io:admins` GitHub team when more than one operator
+    # comes on (no policy edit needed — just add them to the team).
+    policy.csv: |
+      g, fritz@latebit.io, role:admin
+      g, fredrick.seitz@gmail.com, role:admin
