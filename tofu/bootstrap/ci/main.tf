@@ -82,6 +82,10 @@ resource "google_storage_bucket_iam_member" "tofu_ci_state" {
 #   projectIamAdmin        → modules/platform-iam (project IAM + WI bindings)
 #   serviceAccountUser     → act as the SAs the modules create/reference
 #   cloudkms.admin         → modules/platform-iam (KMS key ring + unseal key)
+#   monitoring.notificationChannelEditor
+#                          → modules/billing-budget (the budget's email
+#                            notification channel is a project-level Monitoring
+#                            resource; the budget itself uses the billing grant)
 resource "google_project_iam_member" "tofu_ci_prod" {
   for_each = toset([
     "roles/compute.networkAdmin",
@@ -92,6 +96,7 @@ resource "google_project_iam_member" "tofu_ci_prod" {
     "roles/resourcemanager.projectIamAdmin",
     "roles/iam.serviceAccountUser",
     "roles/cloudkms.admin",
+    "roles/monitoring.notificationChannelEditor",
   ])
 
   project = var.prod_project_id
