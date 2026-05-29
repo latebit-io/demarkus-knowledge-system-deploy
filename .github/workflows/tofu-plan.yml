@@ -1,0 +1,140 @@
+name: tofu-plan
+
+# Runs on PRs targeting main. Split into two jobs so untrusted fork PRs never
+# touch cloud credentials:
+#   validate — every PR (incl. forks); no creds, safe for untrusted code.
+#   plan     — same-repo PRs only; authenticates via WIF and comments the plan.
+# The merge of an approved PR is the gate for apply (see tofu-apply.yml).
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tofu/**"
+      - ".github/workflows/tofu-plan.yml"
+
+# Least privilege by default; the plan job widens its own permissions.
+permissions:
+  contents: read
+
+concurrency:
+  group: tofu-plan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # No cloud credentials are configured here. A fork PR can run this, but it
+  # cannot authenticate to GCP, so attacker-supplied tofu has nothing to abuse.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+        with:
+          tofu_version: 1.12.0
+          tofu_wrapper: false
+
+      - name: Format check
+        working-directory: tofu
+        run: tofu fmt -check -recursive
+
+      - name: Init (no backend)
+        working-directory: tofu/envs/prod
+        run: tofu init -backend=false -input=false
+
+      - name: Validate
+        working-directory: tofu/envs/prod
+        run: tofu validate
+
+  # Authenticated plan. Gated to SAME-REPO PRs only: a fork PR's head repo
+  # differs from the base, so the WIF auth step never runs for forks and the
+  # tofu-ci SA's credentials are never exposed to untrusted config.
+  plan:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # mint the OIDC token for Workload Identity Federation
+      pull-requests: write # upsert the plan comment
+    defaults:
+      run:
+        working-directory: tofu/envs/prod
+    env:
+      # *.tfvars is gitignored; inject the values CI needs as TF_VAR_*.
+      TF_VAR_project_id: ${{ vars.TOFU_PROJECT_ID }}
+      TF_VAR_project_name: ${{ vars.TOFU_PROJECT_NAME }}
+      TF_VAR_org_id: ${{ vars.TOFU_ORG_ID }}
+      TF_VAR_billing_account: ${{ secrets.TOFU_BILLING_ACCOUNT }}
+      TF_VAR_budget_alert_email: ${{ secrets.TOFU_BUDGET_ALERT_EMAIL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Authenticate to GCP (WIF)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+        with:
+          tofu_version: 1.12.0
+          tofu_wrapper: false
+
+      - name: Init
+        run: tofu init -input=false
+
+      - name: Plan
+        id: plan
+        run: tofu plan -no-color -input=false -lock-timeout=120s 2>&1 | tee plan.txt
+        continue-on-error: true
+
+      - name: Comment plan on PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          # Comment bodies posted via the API are NOT secret-masked the way log
+          # output is, and this repo is public — redact the secret-store values
+          # before posting so a diff touching the project/budget can't leak them.
+          REDACT_BILLING: ${{ secrets.TOFU_BILLING_ACCOUNT }}
+          REDACT_EMAIL: ${{ secrets.TOFU_BUDGET_ALERT_EMAIL }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '#### OpenTofu Plan';
+            let plan = fs.readFileSync('tofu/envs/prod/plan.txt', 'utf8');
+            for (const v of [process.env.REDACT_BILLING, process.env.REDACT_EMAIL]) {
+              if (v) plan = plan.split(v).join('***');
+            }
+            const max = 60000;
+            if (plan.length > max) {
+              plan = plan.slice(plan.length - max) + '\n... (truncated; see the Actions log for full output)';
+            }
+            const body = [
+              `${marker} \`${{ steps.plan.outcome }}\``,
+              '<details><summary>Show plan</summary>',
+              '',
+              '```',
+              plan,
+              '```',
+              '</details>',
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body,
+              });
+            }
+
+      - name: Fail if plan errored
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
