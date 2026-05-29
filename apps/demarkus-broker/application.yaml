@@ -26,7 +26,7 @@ spec:
   source:
     repoURL: ghcr.io/latebit-io/charts
     chart: demarkus-broker
-    targetRevision: 0.1.23
+    targetRevision: 0.1.26
     helm:
       releaseName: demarkus-broker
       values: |
@@ -40,11 +40,11 @@ spec:
         # Revisit when upstream broker grows a Secret-backed store.
         replicaCount: 1
 
-        # Image tag defaults to .Chart.appVersion (0.1.23); explicit pin
+        # Image tag defaults to .Chart.appVersion (0.1.26); explicit pin
         # so an unexpected chart bump can't pull in a controller newer
         # than what was reviewed here.
         image:
-          tag: "0.1.23"
+          tag: "0.1.26"
 
         server:
           # Management API base URL. Advertised as `issuer` in
@@ -119,6 +119,7 @@ spec:
                 - fritz@latebit.io
                 - fredrick.seitz@gmail.com
             defaultToken:
+              # `paths` is the ONLY knob as of chart 0.1.26 (#165).
               # `/**` is recursive; `/*` would limit the broker's
               # write token to root-level paths only because Go's
               # path.Match treats `*` as "any sequence of
@@ -127,19 +128,15 @@ spec:
               # matcher (server/internal/auth/auth.go:matchPath); the
               # broker needs `/**` to write into any non-trivial
               # document tree.
+              #
+              # operations + expiresAfter are gone: the broker now
+              # hardcodes the write token to ["publish"] in
+              # worldWriteTokenStore.Provision (#163) so an open-reads
+              # regression can't slip back in via config, and the
+              # write token is long-lived by design (reads use no
+              # token). The world stays publicly-readable; the broker
+              # proxies reads with an empty bearer.
               paths: ["/**"]
-              # Publish-only. The broker's read path (mcp_tools_read.go)
-              # deliberately sends an empty bearer to world servers,
-              # relying on the world's "no token has `read` operation →
-              # reads are public" invariant. If any token (including the
-              # broker's own write token) carries `read`, the world flips
-              # to read-auth-required and the broker's empty-bearer reads
-              # fail with `unauthorized`. Keep this list write-only and
-              # rely on the world's default public-read posture; the
-              # broker token only needs `publish` to write what the
-              # MCP gateway proxies through.
-              operations: ["publish"]
-              expiresAfter: 24h
 
         ingress:
           enabled: true
@@ -177,8 +174,10 @@ spec:
           insecureSkipVerify: true
 
         # rbac.create stays true (default) so the chart provisions the
-        # broker-namespace Role for the sweeper Lease + issuances Secret
-        # AND the per-world Role+RoleBinding in world-a's namespace.
+        # broker-namespace Role for the sweeper Lease + refresh-tokens
+        # Secret (the issuance subsystem was retired in #164 — per-world
+        # tokens are the single source of truth now) AND the per-world
+        # Role+RoleBinding in world-a's namespace.
         # NetworkPolicy default fits this cluster (ingress-nginx in
         # `ingress-nginx` ns). PDB minAvailable=1 with 2 replicas.
   destination:
