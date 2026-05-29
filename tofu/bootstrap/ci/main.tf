@@ -5,6 +5,18 @@
 # project (outside the prod blast radius) and are applied ONCE locally with
 # owner creds; every workflow run thereafter impersonates the SA via OIDC.
 
+# The WIF exchange impersonates tofu_ci via the IAM Service Account Credentials
+# API, which must be enabled in the project that HOSTS the SA. Without this, CI
+# init fails with SERVICE_DISABLED (the local apply doesn't hit it — it uses
+# the operator's own creds, not the token exchange).
+resource "google_project_service" "iamcredentials" {
+  project = var.bootstrap_project_id
+  service = "iamcredentials.googleapis.com"
+
+  disable_on_destroy         = false
+  disable_dependent_services = false
+}
+
 resource "google_iam_workload_identity_pool" "github" {
   project                   = var.bootstrap_project_id
   workload_identity_pool_id = "github-actions"

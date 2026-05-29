@@ -31,8 +31,12 @@ tofu init
 tofu apply
 ```
 
-This creates the WIF pool + provider, the `tofu-ci` service account, and all the
-grants the CI SA needs (state bucket, prod project, billing account). The
+This creates the WIF pool + provider, the `tofu-ci` service account, all the
+grants the CI SA needs (state bucket, prod project, billing account), and
+enables the IAM Service Account Credentials API on the bootstrap project (the
+WIF token exchange needs it — without it, CI `init` fails with
+`SERVICE_DISABLED`; the local apply doesn't hit it because it uses your own
+creds, not the exchange). The
 attribute condition pins the provider to **this repo only**, and the
 `workloadIdentityUser` principalSet is scoped to the same repo.
 
