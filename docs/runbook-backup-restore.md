@@ -53,8 +53,9 @@ kubectl get volumesnapshot -A -l app.kubernetes.io/managed-by=demarkus-backup
 Run a backup on demand (don't wait for 02:00):
 
 ```sh
-kubectl create job -n backups --from=cronjob/demarkus-backup backup-adhoc-$(date +%s)
-kubectl logs -n backups -l job-name --tail=-1 -f
+JOB=backup-adhoc-$(date +%s)
+kubectl create job -n backups --from=cronjob/demarkus-backup "$JOB"
+kubectl logs -n backups -l "job-name=$JOB" --tail=-1 -f
 ```
 
 ## Restore drill (do this periodically — an untested backup isn't a backup)
