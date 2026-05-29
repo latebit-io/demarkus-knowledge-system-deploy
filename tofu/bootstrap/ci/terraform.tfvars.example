@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+#
+# bootstrap_project_id, github_repo, state_bucket, and region all have sane
+# defaults in variables.tf — override only if they differ. The two below have
+# no default and must be set.
+
+# The tofu-managed prod project the CI SA is granted to manage.
+prod_project_id = "knowledge-XXXXX"
+
+# Billing account that funds the project (format: XXXXXX-XXXXXX-XXXXXX).
+billing_account = "XXXXXX-XXXXXX-XXXXXX"

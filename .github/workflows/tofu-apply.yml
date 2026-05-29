@@ -1,0 +1,55 @@
+name: tofu-apply
+
+# Applies only on push to main — i.e. after a reviewed PR merges. The PR review
+# + the tofu-plan comment are the approval gate; merge is the trigger.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tofu/**"
+      - ".github/workflows/tofu-apply.yml"
+
+permissions:
+  contents: read
+  id-token: write # mint the OIDC token for Workload Identity Federation
+
+# Serialize applies for this environment. cancel-in-progress:false so an
+# in-flight apply is never interrupted mid-mutation; a later push queues.
+concurrency:
+  group: tofu-apply-prod
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tofu/envs/prod
+    env:
+      # *.tfvars is gitignored; inject the values CI needs as TF_VAR_*.
+      TF_VAR_project_id: ${{ vars.TOFU_PROJECT_ID }}
+      TF_VAR_project_name: ${{ vars.TOFU_PROJECT_NAME }}
+      TF_VAR_org_id: ${{ vars.TOFU_ORG_ID }}
+      TF_VAR_billing_account: ${{ secrets.TOFU_BILLING_ACCOUNT }}
+      TF_VAR_budget_alert_email: ${{ secrets.TOFU_BUDGET_ALERT_EMAIL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Authenticate to GCP (WIF)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+        with:
+          tofu_version: 1.12.0
+          tofu_wrapper: false
+
+      - name: Init
+        run: tofu init -input=false
+
+      - name: Apply
+        run: tofu apply -auto-approve -input=false -lock-timeout=120s
