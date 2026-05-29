@@ -115,6 +115,12 @@ spec:
           jsonPointers:
             - /data
       syncPolicy:
+        # Stamp the backup label on every world namespace Argo creates, so the
+        # backups CronJob (apps/backups) snapshots each world's content PVC.
+        # New worlds inherit this automatically — zero per-world backup config.
+        managedNamespaceMetadata:
+          labels:
+            demarkus.io/backup: "true"
         automated:
           prune: true
           selfHeal: true

@@ -1,0 +1,18 @@
+# Crash-consistent GCE PD snapshots for the cluster's stateful PVCs.
+#
+# deletionPolicy: Delete — when the backup CronJob prunes a VolumeSnapshot
+# object past its retention, the underlying GCE disk snapshot is deleted too.
+# (We never want orphaned GCE snapshots silently accruing cost.)
+#
+# Snapshots inherit the source disk's encryption. The cluster's PDs use
+# Google-managed keys today, so snapshots are Google-managed-key encrypted.
+# Client-controlled CMEK would require recreating the source disks with a
+# CMEK StorageClass — out of scope here; see docs/runbook-backup-restore.md.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: demarkus-csi-snapshots
+  labels:
+    app.kubernetes.io/part-of: demarkus-backup
+driver: pd.csi.storage.gke.io
+deletionPolicy: Delete

@@ -226,6 +226,11 @@ spec:
     server: https://kubernetes.default.svc
     namespace: openbao
   syncPolicy:
+    # Label the openbao namespace so the backups CronJob (apps/backups)
+    # snapshots its data + audit PVCs.
+    managedNamespaceMetadata:
+      labels:
+        demarkus.io/backup: "true"
     automated:
       prune: true
       selfHeal: true

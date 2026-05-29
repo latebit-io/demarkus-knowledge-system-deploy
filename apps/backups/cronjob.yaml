@@ -1,0 +1,118 @@
+# Daily CSI snapshot backup of every PVC in a namespace labeled
+# `demarkus.io/backup=true` (set on world namespaces by the worlds
+# ApplicationSet's managedNamespaceMetadata, and on the openbao namespace).
+# New worlds are covered automatically — no per-world config.
+#
+# Retention is simple age-based (RETENTION_DAYS): snapshots created by this
+# job past the cutoff are pruned, which (via the class's deletionPolicy:
+# Delete) removes the underlying GCE snapshot. Grandfather-father-son
+# (e.g. 7d/4w/6m) is NOT implemented here — if that's wanted, swap this
+# CronJob for the snapscheduler operator. See docs/runbook-backup-restore.md.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: demarkus-backup
+  namespace: backups
+spec:
+  schedule: "0 2 * * *"
+  timeZone: "America/Toronto"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          serviceAccountName: demarkus-backup
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              # alpine/k8s bundles a POSIX shell + kubectl + jq, all three of
+              # which the script below needs. Pinned by tag; first scheduled
+              # run confirms the pull. Bump deliberately.
+              image: alpine/k8s:1.33.1
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: HOME
+                  value: /tmp
+                - name: RETENTION_DAYS
+                  value: "30"
+                - name: BACKUP_NS_SELECTOR
+                  value: "demarkus.io/backup=true"
+                - name: SNAPSHOT_CLASS
+                  value: "demarkus-csi-snapshots"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  memory: 128Mi
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              command:
+                - /bin/sh
+                - -eu
+                - -c
+                - |
+                  TS="$(date +%Y%m%d-%H%M%S)"
+                  NOW="$(date +%s)"
+                  CUTOFF=$(( NOW - RETENTION_DAYS * 86400 ))
+
+                  echo "[backup] namespaces labeled ${BACKUP_NS_SELECTOR}:"
+                  NAMESPACES="$(kubectl get ns -l "${BACKUP_NS_SELECTOR}" \
+                    -o jsonpath='{.items[*].metadata.name}')"
+                  echo "[backup]   ${NAMESPACES:-<none>}"
+
+                  for NS in $NAMESPACES; do
+                    for PVC in $(kubectl get pvc -n "$NS" \
+                        -o jsonpath='{.items[*].metadata.name}'); do
+                      SNAP="${PVC}-${TS}"
+                      echo "[backup] snapshot ${NS}/${PVC} -> ${SNAP}"
+                      kubectl apply -f - <<EOF
+                  apiVersion: snapshot.storage.k8s.io/v1
+                  kind: VolumeSnapshot
+                  metadata:
+                    name: ${SNAP}
+                    namespace: ${NS}
+                    labels:
+                      app.kubernetes.io/managed-by: demarkus-backup
+                      demarkus.io/source-pvc: ${PVC}
+                  spec:
+                    volumeSnapshotClassName: ${SNAPSHOT_CLASS}
+                    source:
+                      persistentVolumeClaimName: ${PVC}
+                  EOF
+                    done
+                  done
+
+                  echo "[prune] removing managed snapshots older than ${RETENTION_DAYS}d"
+                  kubectl get volumesnapshot -A \
+                    -l app.kubernetes.io/managed-by=demarkus-backup -o json \
+                    | jq -r --argjson cutoff "$CUTOFF" \
+                        '.items[]
+                         | select((.metadata.creationTimestamp | fromdateiso8601) < $cutoff)
+                         | "\(.metadata.namespace) \(.metadata.name)"' \
+                    | while read -r NS NAME; do
+                        [ -n "$NAME" ] || continue
+                        echo "[prune] delete ${NS}/${NAME}"
+                        kubectl delete volumesnapshot -n "$NS" "$NAME" --wait=false
+                      done
+
+                  echo "[backup] done"
+          volumes:
+            - name: tmp
+              emptyDir: {}
