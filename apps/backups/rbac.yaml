@@ -1,0 +1,38 @@
+# Identity + permissions for the backup CronJob. It discovers namespaces
+# labeled for backup, enumerates their PVCs, and creates/prunes VolumeSnapshots
+# in those namespaces — so it needs cluster-wide read on namespaces + PVCs and
+# write on volumesnapshots. No GCS/IAM: the pd.csi driver does the actual GCE
+# snapshot work under its own managed service agent.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: demarkus-backup
+  namespace: backups
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: demarkus-backup
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: demarkus-backup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: demarkus-backup
+subjects:
+  - kind: ServiceAccount
+    name: demarkus-backup
+    namespace: backups
