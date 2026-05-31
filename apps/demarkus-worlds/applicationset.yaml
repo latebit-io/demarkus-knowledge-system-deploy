@@ -31,18 +31,18 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.17.11
+        targetRevision: 0.17.13
         helm:
           releaseName: "{{name}}"
           values: |
-            # Pin image.tag explicitly because the demarkus-server chart's
-            # appVersion drifted from its version (chart 0.17.11 renders
-            # image 0.17.10). Without this override the fsnotify
-            # hot-reload fix in server 0.17.11 doesn't ship to the pod
-            # even after a chart bump. Remove once the upstream chart
-            # release pipeline keeps appVersion == version.
+            # Explicit image.tag pin as a defensive guard against an
+            # unexpected chart bump. As of 0.17.13 the chart's appVersion
+            # equals its version (the earlier drift where 0.17.11 rendered
+            # image 0.17.10 is fixed upstream), so this just re-states the
+            # default. 0.17.12+ adds the server-side LOOKUP catalog verb;
+            # 0.17.13 is the latest patch.
             image:
-              tag: "0.17.11"
+              tag: "0.17.13"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default

@@ -26,7 +26,7 @@ spec:
   source:
     repoURL: ghcr.io/latebit-io/charts
     chart: demarkus-broker
-    targetRevision: 0.1.26
+    targetRevision: 0.1.28
     helm:
       releaseName: demarkus-broker
       values: |
@@ -40,11 +40,13 @@ spec:
         # Revisit when upstream broker grows a Secret-backed store.
         replicaCount: 1
 
-        # Image tag defaults to .Chart.appVersion (0.1.26); explicit pin
-        # so an unexpected chart bump can't pull in a controller newer
-        # than what was reviewed here.
+        # Image tag defaults to .Chart.appVersion (0.1.28, which now
+        # equals the chart version); explicit pin so an unexpected chart
+        # bump can't pull in a controller newer than what was reviewed
+        # here. 0.1.27+ allows the LOOKUP read verb through the MCP
+        # gateway (server-side catalog query); 0.1.28 is the latest patch.
         image:
-          tag: "0.1.26"
+          tag: "0.1.28"
 
         server:
           # Management API base URL. Advertised as `issuer` in
