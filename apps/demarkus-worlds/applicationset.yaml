@@ -127,3 +127,15 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
+          # ignoreDifferences (on /spec/volumeClaimTemplates above) only
+          # suppresses diff *detection*; under ServerSideApply Argo still
+          # sends the ignored field in the apply payload. The live VCT
+          # carries the server-defaulted volumeMode: Filesystem that the
+          # Helm render lacks (renders null), and VCT is immutable — so a
+          # forced sync (e.g. the server image bump that changes the pod
+          # template) trips StatefulSet immutability validation and
+          # retry-loops forever (sync=Synced but operationState=Failed,
+          # pod stuck on the old image). RespectIgnoreDifferences strips the
+          # ignored VCT from the SSA payload so the mutable template change
+          # (image tag) applies on its own.
+          - RespectIgnoreDifferences=true
