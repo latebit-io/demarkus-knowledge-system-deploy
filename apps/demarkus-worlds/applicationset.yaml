@@ -22,6 +22,18 @@ spec:
   generators:
     - list:
         elements:
+          # The well-known hub world. Every demarkus knowledge system
+          # carries a guaranteed world named `root`, discovered by
+          # fixed-name convention (broker-advertised discovery is a
+          # deferred enhancement). It holds the org-global tree the
+          # agent/plugin reads on join:
+          # `/.well-known/demarkus/{policy,template}.md` (strictness
+          # level + required tags + the per-project template). Same
+          # chart and per-element treatment as any other world — only
+          # the name carries meaning. The policy/template documents
+          # themselves are content published into the live world after
+          # it syncs, not GitOps manifests.
+          - name: root
           - name: world-a
   template:
     metadata:
@@ -76,6 +88,16 @@ spec:
             tokens:
               admin:
                 operations: ["publish"]
+                # Recursive write path (chart default is `/*`, root-level
+                # only). The federation agent (apps/demarkus-agent) reuses
+                # this raw admin token to publish its hash index under
+                # `/index/<host>.md` on the `root` hub — a subpath that `/*`
+                # would reject (Go path.Match treats `/` as a separator). `/**`
+                # is recursive. Harmless for the other worlds: nothing
+                # publishes with their admin token directly (the broker mints
+                # its own `/**` write token), and operations stays
+                # publish-only so the read surface remains public.
+                paths: ["/**"]
             # TLS — Mark Protocol speaks QUIC, so TLS is mandatory.
             # Without this block the chart falls into the dev-mode
             # self-signed cert path with SAN=localhost only, which the

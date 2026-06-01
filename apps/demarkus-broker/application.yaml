@@ -95,14 +95,37 @@ spec:
             # key defaults to "signing-key.pem".
           redirectURL: "https://broker.knowledge.demarkus.io/auth/callback"
 
-        # First world. Wired here at install time so the broker boots
-        # with a valid config (the binary refuses to start with empty
-        # worlds[]). The world's namespace + tokens Secret are
+        # Worlds. Wired here at install time so the broker boots with a
+        # valid config (the binary refuses to start with empty
+        # worlds[]). Each world's namespace + tokens Secret are
         # provisioned by apps/demarkus-worlds/applicationset.yaml; the
         # per-world Role+RoleBinding in this chart needs that namespace
         # to exist, so the two top-level Applications self-heal into
-        # convergence when world-a lands.
+        # convergence as each world lands.
         worlds:
+          # The hub. `root` is the fixed-name well-known world every
+          # demarkus knowledge system carries — the agent/plugin reads
+          # `/.well-known/demarkus/{policy,template}.md` from it on join.
+          # Discovery is by name convention only; the broker doesn't yet
+          # advertise the hub in its metadata, so `root` is configured
+          # here exactly like any other world. Its config mirrors
+          # world-a's posture (no publicURL — reachable through the MCP
+          # gateway, not mark:// directly; publish-only write token).
+          - name: root
+            namespace: root
+            tokensSecret: root-tokens
+            allow:
+              # Same test-user allowlist as world-a while the Google
+              # OAuth consent screen is in Testing mode (both addresses
+              # are Fritz's). Broaden once the screen is published.
+              emails:
+                - fritz@latebit.io
+                - fredrick.seitz@gmail.com
+            defaultToken:
+              # Recursive write path — see the world-a note below for
+              # why `/**` (not `/*`) and why operations/expiresAfter are
+              # gone (broker hardcodes ["publish"]; reads need no token).
+              paths: ["/**"]
           - name: world-a
             namespace: world-a
             tokensSecret: world-a-tokens

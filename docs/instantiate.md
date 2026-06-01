@@ -29,7 +29,7 @@ Find/replace across the repo — these are baked into manifests, not variables:
 | `latebit-io` (Dex GitHub org) | your org | `platform/dex/external-secret.yaml` |
 | Google OAuth `clientID` | yours | `apps/demarkus-broker/application.yaml` |
 | Allowlisted emails / ACME email | yours | `apps/demarkus-broker/application.yaml`, `platform/cert-manager/cluster-issuers.yaml` |
-| Worlds (`world-a`) | your worlds | `apps/demarkus-worlds/applicationset.yaml` (generators), `apps/demarkus-broker/application.yaml` (`worlds[]`) |
+| Worlds (`world-a`) | your worlds | `apps/demarkus-worlds/applicationset.yaml` (generators), `apps/demarkus-broker/application.yaml` (`worlds[]`), `apps/demarkus-agent/application.yaml` (`config.seeds`) — three places per world |
 
 ## Bring-up
 
