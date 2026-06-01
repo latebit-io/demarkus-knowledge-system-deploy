@@ -1,4 +1,6 @@
-# demarkus-knowledge-system-deploy
+# Enterprise style demarkus knowledged system
+Note: for teams or smaller needs this is over kill, you could get away with one or two deploys for 1% of the cost of k8s deploy. This use case is for at larger scale. 
+
 
 A reference deployment of a [demarkus](https://github.com/latebit-io/demarkus)
 knowledge system on GKE, managed entirely by GitOps. It doubles as a **GitHub
