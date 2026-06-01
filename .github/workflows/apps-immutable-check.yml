@@ -7,7 +7,7 @@ name: apps-immutable-check
 # recreate. This catches such a change on the PR instead of in prod.
 #
 # Cluster-free: renders the charts at the PR base and head and diffs the
-# immutable fields (see scripts/check-immutable-fields.rb). No cluster creds,
+# immutable fields (see scripts/check-immutable-fields.sh). No cluster creds,
 # so it runs safely on forks of this template too.
 on:
   pull_request:
@@ -15,7 +15,7 @@ on:
     paths:
       - "apps/**"
       - "platform/**"
-      - "scripts/check-immutable-fields.rb"
+      - "scripts/check-immutable-fields.sh"
       - ".github/workflows/apps-immutable-check.yml"
 
 permissions:
@@ -43,7 +43,7 @@ jobs:
         continue-on-error: true
         env:
           BASE_REF: ${{ github.event.pull_request.base.sha }}
-        run: ruby scripts/check-immutable-fields.rb 2>&1 | tee /tmp/immutable-report.txt
+        run: bash scripts/check-immutable-fields.sh 2>&1 | tee /tmp/immutable-report.txt
 
       - name: Comment result on PR
         # Fork PRs run with a read-only GITHUB_TOKEN, so the write API calls
