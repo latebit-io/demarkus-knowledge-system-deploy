@@ -22,6 +22,18 @@ spec:
   generators:
     - list:
         elements:
+          # The well-known hub world. Every demarkus knowledge system
+          # carries a guaranteed world named `root`, discovered by
+          # fixed-name convention (broker-advertised discovery is a
+          # deferred enhancement). It holds the org-global tree the
+          # agent/plugin reads on join:
+          # `/.well-known/demarkus/{policy,template}.md` (strictness
+          # level + required tags + the per-project template). Same
+          # chart and per-element treatment as any other world — only
+          # the name carries meaning. The policy/template documents
+          # themselves are content published into the live world after
+          # it syncs, not GitOps manifests.
+          - name: root
           - name: world-a
   template:
     metadata:
