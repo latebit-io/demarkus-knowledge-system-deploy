@@ -58,7 +58,7 @@ tofu/
   envs/prod/             # knowledge.demarkus.io — fill terraform.tfvars (gitignored)
 bootstrap/               # argocd-values.yaml + root-appset.yaml (tofu applies post-cluster)
 platform/                # cluster prerequisites (Argo-managed)
-apps/                    # demarkus-broker, demarkus-worlds, backups (Argo-managed)
+apps/                    # demarkus-broker, demarkus-worlds, demarkus-agent, backups (Argo-managed)
 docs/                    # runbooks + instantiate guide
 .github/workflows/       # tofu-plan (PR) + tofu-apply (merge)
 ```
