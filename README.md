@@ -4,7 +4,6 @@ A reference deployment of a [demarkus](https://github.com/latebit-io/demarkus)
 knowledge system on GKE, managed entirely by GitOps. It doubles as a **GitHub
 template** — fork it to stand up your own.
 
-- **Live POC not for public consumption:** broker MCP gateway; join with a Claude Code plugin via `/knowledge-join`)
 - **Cloud:** GCP / GKE Standard, single zonal cluster in `northamerica-northeast2` (Toronto)
 - **IaC:** [OpenTofu](https://opentofu.org/) · **Secrets:** [OpenBao](https://openbao.org/) + bank-vaults · **GitOps:** ArgoCD · **Charts:** `ghcr.io/latebit-io/charts`
 
