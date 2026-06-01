@@ -31,18 +31,22 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.17.13
+        targetRevision: 0.17.14
         helm:
           releaseName: "{{name}}"
           values: |
             # Explicit image.tag pin as a defensive guard against an
-            # unexpected chart bump. As of 0.17.13 the chart's appVersion
-            # equals its version (the earlier drift where 0.17.11 rendered
-            # image 0.17.10 is fixed upstream), so this just re-states the
-            # default. 0.17.12+ adds the server-side LOOKUP catalog verb;
-            # 0.17.13 is the latest patch.
+            # unexpected chart bump. 0.17.14 fixes the volumeClaimTemplates
+            # volumeMode drift (chart now renders `volumeMode: Filesystem`
+            # to match what k8s defaults onto the live PVC; PR #170). This
+            # specific bump IS an immutable-field change vs 0.17.13 (null →
+            # Filesystem), so the apps-immutable-check guard flags it and the
+            # one-time rollout needs `kubectl delete statefulset <world>
+            # --cascade=orphan` (pod + PVC survive) — see
+            # docs/runbook-world-version-bump.md. After this, render == live
+            # and future server bumps apply cleanly with no orphan-delete.
             image:
-              tag: "0.17.13"
+              tag: "0.17.14"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
