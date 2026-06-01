@@ -1,0 +1,89 @@
+name: apps-immutable-check
+
+# Pre-merge guard against immutable StatefulSet field changes. A change to a
+# StatefulSet's serviceName/selector/podManagementPolicy/volumeClaimTemplates
+# cannot be applied in place — in any env where the StatefulSet exists it
+# wedges the ArgoCD sync until an operator runs a manual --cascade=orphan
+# recreate. This catches such a change on the PR instead of in prod.
+#
+# Cluster-free: renders the charts at the PR base and head and diffs the
+# immutable fields (see scripts/check-immutable-fields.rb). No cluster creds,
+# so it runs safely on forks of this template too.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "platform/**"
+      - "scripts/check-immutable-fields.rb"
+      - ".github/workflows/apps-immutable-check.yml"
+
+permissions:
+  contents: read
+  pull-requests: write # upsert the result comment
+
+concurrency:
+  group: apps-immutable-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0 # need the PR base commit for the base-vs-head render
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Check immutable StatefulSet fields
+        id: check
+        continue-on-error: true
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: ruby scripts/check-immutable-fields.rb 2>&1 | tee /tmp/immutable-report.txt
+
+      - name: Comment result on PR
+        # Fork PRs run with a read-only GITHUB_TOKEN, so the write API calls
+        # below would fail the job even when the check itself behaved correctly.
+        # Skip commenting on forks; the check's pass/fail status still gates the
+        # PR via the "Fail if immutable change detected" step.
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          # Pass the step outcome via env rather than inlining ${{ }} into the
+          # script body — avoids the template-injection class zizmor flags.
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '#### Immutable StatefulSet field check';
+            const report = fs.readFileSync('/tmp/immutable-report.txt', 'utf8');
+            const body = [
+              `${marker} \`${process.env.CHECK_OUTCOME}\``,
+              '',
+              '```',
+              report,
+              '```',
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body,
+              });
+            }
+
+      - name: Fail if immutable change detected
+        if: steps.check.outcome == 'failure'
+        run: |
+          echo "Immutable StatefulSet field change detected — see the PR comment."
+          exit 1
