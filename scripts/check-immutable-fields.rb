@@ -126,7 +126,16 @@ def render_statefulsets(app, manifest_yaml)
   raise "helm render failed for #{app[:name]} @ #{version}:\n#{err}" unless status.success?
 
   result = {}
-  YAML.load_stream(out) do |r|
+  # Parse each rendered document with safe_load (no arbitrary object tags) —
+  # `out` is helm output derived from PR/base chart inputs, so avoid object
+  # instantiation. safe_load_stream isn't available on older Psych (e.g. the
+  # 3.1.0 that ships with Ruby 2.6), so split the multi-doc stream on its `---`
+  # separators and safe_load each. k8s manifests carry no YAML anchors, so the
+  # default aliases:false is fine.
+  out.split(/^---\s*$/).each do |chunk|
+    next if chunk.strip.empty?
+
+    r = YAML.safe_load(chunk)
     next unless r.is_a?(Hash) && r['kind'] == 'StatefulSet'
 
     name = r.dig('metadata', 'name')

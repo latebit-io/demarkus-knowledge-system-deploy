@@ -46,14 +46,23 @@ jobs:
         run: ruby scripts/check-immutable-fields.rb 2>&1 | tee /tmp/immutable-report.txt
 
       - name: Comment result on PR
+        # Fork PRs run with a read-only GITHUB_TOKEN, so the write API calls
+        # below would fail the job even when the check itself behaved correctly.
+        # Skip commenting on forks; the check's pass/fail status still gates the
+        # PR via the "Fail if immutable change detected" step.
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          # Pass the step outcome via env rather than inlining ${{ }} into the
+          # script body — avoids the template-injection class zizmor flags.
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
         with:
           script: |
             const fs = require('fs');
             const marker = '#### Immutable StatefulSet field check';
             const report = fs.readFileSync('/tmp/immutable-report.txt', 'utf8');
             const body = [
-              `${marker} \`${{ steps.check.outcome }}\``,
+              `${marker} \`${process.env.CHECK_OUTCOME}\``,
               '',
               '```',
               report,
