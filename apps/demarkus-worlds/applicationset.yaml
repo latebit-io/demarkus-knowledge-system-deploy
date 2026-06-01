@@ -88,6 +88,16 @@ spec:
             tokens:
               admin:
                 operations: ["publish"]
+                # Recursive write path (chart default is `/*`, root-level
+                # only). The federation agent (apps/demarkus-agent) reuses
+                # this raw admin token to publish its hash index under
+                # `/index/<host>.md` on the `root` hub — a subpath that `/*`
+                # would reject (Go path.Match treats `/` as a separator). `/**`
+                # is recursive. Harmless for the other worlds: nothing
+                # publishes with their admin token directly (the broker mints
+                # its own `/**` write token), and operations stays
+                # publish-only so the read surface remains public.
+                paths: ["/**"]
             # TLS — Mark Protocol speaks QUIC, so TLS is mandatory.
             # Without this block the chart falls into the dev-mode
             # self-signed cert path with SAN=localhost only, which the
