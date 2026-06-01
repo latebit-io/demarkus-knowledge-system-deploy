@@ -98,22 +98,22 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{name}}"
-      # The StatefulSet's volumeClaimTemplates picks up server-side
-      # defaults (volumeMode, apiVersion/kind, status) the Helm-rendered
-      # manifest doesn't carry. volumeClaimTemplates is immutable on a
-      # StatefulSet, so ignoring drift on the whole block costs nothing
-      # operationally and stops Argo from looping on a sync it cannot
-      # converge.
-      #
       # The world's tokens Secret holds runtime state — the broker
       # appends per-mint hash entries to data.tokens.toml on each token
       # mint. Without ignoring /data, Argo's selfHeal would revert every
       # mint immediately back to the chart-rendered admin-only contents.
+      #
+      # NOTE: a former `/spec/volumeClaimTemplates` ignore on the
+      # StatefulSet was removed once demarkus-server 0.17.14 began
+      # rendering `volumeMode: Filesystem` to match the k8s server-side
+      # default (monorepo PR #170). Before that, the render (volumeMode
+      # null) drifted from the live PVC (Filesystem) and the ignore hid
+      # it — but on an immutable field, the ignore plus ServerSideDiff
+      # actually caused a ComparisonError of its own (the dry-run stripped
+      # the VCT, orphaning the `content` volumeMount). With render == live
+      # the VCT no longer drifts, so the ignore is unnecessary and the
+      # whole class of immutable-VCT sync wedges goes away.
       ignoreDifferences:
-        - group: apps
-          kind: StatefulSet
-          jsonPointers:
-            - /spec/volumeClaimTemplates
         - kind: Secret
           name: "{{name}}-tokens"
           jsonPointers:
@@ -131,15 +131,9 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
-          # ignoreDifferences (on /spec/volumeClaimTemplates above) only
-          # suppresses diff *detection*; under ServerSideApply Argo still
-          # sends the ignored field in the apply payload. The live VCT
-          # carries the server-defaulted volumeMode: Filesystem that the
-          # Helm render lacks (renders null), and VCT is immutable — so a
-          # forced sync (e.g. the server image bump that changes the pod
-          # template) trips StatefulSet immutability validation and
-          # retry-loops forever (sync=Synced but operationState=Failed,
-          # pod stuck on the old image). RespectIgnoreDifferences strips the
-          # ignored VCT from the SSA payload so the mutable template change
-          # (image tag) applies on its own.
-          - RespectIgnoreDifferences=true
+          # RespectIgnoreDifferences was removed alongside the VCT ignore
+          # above: it only existed to keep the ignored, immutable VCT out
+          # of the ServerSideApply payload. With demarkus-server 0.17.14
+          # rendering volumeMode to match live (no VCT drift), there is
+          # nothing left to respect, and dropping it lets ServerSideDiff
+          # compute a clean diff again.
