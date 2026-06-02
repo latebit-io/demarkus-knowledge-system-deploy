@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────
+# deployment.yaml — the single source of truth for this knowledge system's
+# identity. ONE file, read by BOTH planes:
+#
+#   • OpenTofu  — via `yamldecode(file(...))` in tofu/envs/prod/locals.tf
+#                 (uses: domain, projectId, region, repoURL)
+#   • ArgoCD    — via the root ApplicationSet's git-files generator, which
+#                 interpolates these fields into each app's manifests
+#                 (uses: domain, projectId, githubOrg, oauthClientId,
+#                  adminEmails, worlds)
+#
+# To stand up your own: change the values below. This is the ONLY place the
+# deployment-specific identity lives — no more find/replace across manifests.
+#
+# NOT here (by design):
+#   • Secrets (billing account, OAuth client *secret*, world tokens) — those
+#     stay in gitignored terraform.tfvars / OpenBao. This file is committed
+#     and world-readable, so only non-secret identity belongs here.
+#   • The OpenTofu state bucket + bootstrap project — those configure the
+#     `backend.tf` block, which OpenTofu evaluates *before* any variable, so
+#     they can't come from here. They're set once, by hand, at bring-up.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Public DNS subdomain delegated to this system's Cloud DNS zone. Drives every
+# ingress host (broker.<domain>, knowledge.<domain>, argocd.<domain>, …) and
+# the DNS zone itself. (tofu + ArgoCD)
+domain: knowledge.demarkus.io
+
+# GCP project id OpenTofu creates and everything runs in. Also threaded into
+# the Workload-Identity SA annotations + OpenBao KMS seal. (tofu + ArgoCD)
+projectId: knowledge-49722
+
+# Default GCP region. The GKE zone is derived as "<region>-a". (tofu)
+region: northamerica-northeast2
+
+# Git URL of THIS repo (your fork). ArgoCD watches it; OpenTofu templates it
+# into the root ApplicationSet at bring-up. (tofu + ArgoCD)
+repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+
+# GitHub org whose membership gates the admin UIs (ArgoCD, OpenBao) via Dex. (ArgoCD)
+githubOrg: latebit-io
+
+# Google OAuth *client id* for broker user login. Public identifier (the
+# matching secret lives in OpenBao). (ArgoCD)
+oauthClientId: 941447371620-ihfmbrgip3dlaunqaa7e8675uoh6fs7v.apps.googleusercontent.com
+
+# Admin allowlist — broker world-mint allowlist + ArgoCD admin RBAC. (ArgoCD)
+adminEmails:
+  - fritz@latebit.io
+  - fredrick.seitz@gmail.com
+
+# The worlds in this knowledge system. ONE list — drives the worlds
+# ApplicationSet (one server per entry), the broker's worlds[], and the
+# federation agent's crawl seeds. `hub: true` marks the fixed-name discovery
+# hub: the agent publishes its index there and does NOT crawl it; every other
+# world is a content world the agent crawls. (ArgoCD)
+worlds:
+  - name: root
+    hub: true
+  - name: world-a

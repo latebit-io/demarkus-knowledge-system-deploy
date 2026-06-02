@@ -1,7 +1,7 @@
 module "project" {
   source = "../../modules/project"
 
-  project_id      = var.project_id
+  project_id      = local.project_id
   project_name    = var.project_name
   billing_account = var.billing_account
   org_id          = var.org_id
@@ -12,21 +12,21 @@ module "network" {
   source = "../../modules/network"
 
   project_id = module.project.project_id
-  region     = var.region
+  region     = local.region
 }
 
 module "dns" {
   source = "../../modules/dns"
 
   project_id = module.project.project_id
-  dns_name   = var.dns_name
+  dns_name   = local.dns_name
 }
 
 module "gke" {
   source = "../../modules/gke"
 
   project_id          = module.project.project_id
-  zone                = var.zone
+  zone                = local.zone
   vpc_self_link       = module.network.vpc_id
   subnet_self_link    = module.network.subnet_id
   pods_range_name     = module.network.pods_range_name
@@ -56,7 +56,7 @@ module "platform_iam" {
   source = "../../modules/platform-iam"
 
   project_id             = module.project.project_id
-  region                 = var.region
+  region                 = local.region
   dns_zone_name          = module.dns.zone_name
   workload_identity_pool = module.gke.workload_identity_pool
 }
