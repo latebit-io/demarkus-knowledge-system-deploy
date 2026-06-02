@@ -1,0 +1,167 @@
+# demarkus-broker: OIDC token broker + MCP gateway.
+#
+# Config-driven: this ApplicationSet's git-files generator reads the repo-root
+# deployment.yaml and interpolates its fields (domain, oauthClientId,
+# adminEmails, worlds) into the broker's helm values via goTemplate. There is
+# NO hardcoded domain / client-id / world list here anymore — change
+# deployment.yaml and this re-renders. The outer apps/* directory generator
+# (bootstrap/root-appset.yaml) deploys this ApplicationSet; the applicationset
+# controller then generates the actual `demarkus-broker` Application.
+#
+# Two HTTP listeners on one pod:
+#   - Management API (8080) — OIDC discovery, /auth/callback, /device/*,
+#     /tokens. Fronted at broker.<domain>.
+#   - MCP gateway (8081) — /mcp + RFC 9728 + RFC 8414 metadata. Fronted at
+#     <domain> (user-facing; /knowledge-join targets this host).
+#
+# Secrets bridge from OpenBao via ESO (apps/demarkus-broker/external-secrets.yaml):
+#   - oidc-client Secret      → OIDC_CLIENT_SECRET env
+#   - jwks-signing-key Secret → BROKER_SIGNING_KEY env
+#
+# Sync wave: 1 (set on the generated Application). Cluster prerequisites
+# (cert-manager, openbao, ESO, ingress-nginx, external-dns) live in earlier
+# waves and must be healthy first.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demarkus-broker
+  namespace: argocd
+spec:
+  goTemplate: true
+  # Fail the render on a missing deployment.yaml key rather than silently
+  # emitting an empty string into a URL or the worlds list.
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        # Self-reference: a git generator can't read its own repo URL from the
+        # file it's reading, so repoURL is a literal here. It is the same value
+        # as deployment.yaml's `repoURL` — keep them in sync (or override via
+        # the root ApplicationSet later). revision tracks the deployed branch.
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: demarkus-broker
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      project: default
+      source:
+        repoURL: ghcr.io/latebit-io/charts
+        chart: demarkus-broker
+        targetRevision: 0.1.28
+        helm:
+          releaseName: demarkus-broker
+          values: |
+            # Single replica until the broker has shared state for the
+            # in-memory deviceStore + authCodeStore. With N>=2 the OAuth
+            # callback can land on a different pod than /device/authorize did
+            # and fail with "authorization session expired".
+            replicaCount: 1
+
+            # Explicit image pin so an unexpected chart bump can't pull a
+            # controller newer than what was reviewed. 0.1.27+ allows LOOKUP
+            # through the MCP gateway; 0.1.28 is the latest patch.
+            image:
+              tag: "0.1.28"
+
+            server:
+              # Advertised as `issuer` in OIDC discovery on BOTH listeners.
+              publicURL: "https://broker.{{ .domain }}"
+              # Blank → chart generates + preserves a 32-byte HMAC cookie key.
+              cookieKey: ""
+              # First-mint retry budget tuned up from chart defaults (~16s) to
+              # ~76s to outlast kubelet's Secret-volume propagation lag after a
+              # world tokens Secret is (re)bootstrapped.
+              mcp:
+                firstMintMaxAttempts: 10
+                firstMintMaxBackoff: 15s
+
+            oidc:
+              issuer: "https://accounts.google.com"
+              # Public identifier (Google embeds it in the redirect URL any
+              # browser sees). The matching secret is in OpenBao via ESO.
+              clientID: "{{ .oauthClientId }}"
+              existingSecretRef:
+                name: oidc-client
+              existingSigningKeyRef:
+                name: jwks-signing-key
+              redirectURL: "https://broker.{{ .domain }}/auth/callback"
+
+            # Worlds — generated from deployment.yaml's worlds[]. Wired here so
+            # the broker boots with a valid config (the binary refuses to start
+            # with empty worlds[]). Each world's namespace + tokens Secret are
+            # provisioned by apps/demarkus-worlds; the per-world Role+RoleBinding
+            # in this chart needs that namespace, so the two Applications
+            # self-heal into convergence as each world lands.
+            #
+            # Every world (hub or content) gets identical broker config: no
+            # publicURL (reachable through the MCP gateway, not mark:// directly),
+            # the shared admin allowlist, and a publish-only write token. The
+            # `paths: ["/**"]` is recursive — `/*` would reject `/sub/foo.md`
+            # (Go path.Match treats `*` as non-separator only). operations are
+            # gone: the broker hardcodes the write token to ["publish"] (#163)
+            # so an open-reads regression can't slip back via config; reads use
+            # no token and the world stays publicly readable.
+            worlds:
+            {{- range .worlds }}
+              - name: {{ .name }}
+                namespace: {{ .name }}
+                tokensSecret: {{ .name }}-tokens
+                allow:
+                  emails:
+                  {{- range $.adminEmails }}
+                    - {{ . }}
+                  {{- end }}
+                defaultToken:
+                  paths: ["/**"]
+            {{- end }}
+
+            ingress:
+              enabled: true
+              className: nginx
+              # Management API — receives Google's OAuth redirect.
+              host: broker.{{ .domain }}
+              tls:
+                certManager:
+                  enabled: true
+                  issuerRef:
+                    kind: ClusterIssuer
+                    name: letsencrypt-prod
+              # MCP gateway — user-facing hostname.
+              mcp:
+                host: {{ .domain }}
+                tls:
+                  certManager:
+                    enabled: true
+                    issuerRef:
+                      kind: ClusterIssuer
+                      name: letsencrypt-prod
+
+            # Broker → world QUIC dial posture. Each world's cert is issued by
+            # the `selfsigned` ClusterIssuer (no shared CA the broker can
+            # trust), so strict verification fails. Skip-verify is the
+            # in-cluster trust model: QUIC still encrypts; NetworkPolicy +
+            # cluster RBAC do the real isolation.
+            worldDialer:
+              insecureSkipVerify: true
+
+            # rbac.create stays true (default) so the chart provisions the
+            # broker-namespace Role + the per-world Role+RoleBinding in each
+            # world's namespace.
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demarkus-broker
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          # Lets the per-world RBAC apply retry while a world's namespace is
+          # still being created by the sibling Application.
+          - SkipDryRunOnMissingResource=true
