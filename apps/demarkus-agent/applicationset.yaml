@@ -68,6 +68,8 @@ spec:
               tag: "0.12.38"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
+            {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
+            {{- if not $hasHub }}{{ fail "deployment.yaml: at least one world must have hub: true — the agent needs a hub to publish its index to" }}{{- end }}
             config:
               # Content worlds to crawl, by cluster-internal Service DNS —
               # every world WITHOUT `hub: true`. The hub is intentionally not
