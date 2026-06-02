@@ -78,10 +78,13 @@ render_chart() {
   repo="$(yq "$source_path.repoURL" "$manifest")"
   version="$(yq "$source_path.targetRevision" "$manifest")"
 
-  # {{name}} in ApplicationSet values is substituted with the release on both
-  # sides, so the comparison is about shape, not the world's identity.
+  # The world-name placeholder in ApplicationSet values is substituted with the
+  # release on both sides, so the comparison is about shape, not the world's
+  # identity. Matches both the legacy fasttemplate form ({{name}}) and the
+  # goTemplate form ({{ .name }} / {{.name}}) the worlds AppSet now uses.
   vfile="$(mktemp)"
-  yq "$source_path.helm.values // \"\"" "$manifest" | sed "s/{{name}}/$release/g" > "$vfile"
+  yq "$source_path.helm.values // \"\"" "$manifest" \
+    | sed -E "s/\{\{[[:space:]]*\.?name[[:space:]]*\}\}/$release/g" > "$vfile"
 
   # repoURL is OCI unless it's an explicit http(s) Helm repo. ArgoCD treats a
   # bare registry path (ghcr.io/latebit-io/charts) as OCI; the helm CLI needs
