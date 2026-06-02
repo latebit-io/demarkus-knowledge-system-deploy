@@ -1,0 +1,110 @@
+# external-dns: watches Ingress resources and reconciles Cloud DNS A/TXT
+# records against them. The Cloud DNS zone (<domain>) was created in Phase 2
+# by tofu; the GSA + Workload Identity binding allowing the external-dns KSA
+# to write to that zone was created in Phase 5a.
+#
+# Config-driven: this ApplicationSet's git-files generator reads the repo-root
+# deployment.yaml and interpolates `projectId` (the GSA + google.project) and
+# `domain` (the zone filter) into the chart values via goTemplate. No hardcoded
+# project/domain here — change deployment.yaml and this re-renders.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: external-dns
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        # Self-reference literal (a generator can't read its own repo URL from
+        # the file it reads); same value as deployment.yaml's repoURL.
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: external-dns
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      project: default
+      source:
+        repoURL: https://kubernetes-sigs.github.io/external-dns/
+        chart: external-dns
+        targetRevision: 1.21.1
+        helm:
+          releaseName: external-dns
+          values: |
+            # Image: chart 1.21.1 defaults image.tag to appVersion v0.21.0.
+            # Make it explicit. (Digest pin TODO — registry.k8s.io doesn't
+            # publish digests in release notes; can grab from a deployed pod
+            # via `kubectl -n external-dns get pod -o jsonpath=
+            # '{.items[0].status.containerStatuses[0].imageID}'` post-deploy.)
+            image:
+              repository: registry.k8s.io/external-dns/external-dns
+              tag: "v0.21.0"
+
+            replicaCount: 1
+
+            # Workload Identity: the KSA `external-dns` impersonates the GSA
+            # `external-dns@<projectId>.iam.gserviceaccount.com`, which has
+            # roles/dns.admin scoped to the <domain> managed zone.
+            serviceAccount:
+              create: true
+              name: external-dns
+              annotations:
+                iam.gke.io/gcp-service-account: external-dns@{{ .projectId }}.iam.gserviceaccount.com
+
+            # Cloud DNS provider, restricted to the <domain> zone.
+            provider:
+              name: google
+            google:
+              project: {{ .projectId }}
+            domainFilters:
+              - {{ .domain }}
+
+            # Only watch Ingress resources. Not LoadBalancer Services, not nodes,
+            # not anything else — keeps DNS state predictable.
+            sources:
+              - ingress
+
+            # TXT registry tracks which records external-dns owns, so it won't
+            # touch records created manually or by other tools. txtOwnerId is
+            # the identity stamped into TXT records; must be unique per cluster
+            # if you ever share a DNS zone across clusters. Stable per-cluster
+            # id (NOT derived from domain/project) so it never changes under a
+            # running external-dns and orphans its TXT records.
+            registry: txt
+            txtOwnerId: knowledge-demarkus
+            txtPrefix: ed-
+
+            # Default policy is upsert-only, which never deletes records.
+            # `sync` enables full lifecycle (deletes records when ingresses
+            # are removed). Start with upsert-only — safer for first deploy,
+            # flip to sync once we trust the setup.
+            policy: upsert-only
+
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 96Mi
+
+            # No metrics yet, no PDB.
+            metrics:
+              enabled: false
+            podDisruptionBudget: {}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: external-dns
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
