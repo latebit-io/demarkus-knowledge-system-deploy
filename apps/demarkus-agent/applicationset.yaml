@@ -1,0 +1,119 @@
+# demarkus-agent: the federation crawler that fortifies the `root` hub.
+#
+# Config-driven: this ApplicationSet's git-files generator reads the repo-root
+# deployment.yaml and derives the agent's crawl frontier from `worlds[]` —
+# `seeds` from the content worlds, `hubs` from the `hub: true` world. So adding
+# a world is now a SINGLE edit to deployment.yaml (it drives the worlds
+# ApplicationSet, the broker's worlds[], AND these seeds) — the old three-place
+# coupling is gone.
+#
+# It crawls each content world directly over mark:// QUIC (LIST + FETCH),
+# collects every document's content-hash, and PUBLISHES an aggregated hash
+# index into the `root` hub. That index is what makes `root` the connector for
+# discovering all the worlds: an agent on `root` can `mark_resolve` any hash.
+#
+# Topology notes:
+#   - The agent dials worlds DIRECTLY (not through the broker), so seeds + hub
+#     are cluster-internal Service DNS (`<name>.<name>.svc.cluster.local:6309`),
+#     derived from the world NAME — no domain needed.
+#   - Worlds use self-signed certs with no shared CA → `insecure: true` (same
+#     posture as the broker's worldDialer.insecureSkipVerify).
+#   - Reads are open (publish-only invariant), so crawling needs NO token. Only
+#     the PUBLISH into `root` needs one — provisioned by ESO from root's raw
+#     admin token (cluster-secret-store.yaml + external-secret.yaml).
+#   - `perServer: true` → publishes `/index/<host>.md`, never clobbering root's
+#     curated /index.md. That subpath needs root's admin token widened to `/**`
+#     (set in the worlds ApplicationSet).
+#   - The ESO credential is hardcoded to `root` (the fixed-name hub convention),
+#     so the `hub: true` world in deployment.yaml MUST be named `root`.
+#
+# Sync wave: 2 — after the broker + worlds (wave 1), so `root` and its
+# `root-token-values` Secret exist before ESO reshapes the token. The agent's
+# token volume is `optional` and the daemon tolerates transient errors, so it
+# self-heals into convergence regardless.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demarkus-agent
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        # Self-reference literal (a generator can't read its own repo URL from
+        # the file it reads); same value as deployment.yaml's repoURL. revision
+        # matches the root ApplicationSet.
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: demarkus-agent
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+    spec:
+      project: default
+      source:
+        repoURL: ghcr.io/latebit-io/charts
+        chart: demarkus-agent
+        targetRevision: 0.12.38
+        helm:
+          releaseName: demarkus-agent
+          values: |
+            # Image tag defaults to .Chart.appVersion; explicit pin so an
+            # unexpected chart bump can't pull a newer crawler than reviewed.
+            image:
+              tag: "0.12.38"
+
+            {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
+            config:
+              # Content worlds to crawl, by cluster-internal Service DNS —
+              # every world WITHOUT `hub: true`. The hub is intentionally not
+              # seeded (it's the aggregation point, reachable via its curated
+              # /index.md, not a world to be discovered).
+              seeds:
+              {{- range .worlds }}
+              {{- if not (index . "hub") }}
+                - mark://{{ .name }}.{{ .name }}.svc.cluster.local:6309
+              {{- end }}
+              {{- end }}
+              # Publish the aggregated index into the hub world(s). `index . "hub"`
+              # safely reads the optional `hub` field (a Go builtin that returns
+              # nil — not an error — when a content world omits the key).
+              hubs:
+              {{- range .worlds }}
+              {{- if (index . "hub") }}
+                - mark://{{ .name }}.{{ .name }}.svc.cluster.local:6309
+              {{- end }}
+              {{- end }}
+              # Re-crawl hourly. Small universe, cheap reads; keeps the hash
+              # index fresh (politeness defaults still throttle per-server).
+              schedule:
+                interval: 1h
+
+            # One machine index per discovered server at /index/<host>.md, so
+            # the agent never writes root's curated /index.md. Requires root's
+            # publish token to cover `/index/**` (widened in the worlds AppSet).
+            perServer: true
+
+            # Self-signed world certs + no shared CA → skip outbound TLS verify.
+            insecure: true
+
+            # Publish credential for the `root` hub. ESO materializes this
+            # Secret (key tokens.toml) from root-token-values — see
+            # external-secret.yaml. The volume mount is `optional`, so the pod
+            # starts before the Secret lands and converges once ESO reshapes it.
+            tokens:
+              existingSecret: demarkus-agent-hub-tokens
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demarkus-agent
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

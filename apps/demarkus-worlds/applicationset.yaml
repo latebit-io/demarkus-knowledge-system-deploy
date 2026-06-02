@@ -1,6 +1,7 @@
-# Demarkus worlds. One Argo Application per entry in
-# generators[0].list.elements; each installs the demarkus-server chart
-# into its own namespace.
+# Demarkus worlds. One Argo Application per entry in deployment.yaml's
+# worlds[]; each installs the demarkus-server chart into its own namespace.
+# deployment.yaml is the single source — the same list drives the broker's
+# worlds[] and the agent's crawl seeds, so adding a world is one edit there.
 #
 # Pattern from deploy/k8s/examples/applicationset.yaml in the demarkus
 # monorepo. Per-world isolation via namespace boundary; per-world
@@ -19,25 +20,30 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
+  goTemplate: true
+  # Only .name is interpolated (present on every world), so missingkey=error
+  # is safe and catches template typos.
+  goTemplateOptions: ["missingkey=error"]
+  # The matrix feeds the git-files generator's parsed deployment.yaml into a
+  # list generator whose elementsYaml expands worlds[] into one param-set per
+  # world — the stock ArgoCD way to fan a single in-file array out to N
+  # Applications (no plugin). Which world is the `root` hub, etc. is declared
+  # in deployment.yaml; here every world gets identical demarkus-server config.
   generators:
-    - list:
-        elements:
-          # The well-known hub world. Every demarkus knowledge system
-          # carries a guaranteed world named `root`, discovered by
-          # fixed-name convention (broker-advertised discovery is a
-          # deferred enhancement). It holds the org-global tree the
-          # agent/plugin reads on join:
-          # `/.well-known/demarkus/{policy,template}.md` (strictness
-          # level + required tags + the per-project template). Same
-          # chart and per-element treatment as any other world — only
-          # the name carries meaning. The policy/template documents
-          # themselves are content published into the live world after
-          # it syncs, not GitOps manifests.
-          - name: root
-          - name: world-a
+    - matrix:
+        generators:
+          - git:
+              # Self-reference literal (a generator can't read its own repo URL
+              # from the file it reads); same as deployment.yaml's repoURL.
+              repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+              revision: main
+              files:
+                - path: deployment.yaml
+          - list:
+              elementsYaml: "{{ .worlds | toJson }}"
   template:
     metadata:
-      name: "{{name}}"
+      name: "{{ .name }}"
     spec:
       project: default
       source:
@@ -45,7 +51,7 @@ spec:
         chart: demarkus-server
         targetRevision: 0.17.14
         helm:
-          releaseName: "{{name}}"
+          releaseName: "{{ .name }}"
           values: |
             # Explicit image.tag pin as a defensive guard against an
             # unexpected chart bump. 0.17.14 fixes the volumeClaimTemplates
@@ -68,7 +74,7 @@ spec:
             # resolves cleanly and no per-world internalAddress
             # override is needed. Future worlds added via this
             # ApplicationSet inherit the same convention.
-            fullnameOverride: "{{name}}"
+            fullnameOverride: "{{ .name }}"
             # ClusterIP service — the broker reaches each world via the
             # standard in-cluster Service DNS (`{name}.{name}.svc.
             # cluster.local:6309`), no external mark:// exposure yet.
@@ -109,7 +115,7 @@ spec:
             # Let's Encrypt cannot validate those over HTTP-01.
             # dnsNames defaults to `<release>.<namespace>.svc.cluster.
             # local` per the chart, which resolves to
-            # `{{name}}.{{name}}.svc.cluster.local` here — exactly the
+            # `<name>.<name>.svc.cluster.local` here — exactly the
             # host the broker's MCP gateway dials.
             tls:
               certManager:
@@ -119,7 +125,7 @@ spec:
                   name: selfsigned
       destination:
         server: https://kubernetes.default.svc
-        namespace: "{{name}}"
+        namespace: "{{ .name }}"
       # The world's tokens Secret holds runtime state — the broker
       # appends per-mint hash entries to data.tokens.toml on each token
       # mint. Without ignoring /data, Argo's selfHeal would revert every
@@ -137,7 +143,7 @@ spec:
       # whole class of immutable-VCT sync wedges goes away.
       ignoreDifferences:
         - kind: Secret
-          name: "{{name}}-tokens"
+          name: "{{ .name }}-tokens"
           jsonPointers:
             - /data
       syncPolicy:
