@@ -106,6 +106,12 @@ spec:
             # gone: the broker hardcodes the write token to ["publish"] (#163)
             # so an open-reads regression can't slip back via config; reads use
             # no token and the world stays publicly readable.
+            #
+            # Fail the render on an empty worlds[]: missingkey=error only
+            # catches an ABSENT `worlds` key, not `worlds: []`, which would
+            # render `worlds:` with no entries and crash-loop the broker (it
+            # refuses to start with empty worlds[]).
+            {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the broker refuses to start with no worlds" }}{{- end }}
             worlds:
             {{- range .worlds }}
               - name: {{ .name }}
