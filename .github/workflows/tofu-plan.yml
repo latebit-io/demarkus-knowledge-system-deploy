@@ -10,6 +10,9 @@ on:
     branches: [main]
     paths:
       - "tofu/**"
+      # deployment.yaml feeds tofu via locals.tf, so identity changes there
+      # (project/region/domain) must trigger a plan too.
+      - "deployment.yaml"
       - ".github/workflows/tofu-plan.yml"
 
 # Least privilege by default; the plan job widens its own permissions.

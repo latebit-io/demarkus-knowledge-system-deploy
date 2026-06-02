@@ -7,6 +7,10 @@ on:
     branches: [main]
     paths:
       - "tofu/**"
+      # deployment.yaml feeds tofu via locals.tf, so identity changes there
+      # (project/region/domain) must trigger an apply too — otherwise committed
+      # config and live infra drift until an unrelated tofu/** change fires.
+      - "deployment.yaml"
       - ".github/workflows/tofu-apply.yml"
 
 permissions:
