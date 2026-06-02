@@ -7,6 +7,10 @@ on:
     branches: [main]
     paths:
       - "tofu/**"
+      # deployment.yaml feeds tofu via locals.tf, so identity changes there
+      # (project/region/domain) must trigger an apply too — otherwise committed
+      # config and live infra drift until an unrelated tofu/** change fires.
+      - "deployment.yaml"
       - ".github/workflows/tofu-apply.yml"
 
 permissions:
@@ -27,7 +31,8 @@ jobs:
         working-directory: tofu/envs/prod
     env:
       # *.tfvars is gitignored; inject the values CI needs as TF_VAR_*.
-      TF_VAR_project_id: ${{ vars.TOFU_PROJECT_ID }}
+      # project_id/region/domain come from the committed deployment.yaml, not
+      # here (TOFU_PROJECT_ID GH var is now vestigial — safe to delete).
       TF_VAR_project_name: ${{ vars.TOFU_PROJECT_NAME }}
       TF_VAR_org_id: ${{ vars.TOFU_ORG_ID }}
       TF_VAR_billing_account: ${{ secrets.TOFU_BILLING_ACCOUNT }}

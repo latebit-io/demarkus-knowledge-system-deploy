@@ -1,6 +1,9 @@
 # Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+#
+# This file holds ONLY the secret / substrate-only knobs. The deployment
+# identity (project id, region, domain, repo URL, …) lives in the repo-root
+# deployment.yaml — set it there, not here.
 
-project_id      = "knowledge-demarkus"
 project_name    = "Demarkus Knowledge System"
 billing_account = "XXXXXX-XXXXXX-XXXXXX"
 
@@ -8,8 +11,6 @@ billing_account = "XXXXXX-XXXXXX-XXXXXX"
 # Find your org id with: gcloud organizations list
 org_id = "000000000000"
 # folder_id = "000000000000"
-
-region = "northamerica-northeast2"
 
 # Email for monthly budget alerts (50/80/100/120% of budget_amount).
 budget_alert_email = "you@example.com"

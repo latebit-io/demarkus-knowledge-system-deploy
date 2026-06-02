@@ -1,15 +1,15 @@
 provider "google" {
-  project = var.project_id
-  region  = var.region
+  project = local.project_id
+  region  = local.region
 
   # Some GCP APIs (notably billingbudgets) bill API quota to the caller's
   # project rather than the resource's. Without these two settings the
   # provider falls back to a stray default project (often the gcloud SDK's
   # internal one), and the call fails with SERVICE_DISABLED even though
-  # the API IS enabled on var.project_id. Setting both makes every request
+  # the API IS enabled on the project. Setting both makes every request
   # explicit about which project foots the API quota.
   user_project_override = true
-  billing_project       = var.project_id
+  billing_project       = local.project_id
 }
 
 # Short-lived access token for the currently-authenticated gcloud user (local)

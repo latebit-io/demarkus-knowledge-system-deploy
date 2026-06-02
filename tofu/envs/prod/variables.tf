@@ -1,7 +1,6 @@
-variable "project_id" {
-  description = "GCP project ID to create for the knowledge system."
-  type        = string
-}
+# NOTE: project_id, region, dns_name, and zone are NOT variables — they come
+# from the repo-root deployment.yaml (the single source of truth shared with
+# ArgoCD), via locals.tf. Only secret / substrate-only knobs live here.
 
 variable "project_name" {
   description = "Display name for the project."
@@ -23,24 +22,6 @@ variable "folder_id" {
   description = "Numeric GCP folder ID. Set this OR org_id, not both."
   type        = string
   default     = null
-}
-
-variable "region" {
-  description = "Default GCP region for resources in this environment."
-  type        = string
-  default     = "northamerica-northeast2"
-}
-
-variable "dns_name" {
-  description = "Fully-qualified DNS name for the Cloud DNS zone, with trailing dot."
-  type        = string
-  default     = "knowledge.demarkus.io."
-}
-
-variable "zone" {
-  description = "Single zone for the GKE cluster. Must be in the same region as the subnet."
-  type        = string
-  default     = "northamerica-northeast2-a"
 }
 
 variable "budget_amount" {
