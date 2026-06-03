@@ -83,7 +83,19 @@ collect_config() {
   GITHUB_ORG="$(ask 'GitHub org for admin SSO' "$(yq -r '.githubOrg // ""' deployment.yaml)")"
   OAUTH_CLIENT_ID="$(ask 'Google OAuth client id (public; create it first, or fill later)' "$(yq -r '.oauthClientId // ""' deployment.yaml)")"
   ADMIN_EMAILS="$(ask 'Admin emails (comma-separated)' "$(yq -r '(.adminEmails // []) | join(",")' deployment.yaml)")"
-  CONTENT_WORLD="$(ask 'First content world name' "$(yq -r '[.worlds[]? | select(.hub != true) | .name] | .[0] // "world-a"' deployment.yaml)")"
+  # Worlds: PRESERVE an existing worlds[] verbatim across re-runs (idempotent —
+  # never drop configured worlds); only seed root + one content world on a truly
+  # fresh config. Add/remove worlds by editing deployment.yaml's worlds[].
+  CONTENT_WORLD=""
+  if yq -e '(.worlds // []) | map(select(.hub == true)) | length > 0' deployment.yaml >/dev/null 2>&1; then
+    PRESERVE_WORLDS=1
+    yq '.worlds' deployment.yaml > /tmp/instantiate-worlds.yaml
+    WORLDS_SUMMARY="$(yq -r '[.worlds[].name] | join(", ")' deployment.yaml) (preserved — edit deployment.yaml to change)"
+  else
+    PRESERVE_WORLDS=0
+    CONTENT_WORLD="$(ask 'First content world name (add more by editing deployment.yaml)' 'world-a')"
+    WORLDS_SUMMARY="root (hub), $CONTENT_WORLD"
+  fi
   DNS_TXT_OWNER="$(ask 'external-dns TXT owner id (unique per cluster)' "$(yq -r '.dnsTxtOwnerId // ""' deployment.yaml || true)")"
   [ -n "$DNS_TXT_OWNER" ] || DNS_TXT_OWNER="$PROJECT_ID"
 
@@ -101,10 +113,29 @@ collect_config() {
   BOOTSTRAP_PROJECT="$(ask 'Bootstrap project id (holds the state bucket)' "")"
   STATE_BUCKET="$(ask 'State bucket name (globally unique)' "")"
 
+  # Fail fast on missing required inputs — before writing files or touching the
+  # cloud. (oauthClientId may be blank now and filled in before the OpenBao seed.)
+  local missing=()
+  [ -n "$DOMAIN" ] || missing+=("domain")
+  [ -n "$PROJECT_ID" ] || missing+=("projectId")
+  [ -n "$REGION" ] || missing+=("region")
+  [ -n "$REPO_URL" ] || missing+=("repoURL")
+  [ -n "$GITHUB_ORG" ] || missing+=("githubOrg")
+  [ -n "$ADMIN_EMAILS" ] || missing+=("adminEmails")
+  [ -n "$BILLING_ACCOUNT" ] || missing+=("billing_account")
+  { [ -n "$ORG_ID" ] || [ -n "$FOLDER_ID" ]; } || missing+=("org_id or folder_id")
+  [ -n "$BOOTSTRAP_PROJECT" ] || missing+=("bootstrap project")
+  [ -n "$STATE_BUCKET" ] || missing+=("state bucket")
+  if [ "${#missing[@]}" -gt 0 ]; then
+    warn "missing required values: ${missing[*]}"
+    info "re-run and provide them."
+    exit 2
+  fi
+
   echo
   bold "Review:"
   info "domain=$DOMAIN  projectId=$PROJECT_ID  region=$REGION  repoURL=$REPO_URL"
-  info "githubOrg=$GITHUB_ORG  adminEmails=$ADMIN_EMAILS  worlds=[root(hub), $CONTENT_WORLD]"
+  info "githubOrg=$GITHUB_ORG  adminEmails=$ADMIN_EMAILS  worlds: $WORLDS_SUMMARY"
   info "billing=$BILLING_ACCOUNT  org/folder=${ORG_ID:-$FOLDER_ID}  bucket=$STATE_BUCKET"
   confirm "Write these files?" || { warn "aborted; nothing written."; exit 1; }
 
@@ -130,9 +161,13 @@ write_deployment_yaml() {
     IFS=',' read -ra _emails <<<"$ADMIN_EMAILS"
     for e in "${_emails[@]}"; do echo "  - ${e// /}"; done
     echo "worlds:"
-    echo "  - name: root"
-    echo "    hub: true"
-    echo "  - name: $CONTENT_WORLD"
+    if [ "${PRESERVE_WORLDS:-0}" = 1 ] && [ -s /tmp/instantiate-worlds.yaml ]; then
+      sed 's/^/  /' /tmp/instantiate-worlds.yaml
+    else
+      echo "  - name: root"
+      echo "    hub: true"
+      echo "  - name: $CONTENT_WORLD"
+    fi
   } > deployment.yaml
   ok "wrote deployment.yaml"
 }
