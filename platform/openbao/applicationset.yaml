@@ -143,7 +143,7 @@ spec:
               # 2. Uncomment the `extraVolumes` block below to mount the secret
               #    at /openbao/tls inside the pod.
               #
-              # 3. In the raft.config above, set `tls_disable = 0` and uncomment
+              # 3. In the standalone.config above, set `tls_disable = 0` and uncomment
               #    the three `tls_*` lines.
               # ───────────────────────────────────────────────────────────────────
               # extraVolumes:
