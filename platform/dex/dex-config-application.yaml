@@ -15,6 +15,13 @@ kind: Application
 metadata:
   name: dex-config
   namespace: argocd
+  annotations:
+    # Wave -1, alongside the Dex Application: this creates the dex-config
+    # ExternalSecret early, so it's queued by the time ESO (wave 0) comes up to
+    # materialize the dex-config Secret — minimising Dex's first-install
+    # crash-loop while it waits for its config. (The old raw external-secret
+    # had no wave, i.e. effective wave 0; this is a small ordering improvement.)
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   sources:
