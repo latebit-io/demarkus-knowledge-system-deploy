@@ -1,0 +1,255 @@
+# OpenBao: secrets store. Single-node Raft for bootstrap (master plan
+# recommendation — scale to 3 replicas before going live).
+#
+# Depends on Phase 5a's KMS key + Workload Identity binding:
+#   - GSA `openbao-unseal` has cloudkms.cryptoKeyEncrypterDecrypter on
+#     projects/.../keyRings/demarkus-platform/cryptoKeys/openbao-unseal
+#   - openbao/openbao KSA is WI-bound to that GSA
+#   - gcpckms seal stanza below references the same key
+#
+# Sync wave: -1. Bank-vaults webhook (5f) depends on this.
+#
+# ────────────────────────────────────────────────────────────────────────
+# ONE-TIME INIT AFTER FIRST DEPLOY (cannot be automated — bao operator
+# init outputs root token + recovery keys that must be stored securely):
+#
+#   kubectl -n openbao exec -ti openbao-0 -- bao operator init \
+#     -recovery-shares=5 -recovery-threshold=3
+#
+# Save the 5 recovery keys and the initial root token somewhere durable
+# (1Password, Bitwarden, GCS bucket with CMEK + tight IAM, etc.).
+# Auto-unseal happens automatically via gcpckms — you do NOT need the
+# recovery keys to unseal day-to-day; they only matter for regenerating
+# a lost root token.
+# ────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: openbao
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        # Self-reference literal (a generator can't read its own repo URL from
+        # the file it reads); kept in sync with deployment.yaml's repoURL by
+        # scripts/sync-deployment-config.sh.
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: openbao
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "-1"
+    spec:
+      project: default
+      source:
+        repoURL: https://openbao.github.io/openbao-helm
+        chart: openbao
+        targetRevision: 0.28.3
+        helm:
+          releaseName: openbao
+          values: |
+            global:
+              enabled: true
+
+            server:
+              # ghcr.io publishes container tags as bare semver (no `v` prefix)
+              # even though the chart's appVersion and the project's git release
+              # tags use the `v` prefix. The chart's default of v2.5.4 doesn't
+              # resolve; we have to override to bare 2.5.4 here.
+              image:
+                registry: ghcr.io
+                repository: openbao/openbao
+                tag: "2.5.4"
+                pullPolicy: IfNotPresent
+
+              # Workload Identity: the KSA `openbao` impersonates the GSA
+              # `openbao-unseal@...` (created in Phase 5a), which holds
+              # cryptoKeyEncrypterDecrypter on the gcpckms unseal key.
+              serviceAccount:
+                create: true
+                name: openbao
+                annotations:
+                  iam.gke.io/gcp-service-account: openbao-unseal@{{ .projectId }}.iam.gserviceaccount.com
+
+              # Standalone (single-node, file storage). HA with one replica is
+              # all complexity, no benefit — same SPOF, but with the Raft
+              # cluster/quorum machinery on top. If we ever genuinely need HA,
+              # we'd do a one-time export/redeploy/import migration.
+              standalone:
+                enabled: true
+                config: |
+                  ui = true
+
+                  # In-cluster listener. TLS is intentionally disabled today —
+                  # we'll terminate TLS at the ingress when we expose OpenBao
+                  # externally (Phase 5f+). To enable in-cluster TLS, follow
+                  # the 3 steps in the "TLS enable path" comment block below
+                  # the standalone.config — then flip tls_disable to 0 and
+                  # uncomment the tls_*_file lines here.
+                  listener "tcp" {
+                    address     = "[::]:8200"
+                    tls_disable = 1
+                    # tls_cert_file   = "/openbao/tls/tls.crt"
+                    # tls_key_file    = "/openbao/tls/tls.key"
+                    # tls_min_version = "tls12"
+                  }
+
+                  storage "file" {
+                    path = "/openbao/data"
+                  }
+
+                  seal "gcpckms" {
+                    project    = "{{ .projectId }}"
+                    region     = "northamerica-northeast2"
+                    key_ring   = "demarkus-platform"
+                    crypto_key = "openbao-unseal"
+                  }
+
+              ha:
+                enabled: false
+
+              # ─── TLS enable path (currently disabled) ─────────────────────────
+              # Today OpenBao serves plaintext on 8200 inside the cluster. To
+              # enable in-cluster TLS:
+              #
+              # 1. Add a cert-manager Certificate to platform/openbao/ that emits
+              #    a Secret named `openbao-server-tls`. Must use the `selfsigned`
+              #    ClusterIssuer (defined in platform/cert-manager/cluster-issuers.yaml)
+              #    — Let's Encrypt cannot issue certificates for internal
+              #    .svc / .cluster.local DNS names since they aren't publicly
+              #    verifiable.
+              #
+              #      apiVersion: cert-manager.io/v1
+              #      kind: Certificate
+              #      metadata:
+              #        name: openbao-server-tls
+              #        namespace: openbao
+              #      spec:
+              #        secretName: openbao-server-tls
+              #        issuerRef:
+              #          name: selfsigned
+              #          kind: ClusterIssuer
+              #        dnsNames:
+              #          - openbao.openbao.svc
+              #          - openbao.openbao.svc.cluster.local
+              #          - openbao-0.openbao-internal.openbao.svc.cluster.local
+              #
+              # 2. Uncomment the `extraVolumes` block below to mount the secret
+              #    at /openbao/tls inside the pod.
+              #
+              # 3. In the standalone.config above, set `tls_disable = 0` and uncomment
+              #    the three `tls_*` lines.
+              # ───────────────────────────────────────────────────────────────────
+              # extraVolumes:
+              #   - type: secret
+              #     name: openbao-server-tls
+              #     path: /openbao/tls
+
+              dataStorage:
+                enabled: true
+                size: 1Gi
+                mountPath: /openbao/data
+                # storageClassName: leave default (GKE pd-standard)
+
+              # Audit log via separate volume — recommended even at small scale
+              # so audit failures don't block writes.
+              auditStorage:
+                enabled: true
+                size: 1Gi
+                mountPath: /openbao/audit
+
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 128Mi
+                limits:
+                  memory: 256Mi
+
+              readinessProbe:
+                enabled: true
+                # On a fresh install OpenBao starts sealed; readiness returns
+                # not-ready until init. After init, gcpckms auto-unseals.
+                execCommand:
+                  - /bin/sh
+                  - -c
+                  - bao status -tls-skip-verify || [ $? -eq 2 ]
+
+              livenessProbe:
+                enabled: true
+                execCommand:
+                  - /bin/sh
+                  - -c
+                  - bao status -tls-skip-verify || [ $? -eq 2 ]
+                initialDelaySeconds: 60
+
+              # Admin ingress at openbao.knowledge.demarkus.io. OpenBao
+              # now uses its native OIDC auth method against the
+              # standalone Dex (see docs/runbook-dex-sso.md) — the
+              # oauth2-proxy edge gate has been dropped here because
+              # gating Dex's downstream consumer behind oauth2-proxy
+              # (which also uses GitHub OAuth) would force a double-login.
+              # OpenBao's own login screen is the auth surface; UI access
+              # requires a valid OpenBao token, which the OIDC method
+              # mints from a Dex-issued id_token.
+              #
+              # In-cluster TLS to OpenBao stays disabled (see TLS-enable
+              # path above). Edge TLS (Let's Encrypt) terminates at
+              # ingress-nginx; admin traffic between nginx and OpenBao
+              # traverses the pod network unencrypted until the in-cluster
+              # TLS path is flipped on. Acceptable for the admin UI given
+              # the low rate of use.
+              ingress:
+                enabled: true
+                ingressClassName: nginx
+                hosts:
+                  - host: openbao.{{ .domain }}
+                    paths: []
+                annotations:
+                  cert-manager.io/cluster-issuer: letsencrypt-prod
+                  # OpenBao UI loads a chunky JS bundle; raise the proxy
+                  # body size cap so admin actions like uploading a
+                  # policy file via UI don't 413.
+                  nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+                tls:
+                  - hosts:
+                      - openbao.{{ .domain }}
+                    secretName: openbao-tls
+
+            # The Kubernetes injector ships with this chart but we use
+            # bank-vaults (Phase 5f) instead, which is more flexible.
+            injector:
+              enabled: false
+
+            csi:
+              enabled: false
+
+            # UI Service off — the chart's `ui` block creates a separate
+            # LoadBalancer/ClusterIP for direct UI access (used when no
+            # ingress controller). We route through ingress-nginx instead
+            # (see server.ingress above). The OpenBao binary serves the
+            # UI at /ui/ on the API port (port 8200, enabled via `ui = true`
+            # in the HCL standalone.config above) — the ingress lands
+            # there via the existing openbao Service.
+            ui:
+              enabled: false
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: openbao
+      syncPolicy:
+        # Label the openbao namespace so the backups CronJob (apps/backups)
+        # snapshots its data + audit PVCs.
+        managedNamespaceMetadata:
+          labels:
+            demarkus.io/backup: "true"
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

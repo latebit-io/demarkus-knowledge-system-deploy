@@ -118,10 +118,20 @@ field_value() { # <render_file> <sts_name> <field>
   yq -o=json -I=0 "select(.kind == \"StatefulSet\" and .metadata.name == \"$2\") | .spec.$3 | sort_keys(..)" "$1"
 }
 
+# yq path prefix to the Helm source/sync/ignore blocks, derived from the
+# manifest's kind: ApplicationSet nests them under .spec.template.spec; a plain
+# Application has them at .spec. Computed per-manifest so an app mid-conversion
+# (base Application, head ApplicationSet) is handled on both sides.
+path_prefix() { # <manifest>
+  if [ "$(yq '.kind' "$1")" = "ApplicationSet" ]; then echo ".spec.template.spec"; else echo ".spec"; fi
+}
+
 # Render base + head for one app and append any immutable-field changes to
-# FINDINGS. Args: <name> <path> <source_path> <sync_path> <ignore_path> <release>.
+# FINDINGS. Args: <name> <path> <release>. The Helm-source path prefix is
+# derived per-manifest from its kind, so an app mid-transition (base
+# Application, head ApplicationSet) is compared correctly on both sides.
 process_app() {
-  local name="$1" path="$2" source_path="$3" sync_path="$4" ignore_path="$5" release="$6"
+  local name="$1" path="$2" release="$3"
 
   [ -f "$path" ] || return 0                       # app removed in this PR — not our concern
 
@@ -137,14 +147,17 @@ process_app() {
   cp "$path" "$head_manifest"
 
   base_render="$(mktemp)"; head_render="$(mktemp)"
-  render_chart "$base_manifest" "$source_path" "$release" "$name" > "$base_render"
-  render_chart "$head_manifest" "$source_path" "$release" "$name" > "$head_render"
+  local base_p head_p
+  base_p="$(path_prefix "$base_manifest")"
+  head_p="$(path_prefix "$head_manifest")"
+  render_chart "$base_manifest" "${base_p}.source" "$release" "$name" > "$base_render"
+  render_chart "$head_manifest" "${head_p}.source" "$release" "$name" > "$head_render"
 
   # A field is compared only when it's considered (not ArgoCD-stripped) on BOTH
   # sides — mirroring the per-side stripped computation in the original.
   local base_considered head_considered compare_fields base_sts head_sts common_sts
-  base_considered="$(considered_fields "$base_manifest" "$sync_path" "$ignore_path")"
-  head_considered="$(considered_fields "$head_manifest" "$sync_path" "$ignore_path")"
+  base_considered="$(considered_fields "$base_manifest" "${base_p}.syncPolicy.syncOptions" "${base_p}.ignoreDifferences")"
+  head_considered="$(considered_fields "$head_manifest" "${head_p}.syncPolicy.syncOptions" "${head_p}.ignoreDifferences")"
   compare_fields="$(comm -12 <(sort <<<"$base_considered") <(sort <<<"$head_considered"))"
 
   base_sts="$(yq 'select(.kind == "StatefulSet") | .metadata.name' "$base_render")"
@@ -175,12 +188,10 @@ process_app() {
   done <<<"$common_sts"
 }
 
-# StatefulSet-bearing apps. source_path points at the Helm source block
-# (Application vs ApplicationSet differ).
-process_app worlds  apps/demarkus-worlds/applicationset.yaml \
-  ".spec.template.spec.source" ".spec.template.spec.syncPolicy.syncOptions" ".spec.template.spec.ignoreDifferences" world
-process_app openbao platform/openbao/application.yaml \
-  ".spec.source" ".spec.syncPolicy.syncOptions" ".spec.ignoreDifferences" openbao
+# StatefulSet-bearing apps. The Helm-source path prefix is derived per-manifest
+# from its kind inside process_app (Application vs ApplicationSet).
+process_app worlds  apps/demarkus-worlds/applicationset.yaml world
+process_app openbao platform/openbao/applicationset.yaml openbao
 
 if [ ! -s "$FINDINGS" ]; then
   echo "✅ No immutable StatefulSet field changes between $BASE and HEAD."
