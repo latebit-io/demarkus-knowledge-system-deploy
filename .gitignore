@@ -44,3 +44,7 @@ terraform.rc
 # Uncomment the line below if you want to ignore planout files.
 # planout
 .mcp.json
+
+# Claude Code personal/local settings (permission allowlists, etc.). The shared
+# .claude/settings.json may be committed; the *.local.json is per-developer.
+.claude/settings.local.json
