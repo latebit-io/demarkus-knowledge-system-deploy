@@ -1,0 +1,5 @@
+# Merged from the repo-root deployment.yaml at render time (the consuming
+# Application sets helm.valueFiles: [$values/deployment.yaml]). Only domain +
+# githubOrg are used; the other deployment.yaml keys are received and ignored.
+domain: ""
+githubOrg: ""

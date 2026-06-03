@@ -1,0 +1,9 @@
+apiVersion: v2
+name: cert-manager-issuers
+description: >-
+  Cluster-scoped cert-manager ClusterIssuers (Let's Encrypt staging/prod +
+  selfsigned). The ACME registration email is read from the repo-root
+  deployment.yaml (adminEmails[0]) via the consuming Application's $values
+  valueFiles — no hardcoded email.
+type: application
+version: 0.1.0

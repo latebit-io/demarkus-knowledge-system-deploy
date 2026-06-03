@@ -1,0 +1,9 @@
+apiVersion: v2
+name: dex-config
+description: >-
+  ESO ExternalSecret that renders Dex's config.yaml from OpenBao. `domain` and
+  `githubOrg` are read from the repo-root deployment.yaml (via the consuming
+  Application's $values valueFiles); the OpenBao-sourced secret placeholders
+  ({{ .github_client_id }} etc.) are emitted literally for ESO to substitute.
+type: application
+version: 0.1.0
