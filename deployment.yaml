@@ -40,6 +40,12 @@ repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
 # GitHub org whose membership gates the admin UIs (ArgoCD, OpenBao) via Dex. (ArgoCD)
 githubOrg: latebit-io
 
+# external-dns TXT-record ownership marker. Must be UNIQUE per cluster — if two
+# installs share a DNS zone with the same id they'll fight over records. Do NOT
+# change it on a running cluster (external-dns would stop recognising its own
+# TXT records). Forks set their own. (ArgoCD)
+dnsTxtOwnerId: knowledge-demarkus
+
 # Google OAuth *client id* for broker user login. Public identifier (the
 # matching secret lives in OpenBao). (ArgoCD)
 oauthClientId: 941447371620-ihfmbrgip3dlaunqaa7e8675uoh6fs7v.apps.googleusercontent.com

@@ -73,12 +73,12 @@ spec:
 
             # TXT registry tracks which records external-dns owns, so it won't
             # touch records created manually or by other tools. txtOwnerId is
-            # the identity stamped into TXT records; must be unique per cluster
-            # if you ever share a DNS zone across clusters. Stable per-cluster
-            # id (NOT derived from domain/project) so it never changes under a
-            # running external-dns and orphans its TXT records.
+            # the identity stamped into TXT records; must be unique per cluster.
+            # Sourced from deployment.yaml's `dnsTxtOwnerId` (a stable per-cluster
+            # id, NOT derived from domain/project) so it never silently changes
+            # under a running external-dns and orphans its TXT records.
             registry: txt
-            txtOwnerId: knowledge-demarkus
+            txtOwnerId: {{ .dnsTxtOwnerId }}
             txtPrefix: ed-
 
             # Default policy is upsert-only, which never deletes records.
