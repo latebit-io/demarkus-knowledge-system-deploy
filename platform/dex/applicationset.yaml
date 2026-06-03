@@ -1,0 +1,148 @@
+# Dex: OIDC identity provider that federates GitHub. Acts as the
+# trusted issuer for the cluster's SSO surface — ArgoCD and OpenBao
+# delegate login to Dex; Dex delegates to GitHub (OAuth) and translates
+# the response into an OIDC id_token containing the GitHub user's
+# email, name, and group membership claims.
+#
+# Config-driven: this ApplicationSet's git-files generator reads the repo-root
+# deployment.yaml and interpolates `domain` into the ingress host. (The GitHub
+# org allowlist lives in platform/dex/external-secret.yaml, a raw manifest —
+# centralizing its githubOrg is a separate step.)
+#
+# Topology:
+#   Browser → ArgoCD/OpenBao login page
+#          → /api/dex/login or /ui/vault/auth/oidc/oidc/...
+#          → Dex /auth (consent + connector pick)
+#          → GitHub OAuth
+#          → Dex /callback (Dex translates)
+#          → back to the consuming app's callback URL with an id_token
+#
+# Why standalone (not ArgoCD's bundled Dex): we want OpenBao to use the
+# same instance, and ArgoCD's bundled Dex is wired tightly to ArgoCD's
+# Server config + redirect URL. A standalone Dex with static clients
+# for both apps keeps the OIDC trust boundary uniform.
+#
+# Sync wave: -1 (alongside the rest of the platform-secrets infra).
+# Dex doesn't depend on the consuming apps; the apps depend on Dex
+# being reachable when they redirect a login.
+#
+# ────────────────────────────────────────────────────────────────────────
+# ONE-TIME OPERATOR WIRING (after the generated Application is Synced+Healthy):
+#
+#   1. Create a NEW GitHub OAuth App (the existing oauth2-proxy App's
+#      callback URL is locked elsewhere; GitHub Apps don't allow
+#      multiple callbacks):
+#        Authorization callback URL: https://dex.<domain>/callback
+#
+#   2. Seed OpenBao with three entries:
+#        secret/dex/github-client   — client_id, client_secret
+#        secret/dex/argocd-client   — client_secret (random 32-byte)
+#        secret/dex/openbao-client  — client_secret (random 32-byte)
+#
+#   3. Extend the `external-secrets` OpenBao policy to allow read on
+#      secret/data/dex/* (see docs/runbook-eso-openbao.md).
+#
+#   4. tofu apply the argocd-bootstrap module to push the OIDC config
+#      added to bootstrap/argocd-values.yaml.
+#
+#   5. Enable + configure the OpenBao OIDC auth method (manual bao
+#      commands documented in docs/runbook-dex-sso.md).
+#
+# Full operator runbook: docs/runbook-dex-sso.md.
+# ────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dex
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        # Self-reference literal (a generator can't read its own repo URL from
+        # the file it reads); same value as deployment.yaml's repoURL.
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: dex
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "-1"
+    spec:
+      project: default
+      source:
+        repoURL: https://charts.dexidp.io
+        chart: dex
+        targetRevision: 0.24.1
+        helm:
+          releaseName: dex
+          values: |
+            # Pin image tag in lockstep with the chart's appVersion so an
+            # out-of-band image bump can't slip in.
+            image:
+              tag: v2.45.0
+
+            replicaCount: 1
+
+            # Dex's runtime config.yaml lives entirely in
+            # platform/dex/external-secret.yaml — ESO renders an `Opaque`
+            # Secret named `dex-config` with the values substituted from
+            # OpenBao. The chart's `configSecret.create: false` +
+            # `configSecret.name: dex-config` skips templates/secret.yaml so
+            # the chart doesn't fight ESO over who owns it.
+            #
+            # Why not the chart's own `config:` block: Dex 2.45.0 doesn't
+            # expand `$VAR` in its config file, so `secret:
+            # $ARGOCD_CLIENT_SECRET` from chart values would land as a literal
+            # string and every token exchange returns invalid_client. ESO-
+            # rendered config produces a fully-baked YAML the Dex binary reads
+            # as-is, and credentials never round-trip through helm history.
+            configSecret:
+              create: false
+              name: dex-config
+
+            # Ingress at dex.<domain>. TLS via cert-manager letsencrypt-prod;
+            # external-dns creates the A record. Note: NO oauth2-proxy auth
+            # annotations here. Dex IS the auth layer — gating it behind
+            # oauth2-proxy would be circular.
+            ingress:
+              enabled: true
+              className: nginx
+              hosts:
+                - host: dex.{{ .domain }}
+                  paths:
+                    - path: /
+                      pathType: Prefix
+              annotations:
+                cert-manager.io/cluster-issuer: letsencrypt-prod
+              tls:
+                - hosts:
+                    - dex.{{ .domain }}
+                  secretName: dex-tls
+
+            # Modest resource footprint — Dex is stateless modulo k8s CRD
+            # writes (refresh tokens), no in-process caching of size.
+            resources:
+              requests:
+                cpu: 25m
+                memory: 64Mi
+              limits:
+                memory: 128Mi
+
+            serviceAccount:
+              create: true
+              name: dex
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: dex
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
