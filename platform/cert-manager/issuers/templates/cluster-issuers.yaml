@@ -1,8 +1,11 @@
+{{- $acmeEmail := .Values.adminEmails | first -}}
+{{- if not $acmeEmail }}{{ fail "deployment.yaml: adminEmails must have at least one entry — its first address is the ACME registration email" }}{{- end }}
 # Let's Encrypt ClusterIssuers. Cluster-scoped so any namespace can request
 # certs by name. Sync-wave -1 so they're applied after the inner cert-manager
 # Application (wave -2) — they'll error initially until cert-manager pods are
 # up and CRDs exist; self-heal converges in a few minutes.
 #
+# ACME registration email comes from deployment.yaml's adminEmails[0].
 # Use letsencrypt-staging while validating ingress/DNS — LE rate-limits prod
 # heavily on repeated failures.
 ---
@@ -18,7 +21,7 @@ metadata:
 spec:
   acme:
     server: https://acme-staging-v02.api.letsencrypt.org/directory
-    email: fritz@latebit.io
+    email: {{ $acmeEmail }}
     privateKeySecretRef:
       name: letsencrypt-staging-account-key
     solvers:
@@ -38,7 +41,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: fritz@latebit.io
+    email: {{ $acmeEmail }}
     privateKeySecretRef:
       name: letsencrypt-prod-account-key
     solvers:

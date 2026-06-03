@@ -1,0 +1,48 @@
+# cert-manager ClusterIssuers, config-driven from deployment.yaml.
+#
+# A raw ClusterIssuer can't read helm values, so the issuers live in a tiny
+# LOCAL chart (./issuers) and this multi-source Application feeds it the
+# repo-root deployment.yaml as a values file ($values). The chart reads
+# adminEmails[0] as the ACME registration email — no hardcoded email.
+#
+# Both repoURLs are the self-reference (a chart/values source needs the repo
+# URL); scripts/sync-deployment-config.sh keeps them in sync with
+# deployment.yaml's repoURL. The ./issuers subdir is NOT rendered by the
+# platform/* directory generator (it's non-recursive) — only this Application
+# renders it.
+#
+# Sync wave -1: after the cert-manager Application (wave -2) installs the
+# ClusterIssuer CRD. SkipDryRunOnMissingResource tolerates the CRD-not-yet
+# race on first bring-up.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager-issuers
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+      targetRevision: main
+      path: platform/cert-manager/issuers
+      helm:
+        valueFiles:
+          - $values/deployment.yaml
+    # ref-only source: provides $values pointing at the repo root so the chart
+    # source above can read deployment.yaml.
+    - repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    # ClusterIssuers are cluster-scoped; this is just the Application's home ns.
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

@@ -1,0 +1,41 @@
+# Dex config ExternalSecret, config-driven from deployment.yaml.
+#
+# The ExternalSecret's config.yaml mixes deployment values (domain, githubOrg)
+# with ESO's own `{{ }}` secret placeholders, so it can't be a plain raw
+# manifest. It lives in a LOCAL chart (./dex-config) that helm-renders the
+# deployment values while emitting the ESO placeholders literally; this
+# multi-source Application feeds the chart the repo-root deployment.yaml as a
+# values file ($values).
+#
+# Both repoURLs are the self-reference; scripts/sync-deployment-config.sh keeps
+# them in sync with deployment.yaml's repoURL. The ./dex-config subdir is not
+# rendered by the platform/* directory generator (non-recursive).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dex-config
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+      targetRevision: main
+      path: platform/dex/dex-config
+      helm:
+        valueFiles:
+          - $values/deployment.yaml
+    # ref-only source: provides $values pointing at the repo root.
+    - repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dex
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true
