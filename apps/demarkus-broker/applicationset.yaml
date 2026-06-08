@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.1.28
+        targetRevision: 0.1.31
         helm:
           releaseName: demarkus-broker
           values: |
@@ -64,9 +64,10 @@ spec:
 
             # Explicit image pin so an unexpected chart bump can't pull a
             # controller newer than what was reviewed. 0.1.27+ allows LOOKUP
-            # through the MCP gateway; 0.1.28 is the latest patch.
+            # through the MCP gateway; 0.1.31 ships the chart wiring for
+            # `oidc.allowDomains` (the broker code gate landed in a8d39a5).
             image:
-              tag: "0.1.28"
+              tag: "0.1.31"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
@@ -90,6 +91,16 @@ spec:
               existingSigningKeyRef:
                 name: jwks-signing-key
               redirectURL: "https://broker.{{ .domain }}/auth/callback"
+              # Broker-global Workspace allowlist (matched against the Google
+              # `hd` claim, not the email domain — see the rationale in
+              # deployment.yaml's `allowDomains`). Empty list ⇒ gate open
+              # (any verified Google account). `missingkey=error` (set on the
+              # generator) makes an ABSENT key fail the render; an empty list
+              # renders `allowDomains: []` which the chart accepts as open.
+              allowDomains:
+              {{- range .allowDomains }}
+                - {{ . | quote }}
+              {{- end }}
 
             # Worlds — generated from deployment.yaml's worlds[]. Wired here so
             # the broker boots with a valid config (the binary refuses to start

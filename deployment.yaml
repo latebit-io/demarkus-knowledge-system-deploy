@@ -55,6 +55,19 @@ adminEmails:
   - fritz@latebit.io
   - fredrick.seitz@gmail.com
 
+# Broker-global OIDC domain allowlist — gates login at every auth surface
+# (callback, /oauth/authorize, device flow) on the Google `hd` claim. Empty list
+# leaves the gate open (any verified Google account). The gate matches `hd`,
+# not the email domain: `hd` is set server-side from the Workspace tenant and
+# is spoof-resistant (cf. unverified secondary emails on a consumer account),
+# and consumer Gmail accounts have no `hd` so they are rejected when this list
+# is non-empty. Google's `hd` authorize-param is single-valued, so multi-domain
+# support is enforced broker-side against the returned claim. (ArgoCD)
+allowDomains:
+  - latebit.io
+  - nesto.ca
+  - nestocloud.ca
+
 # The worlds in this knowledge system. ONE list — drives the worlds
 # ApplicationSet (one server per entry), the broker's worlds[], and the
 # federation agent's crawl seeds. `hub: true` marks the fixed-name discovery

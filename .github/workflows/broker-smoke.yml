@@ -1,0 +1,55 @@
+name: broker-smoke
+
+# Pre-merge smoke for the broker chart wiring. Renders the chart at the
+# pinned version and asserts `oidc.allowDomains` flows from deployment.yaml
+# into the rendered config Secret. Without this, a chart bump that dropped
+# the wiring (or an ApplicationSet edit that dropped the range) silently
+# ships a gate-open broker. See docs/runbook-broker-allow-domains.md.
+#
+# Cluster-free: just helm template + yq + a pinned gomplate. Bash-only
+# tooling — the deployment surface stays uniform on bash, see
+# scripts/check-immutable-fields.sh for the same posture.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/demarkus-broker/**"
+      - "deployment.yaml"
+      - "scripts/smoke-broker-allow-domains.sh"
+      - ".github/workflows/broker-smoke.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: broker-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install gomplate
+        # gomplate renders the ApplicationSet's helm.values text with the same
+        # Go text/template + sprig engine ArgoCD uses — so a wiring drift
+        # (dropped range, renamed field) fails the smoke for the same reason
+        # it would fail in-cluster. Pinned tag + sha256-verified.
+        env:
+          GOMPLATE_VERSION: v4.3.3
+          GOMPLATE_SHA256: ca281666e86f2f09218c1653e1908f572c0e349e9de64cb4ea93ade9333f0596
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/gomplate \
+            "https://github.com/hairyhenderson/gomplate/releases/download/${GOMPLATE_VERSION}/gomplate_linux-amd64"
+          echo "${GOMPLATE_SHA256}  /tmp/gomplate" | sha256sum -c -
+          install -m 0755 /tmp/gomplate /usr/local/bin/gomplate
+          gomplate --version
+
+      - name: Render-and-assert allowDomains
+        run: bash scripts/smoke-broker-allow-domains.sh
