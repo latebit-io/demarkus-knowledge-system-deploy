@@ -1,0 +1,38 @@
+name: broker-smoke
+
+# Pre-merge smoke for the broker chart wiring. Renders the chart at the
+# pinned version and asserts `oidc.allowDomains` flows from deployment.yaml
+# into the rendered config Secret. Without this, a chart bump that dropped
+# the wiring (or an ApplicationSet edit that dropped the range) silently
+# ships a gate-open broker. See docs/runbook-broker-allow-domains.md.
+#
+# Cluster-free: just helm template + yq + python3, all preinstalled on
+# ubuntu-latest runners.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/demarkus-broker/**"
+      - "deployment.yaml"
+      - "scripts/smoke-broker-allow-domains.sh"
+      - ".github/workflows/broker-smoke.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: broker-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Render-and-assert allowDomains
+        run: bash scripts/smoke-broker-allow-domains.sh
