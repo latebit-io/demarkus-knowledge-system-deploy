@@ -6,12 +6,16 @@
 # pod boots with is a silent auth-policy failure (users get in who shouldn't,
 # or get locked out org-wide). This catches that on the PR.
 #
-# Cluster-free by design: renders the chart with `helm template` against a
-# synthesised deployment.yaml (we can't pipe the ApplicationSet's git-files
-# generator through helm directly, so we resolve the same {{ .allowDomains }}
-# templating here with `yq` and hand the result to helm as -f values). Same
-# tooling profile as scripts/check-immutable-fields.sh — bash + yq + helm,
-# all preinstalled on `ubuntu-latest`.
+# Cluster-free by design and ApplicationSet-faithful: the values text passed
+# to helm is the LITERAL `spec.template.spec.source.helm.values` from
+# `apps/demarkus-broker/applicationset.yaml`, rendered with gomplate against
+# a synthetic deployment.yaml. argocd-applicationset-controller renders that
+# same string with Go text/template + sprig and `missingkey=error`; gomplate
+# uses the same engine + sprig superset, so a wiring drift in the AppSet
+# (dropped range, renamed field, missing key) fails this smoke for the same
+# reason it would fail in-cluster. A previous version of this script
+# constructed its own values YAML by hand — that masked exactly the drift
+# the smoke is supposed to catch.
 #
 # Customer-name policy: this test MUST NOT carry real customer domains, not
 # even as fixtures. The whole point of `allowDomains` is org isolation; if a
@@ -22,15 +26,24 @@
 #
 # Usage: bash scripts/smoke-broker-allow-domains.sh
 # Exit 0 = all cases pass; exit 1 = a case failed; exit 2 = tooling missing /
-# helm render failure.
+# render failure.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 APPSET="apps/demarkus-broker/applicationset.yaml"
 
-command -v yq >/dev/null 2>&1 || { echo "yq is required (preinstalled on ubuntu-latest runners)" >&2; exit 2; }
-command -v helm >/dev/null 2>&1 || { echo "helm is required" >&2; exit 2; }
+# gomplate is the one piece NOT preinstalled on ubuntu-latest runners; the
+# workflow installs it. Locally: `brew install gomplate` (mac) or a single
+# curl from the gomplate releases page. Kept in lockstep with the AppSet's
+# templating because every other substitute (hand-rolled regex, Python f-strings)
+# can silently miss a new directive the AppSet starts using.
+for tool in yq helm gomplate python3; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "$tool is required (workflow installs gomplate; the rest ship on ubuntu-latest)" >&2
+    exit 2
+  }
+done
 
 TMPD="$(mktemp -d)"
 trap 'rm -rf "$TMPD"' EXIT
@@ -38,107 +51,33 @@ trap 'rm -rf "$TMPD"' EXIT
 REPO="$(yq '.spec.template.spec.source.repoURL' "$APPSET")"
 CHART="$(yq '.spec.template.spec.source.chart' "$APPSET")"
 VERSION="$(yq '.spec.template.spec.source.targetRevision' "$APPSET")"
-RAW_VALUES="$(yq '.spec.template.spec.source.helm.values' "$APPSET")"
 
-# Render the ApplicationSet's goTemplate values block with a fixture
-# deployment.yaml — same path the argocd-applicationset-controller takes, just
-# locally. The controller uses Sprig-flavoured Go templates with
-# `missingkey=error`; the `gomplate` CLI is the closest local equivalent but
-# isn't on runners by default, so we lean on `yq -p y` + a tiny shell shim
-# instead: substitute the handful of `{{ .field }}` references this values
-# block actually uses. Keep the substitution list in sync with the AppSet.
-#
-# Fields referenced: .domain, .oauthClientId, .adminEmails (range),
-# .allowDomains (range), .worlds (range with .name).
-render_values() { # <fixture_deployment_yaml>  ->  rendered values to stdout
-  local fixture="$1"
-  local domain client_id
-  domain="$(yq '.domain' "$fixture")"
-  client_id="$(yq '.oauthClientId' "$fixture")"
+# Pull the AppSet's helm.values text verbatim, then strip a single layer of
+# block-scalar indentation. ArgoCD applies the values text to the chart with
+# the same de-indenting yaml unmarshal does, so the canonical comparison is
+# against the dedented body — not the literal indented block scalar.
+APPSET_VALUES_TMPL="$TMPD/appset-values.tmpl"
+yq '.spec.template.spec.source.helm.values' "$APPSET" > "$APPSET_VALUES_TMPL"
 
-  # Expand the {{- range $.adminEmails }} block by yanking the admin emails
-  # out of the fixture and writing them under every world's allow.emails.
-  local admins_yaml worlds_yaml allow_domains_yaml
-  admins_yaml="$(yq -o=json '.adminEmails' "$fixture")"
-  worlds_yaml="$(yq -o=json '.worlds' "$fixture")"
-  allow_domains_yaml="$(yq -o=json '.allowDomains // []' "$fixture")"
+render_values() { # <fixture_deployment_yaml> -> rendered values to stdout
+  local fixture="$1" ctx errf
+  ctx="$TMPD/ctx.json"
+  # gomplate consumes the deployment.yaml as a datasource; the AppSet's
+  # `{{ .domain }}` / `{{ range .worlds }}` references resolve against this.
+  yq -o=json '.' "$fixture" > "$ctx"
 
-  # Inline-render with a Python shim: cheaper than pulling in gomplate, and the
-  # templating surface here is small + stable.
-  python3 - "$domain" "$client_id" "$admins_yaml" "$worlds_yaml" "$allow_domains_yaml" <<'PY'
-import json, sys, textwrap
-domain, client_id, admins_json, worlds_json, allow_json = sys.argv[1:6]
-admins = json.loads(admins_json)
-worlds = json.loads(worlds_json)
-allow  = json.loads(allow_json)
-
-worlds_block = []
-for w in worlds:
-    worlds_block.append(f"  - name: {w['name']}")
-    worlds_block.append(f"    namespace: {w['name']}")
-    worlds_block.append(f"    tokensSecret: {w['name']}-tokens")
-    worlds_block.append( "    allow:")
-    worlds_block.append( "      emails:")
-    for e in admins:
-        worlds_block.append(f"        - {e}")
-    worlds_block.append( "    defaultToken:")
-    worlds_block.append( '      paths: ["/**"]')
-
-allow_block = "\n".join(f"  - {json.dumps(d)}" for d in allow) or "  []"
-
-print(textwrap.dedent(f"""\
-replicaCount: 1
-image:
-  tag: "0.1.31"
-server:
-  publicURL: "https://broker.{domain}"
-  cookieKey: ""
-  mcp:
-    firstMintMaxAttempts: 10
-    firstMintMaxBackoff: 15s
-oidc:
-  issuer: "https://accounts.google.com"
-  clientID: "{client_id}"
-  existingSecretRef:
-    name: oidc-client
-  existingSigningKeyRef:
-    name: jwks-signing-key
-  redirectURL: "https://broker.{domain}/auth/callback"
-  allowDomains:
-"""))
-if allow:
-    for d in allow:
-        print(f"    - {json.dumps(d)}")
-else:
-    print("    []")
-print("worlds:")
-print("\n".join(worlds_block))
-print(textwrap.dedent("""\
-ingress:
-  enabled: true
-  className: nginx
-  host: broker.placeholder.invalid
-  tls:
-    certManager:
-      enabled: true
-      issuerRef:
-        kind: ClusterIssuer
-        name: letsencrypt-prod
-  mcp:
-    host: placeholder.invalid
-    tls:
-      certManager:
-        enabled: true
-        issuerRef:
-          kind: ClusterIssuer
-          name: letsencrypt-prod
-worldDialer:
-  insecureSkipVerify: true
-"""))
-PY
+  errf="$(mktemp)"
+  if ! gomplate \
+        --missing-key error \
+        --context ".=$ctx" \
+        --file "$APPSET_VALUES_TMPL" 2>"$errf"; then
+    echo "gomplate render of the ApplicationSet helm.values block failed:" >&2
+    cat "$errf" >&2
+    exit 2
+  fi
 }
 
-render_chart() { # <values_file>  ->  rendered manifests to stdout
+render_chart() { # <values_file> -> rendered manifests to stdout
   local vfile="$1" errf
   errf="$(mktemp)"
   if ! helm template demarkus-broker "oci://$REPO/$CHART" \
@@ -148,11 +87,20 @@ render_chart() { # <values_file>  ->  rendered manifests to stdout
   fi
 }
 
-# Extract the broker's config Secret body (the only place `allowDomains` is
-# expected to land). Chart renders one Secret per OIDC config; we look for any
-# Secret whose stringData (or decoded data) contains the key.
+# Extract any rendered Secret body that mentions allowDomains. Charts may use
+# `stringData` (plain) or `data` (base64) — handle both so a future chart
+# refactor doesn't silently turn this into a false green.
 extract_config_yaml() { # <rendered_manifests>
-  yq 'select(.kind == "Secret") | (.stringData // {}) | to_entries | .[] | select(.value | test("allowDomains")) | .value' "$1"
+  yq '
+    select(.kind == "Secret")
+    | (
+        (.stringData // {})
+        + ((.data // {}) | with_entries(.value |= @base64d))
+      )
+    | to_entries[]
+    | select(.value | test("allowDomains"))
+    | .value
+  ' "$1"
 }
 
 # One test case. Args: <label> <fixture-allow-domains-json> <expected-pattern> [<must-not-contain-pattern>]
