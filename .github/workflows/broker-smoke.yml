@@ -6,8 +6,9 @@ name: broker-smoke
 # the wiring (or an ApplicationSet edit that dropped the range) silently
 # ships a gate-open broker. See docs/runbook-broker-allow-domains.md.
 #
-# Cluster-free: just helm template + yq + python3, all preinstalled on
-# ubuntu-latest runners.
+# Cluster-free: just helm template + yq + a pinned gomplate. Bash-only
+# tooling — the deployment surface stays uniform on bash, see
+# scripts/check-immutable-fields.sh for the same posture.
 on:
   pull_request:
     branches: [main]

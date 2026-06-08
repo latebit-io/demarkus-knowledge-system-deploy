@@ -38,9 +38,9 @@ APPSET="apps/demarkus-broker/applicationset.yaml"
 # curl from the gomplate releases page. Kept in lockstep with the AppSet's
 # templating because every other substitute (hand-rolled regex, Python f-strings)
 # can silently miss a new directive the AppSet starts using.
-for tool in yq helm gomplate python3; do
+for tool in yq helm gomplate; do
   command -v "$tool" >/dev/null 2>&1 || {
-    echo "$tool is required (workflow installs gomplate; the rest ship on ubuntu-latest)" >&2
+    echo "$tool is required (workflow installs gomplate; yq and helm ship on ubuntu-latest)" >&2
     exit 2
   }
 done
