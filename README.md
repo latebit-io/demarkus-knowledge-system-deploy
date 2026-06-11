@@ -72,5 +72,7 @@ docs/                    # runbooks + instantiate guide
 - [runbook-dex-sso.md](docs/runbook-dex-sso.md) — admin SSO via Dex + GitHub
 - [runbook-ci-wif.md](docs/runbook-ci-wif.md) — CI via Workload Identity Federation
 - [runbook-backup-restore.md](docs/runbook-backup-restore.md) — backups + restore drill
+- [runbook-broker-allow-domains.md](docs/runbook-broker-allow-domains.md) — broker OIDC domain allowlist
+- [runbook-broker-web-clients.md](docs/runbook-broker-web-clients.md) — broker confidential web clients
 
 Master plan: `mark://soul.demarkus.io/plans/knowledge-system-gke-deploy.md`.

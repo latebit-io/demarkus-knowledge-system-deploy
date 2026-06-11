@@ -160,6 +160,12 @@ write_deployment_yaml() {
     local e
     IFS=',' read -ra _emails <<<"$ADMIN_EMAILS"
     for e in "${_emails[@]}"; do echo "  - ${e// /}"; done
+    # Both lists must EXIST even when empty — the broker ApplicationSet
+    # renders with missingkey=error, so an absent key fails every render.
+    # Empty = gate open / no web clients; edit by hand to populate (see
+    # docs/runbook-broker-allow-domains.md, docs/runbook-broker-web-clients.md).
+    echo "allowDomains: []"
+    echo "webClients: []"
     echo "worlds:"
     if [ "${PRESERVE_WORLDS:-0}" = 1 ] && [ -s /tmp/instantiate-worlds.yaml ]; then
       sed 's/^/  /' /tmp/instantiate-worlds.yaml

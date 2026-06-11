@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.1.31
+        targetRevision: 0.1.33
         helm:
           releaseName: demarkus-broker
           values: |
@@ -65,9 +65,11 @@ spec:
             # Explicit image pin so an unexpected chart bump can't pull a
             # controller newer than what was reviewed. 0.1.27+ allows LOOKUP
             # through the MCP gateway; 0.1.31 ships the chart wiring for
-            # `oidc.allowDomains` (the broker code gate landed in a8d39a5).
+            # `oidc.allowDomains` (the broker code gate landed in a8d39a5);
+            # 0.1.33 adds the confidential web-client registry (`webClients`,
+            # broker ADR 0001, landed in 117e2a6).
             image:
-              tag: "0.1.31"
+              tag: "0.1.33"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
@@ -135,6 +137,29 @@ spec:
                   {{- end }}
                 defaultToken:
                   paths: ["/**"]
+            {{- end }}
+
+            # Confidential web clients (RFC 6749 §2.1) — generated from
+            # deployment.yaml's webClients[]. Server-side web apps doing
+            # redirect SSO against the broker (broker ADR 0001). Each entry
+            # must set ALL FOUR keys (clientID, clientSecretHash,
+            # redirectURIs, name — name may be "") — missingkey=error fails
+            # the render on an absent key, the desired guard against a
+            # half-registered client. clientSecretHash is the sha256-hex of
+            # the secret, not secret material; the plaintext lives in the
+            # web app's own deployment, never in this repo. An empty list
+            # renders `webClients:` (null), which the chart normalizes to
+            # []. Native/CLI agents never appear here — no registry entry ⇒
+            # unchanged public/PKCE loopback path.
+            webClients:
+            {{- range .webClients }}
+              - clientID: {{ .clientID | quote }}
+                clientSecretHash: {{ .clientSecretHash | quote }}
+                name: {{ .name | quote }}
+                redirectURIs:
+                {{- range .redirectURIs }}
+                  - {{ . | quote }}
+                {{- end }}
             {{- end }}
 
             ingress:
