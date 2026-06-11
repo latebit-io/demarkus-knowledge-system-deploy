@@ -120,6 +120,7 @@ oauthClientId: example-client-id.apps.googleusercontent.com
 adminEmails:
   - operator@example.com
 allowDomains: $allow_json
+webClients: []
 worlds:
   - name: root
     hub: true

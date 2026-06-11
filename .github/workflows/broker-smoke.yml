@@ -1,10 +1,12 @@
 name: broker-smoke
 
 # Pre-merge smoke for the broker chart wiring. Renders the chart at the
-# pinned version and asserts `oidc.allowDomains` flows from deployment.yaml
-# into the rendered config Secret. Without this, a chart bump that dropped
-# the wiring (or an ApplicationSet edit that dropped the range) silently
-# ships a gate-open broker. See docs/runbook-broker-allow-domains.md.
+# pinned version and asserts `oidc.allowDomains` and the `webClients`
+# registry flow from deployment.yaml into the rendered config Secret.
+# Without this, a chart bump that dropped the wiring (or an ApplicationSet
+# edit that dropped a range) silently ships a gate-open broker or an empty
+# web-client registry. See docs/runbook-broker-allow-domains.md and
+# docs/runbook-broker-web-clients.md.
 #
 # Cluster-free: just helm template + yq + a pinned gomplate. Bash-only
 # tooling — the deployment surface stays uniform on bash, see
@@ -16,6 +18,7 @@ on:
       - "apps/demarkus-broker/**"
       - "deployment.yaml"
       - "scripts/smoke-broker-allow-domains.sh"
+      - "scripts/smoke-broker-web-clients.sh"
       - ".github/workflows/broker-smoke.yml"
 
 permissions:
@@ -53,3 +56,6 @@ jobs:
 
       - name: Render-and-assert allowDomains
         run: bash scripts/smoke-broker-allow-domains.sh
+
+      - name: Render-and-assert webClients
+        run: bash scripts/smoke-broker-web-clients.sh

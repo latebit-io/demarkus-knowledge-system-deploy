@@ -98,6 +98,16 @@ collect_config() {
   fi
   DNS_TXT_OWNER="$(ask 'external-dns TXT owner id (unique per cluster)' "$(yq -r '.dnsTxtOwnerId // ""' deployment.yaml || true)")"
   [ -n "$DNS_TXT_OWNER" ] || DNS_TXT_OWNER="$PROJECT_ID"
+  # allowDomains / webClients: PRESERVE existing values verbatim across re-runs
+  # (same idempotency contract as worlds[] — never reset auth policy or
+  # deregister web clients on a rerun); seed [] on a truly fresh config. Both
+  # keys must EXIST even when empty — the broker ApplicationSet renders with
+  # missingkey=error. Captured here as single-line JSON (valid YAML flow style)
+  # BEFORE write_deployment_yaml truncates the file. Edit deployment.yaml by
+  # hand to change (see docs/runbook-broker-allow-domains.md,
+  # docs/runbook-broker-web-clients.md).
+  ALLOW_DOMAINS_JSON="$(yq -o=json -I=0 '.allowDomains // []' deployment.yaml 2>/dev/null || echo '[]')"
+  WEB_CLIENTS_JSON="$(yq -o=json -I=0 '.webClients // []' deployment.yaml 2>/dev/null || echo '[]')"
 
   echo
   info "Secret / substrate knobs (→ gitignored terraform.tfvars):"
@@ -160,6 +170,8 @@ write_deployment_yaml() {
     local e
     IFS=',' read -ra _emails <<<"$ADMIN_EMAILS"
     for e in "${_emails[@]}"; do echo "  - ${e// /}"; done
+    echo "allowDomains: $ALLOW_DOMAINS_JSON"
+    echo "webClients: $WEB_CLIENTS_JSON"
     echo "worlds:"
     if [ "${PRESERVE_WORLDS:-0}" = 1 ] && [ -s /tmp/instantiate-worlds.yaml ]; then
       sed 's/^/  /' /tmp/instantiate-worlds.yaml

@@ -68,6 +68,28 @@ allowDomains:
   - nesto.ca
   - nestocloud.ca
 
+# Confidential OAuth web clients (RFC 6749 §2.1) registered with the broker —
+# server-side web apps (e.g. a library reading room) that authenticate with a
+# client secret and receive the authorization-code redirect at a real https
+# URL instead of a native-app loopback. Operator-curated registry, NOT open
+# dynamic registration; native/CLI agents (Claude Code MCP, demarkus-join)
+# never appear here. Each entry must set ALL FOUR keys — clientID,
+# clientSecretHash, redirectURIs, name (name may be "") — the broker
+# ApplicationSet renders with missingkey=error, so an absent key fails the
+# render instead of shipping a half-registered client. clientSecretHash is
+# the sha256-hex of the secret (`printf '%s' "$SECRET" | sha256sum`), not
+# secret material; the plaintext lives only in the web app's own deployment.
+# redirectURIs is an exact-match https allowlist — no wildcards, no loopback.
+# Deregistering a client invalidates its bound refresh tokens at the refresh
+# gate. See docs/runbook-broker-web-clients.md. (ArgoCD)
+webClients: []
+# webClients:
+#   - clientID: library-web
+#     clientSecretHash: "<64 hex chars — sha256 of the secret>"
+#     redirectURIs:
+#       - https://library.example.com/auth/callback
+#     name: Universe Library
+
 # The worlds in this knowledge system. ONE list — drives the worlds
 # ApplicationSet (one server per entry), the broker's worlds[], and the
 # federation agent's crawl seeds. `hub: true` marks the fixed-name discovery
