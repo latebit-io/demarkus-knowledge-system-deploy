@@ -1,0 +1,133 @@
+# demarkus-library: the Universe Library — server-rendered web reading room
+# over the broker's MCP gateway, behind the org-login turnstile.
+#
+# Config-driven: this ApplicationSet's git-files generator reads the repo-root
+# deployment.yaml and interpolates `domain` into the library's helm values
+# (broker origin, ingress host, redirect URI). The library is the registered
+# `library-web` confidential web client (deployment.yaml `webClients[]`, broker
+# ADR 0001): the broker holds the sha256 of the client secret + the exact
+# redirect URI; the plaintext secret reaches this pod via ESO from OpenBao
+# (external-secret.yaml + docs/runbook-library.md).
+#
+# Topology notes:
+#   - broker.url is the MCP GATEWAY origin (`https://<domain>`), NOT the
+#     management host (`broker.<domain>`). The library fetches RFC 8414
+#     metadata and POSTs /mcp against this one origin; the gateway's metadata
+#     points authorize/token at the management host, so both listeners get
+#     used without the library knowing the split.
+#   - Reads ride the public https ingress (TCP 443) — the chart's default-on
+#     NetworkPolicy already admits that egress, plus UDP 6309 for federation
+#     link-following (direct, tokenless QUIC to hosts named by mark:// links).
+#   - redirectURI must EXACTLY match the webClients entry in deployment.yaml —
+#     both derive from `domain` (library.<domain>), so they move together.
+#
+# Sync wave: 2 — after the broker (wave 1): the library's login round trip
+# and every page read need the gateway up. No hard ordering requirement (the
+# pod self-heals into convergence), just first-sync tidiness.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demarkus-library
+  namespace: argocd
+spec:
+  goTemplate: true
+  # Fail the render on a missing deployment.yaml key rather than silently
+  # emitting an empty string into a URL.
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        # Self-reference literal (a generator can't read its own repo URL from
+        # the file it reads); same value as deployment.yaml's repoURL. revision
+        # matches the root ApplicationSet.
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: demarkus-library
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+    spec:
+      project: default
+      source:
+        repoURL: ghcr.io/latebit-io/charts
+        chart: demarkus-library
+        targetRevision: 0.1.0
+        helm:
+          releaseName: demarkus-library
+          values: |
+            # Explicit image pin so an unexpected chart bump can't pull a
+            # newer library than reviewed.
+            image:
+              tag: "0.1.0"
+
+            # Sessions are in-memory — a reader's cookie is only valid against
+            # the replica that minted it. Stay at 1 until a shared session
+            # store (or sticky sessions) ships.
+            replicaCount: 1
+
+            library:
+              transport: broker
+              # Follow mark:// links beyond the home knowledge system —
+              # anonymous, tokenless QUIC reads. The distributed graph is the
+              # product; flip false to pin readers to home worlds.
+              federation: true
+              defaultDoc: /index.md
+              # Federation targets commonly run self-signed certs with no
+              # shared CA (same posture as the broker's
+              # worldDialer.insecureSkipVerify). QUIC still encrypts.
+              insecure: true
+              broker:
+                # MCP gateway origin — serves the RFC 8414 metadata AND /mcp.
+                # The metadata routes authorize/token to broker.{{ .domain }}.
+                url: "https://{{ .domain }}"
+                # webClients registry entry in deployment.yaml. Plain literal
+                # (not templated from webClients[]) — the registry is a list
+                # and this app is one specific client of it.
+                clientID: library-web
+                # Plaintext OAuth client secret, materialized by ESO from
+                # OpenBao (secret/library/oauth-client) — external-secret.yaml.
+                # Never the cleartext `clientSecret` values path.
+                existingSecretRef:
+                  name: library-oauth-client
+                  key: clientSecret
+                # Must exactly match the redirectURIs entry in
+                # deployment.yaml's webClients — the broker rejects any other.
+                redirectURI: "https://library.{{ .domain }}/auth/callback"
+                # Home world for mark://<world>/<path> reads. `root` is the
+                # curated hub: its /index.md is the front door and the
+                # federation agent's hash index hangs under /index/.
+                world: root
+                scopes: mark.read
+                cookieSecure: true
+
+            ingress:
+              enabled: true
+              className: nginx
+              host: library.{{ .domain }}
+              tls:
+                certManager:
+                  enabled: true
+                  issuerRef:
+                    kind: ClusterIssuer
+                    name: letsencrypt-prod
+
+            # Chart default-on NetworkPolicy assumptions match this cluster:
+            # inbound from ingress-nginx, egress DNS + TCP 443 (broker https)
+            # + UDP 6309 (federation QUIC).
+            networkPolicy:
+              enabled: true
+              ingressFromNamespace: ingress-nginx
+              quicEgressPort: 6309
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demarkus-library
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
