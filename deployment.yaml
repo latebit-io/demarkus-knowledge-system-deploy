@@ -84,7 +84,7 @@ allowDomains:
 # gate. See docs/runbook-broker-web-clients.md. (ArgoCD)
 webClients:
   - clientID: library-web
-    clientSecretHash: "18ab4b21f16c7b057ebc776fd145417a7f82b6fc28fe21f963fa9afad1235393"
+    clientSecretHash: "e44adb5ad483c19ce9915d599aebee99439e1e824010983c4c4c61c02d0c757a"
     # In-cluster library ingress (apps/demarkus-library). Must exactly match
     # the chart's library.broker.redirectURI — both derive from `domain`
     # (library.<domain>), so they move together.
