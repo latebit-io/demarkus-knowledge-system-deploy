@@ -82,13 +82,15 @@ allowDomains:
 # redirectURIs is an exact-match https allowlist — no wildcards, no loopback.
 # Deregistering a client invalidates its bound refresh tokens at the refresh
 # gate. See docs/runbook-broker-web-clients.md. (ArgoCD)
-webClients: []
-# webClients:
-#   - clientID: library-web
-#     clientSecretHash: "<64 hex chars — sha256 of the secret>"
-#     redirectURIs:
-#       - https://library.example.com/auth/callback
-#     name: Universe Library
+webClients:
+  - clientID: library-web
+    clientSecretHash: "18ab4b21f16c7b057ebc776fd145417a7f82b6fc28fe21f963fa9afad1235393"
+    # Local-e2e redirect: the broker never connects to this host (front-channel
+    # only — the operator's browser resolves it to loopback via /etc/hosts).
+    # Swap for the real library ingress host when the app deploys in-cluster.
+    redirectURIs:
+      - https://library.dev.test:8443/auth/callback
+    name: Universe Library
 
 # The worlds in this knowledge system. ONE list — drives the worlds
 # ApplicationSet (one server per entry), the broker's worlds[], and the
