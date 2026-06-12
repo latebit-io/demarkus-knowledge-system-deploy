@@ -183,6 +183,18 @@ spec:
                       kind: ClusterIssuer
                       name: letsencrypt-prod
 
+            # Per-subject MCP request budget, up from chart defaults (10/min,
+            # burst 5) which are tuned for CLI agents. The library web client
+            # opens a fresh MCP session per page read (initialize +
+            # initialized-notification + tool call ≈ 3 requests), so the
+            # defaults 429 a human after ~2 page loads. 60/30 sustains ~20
+            # page views/min per subject — still a real cap. Revisit down
+            # once the library reuses its MCP session across reads.
+            rateLimit:
+              tokens:
+                perMinute: 60
+                burst: 30
+
             # Broker → world QUIC dial posture. Each world's cert is issued by
             # the `selfsigned` ClusterIssuer (no shared CA the broker can
             # trust), so strict verification fails. Skip-verify is the
