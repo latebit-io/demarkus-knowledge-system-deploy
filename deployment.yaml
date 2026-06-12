@@ -91,6 +91,16 @@ webClients:
     redirectURIs:
       - https://library.knowledge.demarkus.io/auth/callback
     name: Universe Library
+  - clientID: library-web-dev
+    clientSecretHash: "18ab4b21f16c7b057ebc776fd145417a7f82b6fc28fe21f963fa9afad1235393"
+    # Local pre-merge e2e (mkcert + hosts-file alias → 127.0.0.1; recipe in
+    # the library repo). A separate client so production secret rotations
+    # never invalidate local dev, and deregistering dev never touches prod.
+    # The redirect host only resolves where an operator's /etc/hosts says so,
+    # and the secret lives solely in that operator's local env.
+    redirectURIs:
+      - https://library.dev.test:8443/auth/callback
+    name: Universe Library (local dev)
 
 # The worlds in this knowledge system. ONE list — drives the worlds
 # ApplicationSet (one server per entry), the broker's worlds[], and the
