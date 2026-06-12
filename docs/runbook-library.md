@@ -40,7 +40,8 @@ POLICY
 ```
 
 (Check `bao policy read external-secrets` first — if the live policy has
-grown beyond the three paths above, carry the extras forward.)
+paths beyond the three pre-existing ones (broker, oauth2-proxy, dex), carry
+the extras forward along with the new library path.)
 
 ## Step 2 — Seed the client secret
 
