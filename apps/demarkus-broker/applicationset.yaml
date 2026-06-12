@@ -184,16 +184,16 @@ spec:
                       name: letsencrypt-prod
 
             # Per-subject MCP request budget, up from chart defaults (10/min,
-            # burst 5) which are tuned for CLI agents. The library web client
-            # opens a fresh MCP session per page read (initialize +
-            # initialized-notification + tool call ≈ 3 requests), so the
-            # defaults 429 a human after ~2 page loads. 60/30 sustains ~20
-            # page views/min per subject — still a real cap. Revisit down
-            # once the library reuses its MCP session across reads.
+            # burst 5) which are tuned for CLI agents. The library now pools
+            # one MCP session per reader (demarkus-library PR #9), so a page
+            # read is 1 request — 60/30 was the temporary ceiling for the
+            # session-per-read era (3 requests/read). 30/15 sustains ~30 page
+            # views/min per subject with burst headroom for link-heavy pages,
+            # while restoring a meaningful per-subject cap.
             rateLimit:
               tokens:
-                perMinute: 60
-                burst: 30
+                perMinute: 30
+                burst: 15
 
             # Broker → world QUIC dial posture. Each world's cert is issued by
             # the `selfsigned` ClusterIssuer (no shared CA the broker can
