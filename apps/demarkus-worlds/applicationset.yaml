@@ -49,22 +49,30 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.17.14
+        targetRevision: 0.17.18
         helm:
           releaseName: "{{ .name }}"
           values: |
             # Explicit image.tag pin as a defensive guard against an
-            # unexpected chart bump. 0.17.14 fixes the volumeClaimTemplates
-            # volumeMode drift (chart now renders `volumeMode: Filesystem`
-            # to match what k8s defaults onto the live PVC; PR #170). This
-            # specific bump IS an immutable-field change vs 0.17.13 (null →
-            # Filesystem), so the apps-immutable-check guard flags it and the
-            # one-time rollout needs `kubectl delete statefulset <world>
-            # --cascade=orphan` (pod + PVC survive) — see
-            # docs/runbook-world-version-bump.md. After this, render == live
-            # and future server bumps apply cleanly with no orphan-delete.
+            # unexpected chart bump. 0.17.17 adds the LOOKUP match-all query
+            # `*` (whole catalog under scope, importance order; commit
+            # b8aedb7) — the data source the library's universe floor reads
+            # per world. 0.17.18 makes volumeClaimTemplates carry only the
+            # stable selectorLabels (name + instance) instead of the full
+            # label set, whose `helm.sh/chart` + `app.kubernetes.io/version`
+            # churned every bump and trapped each one as a forbidden in-place
+            # VCT update. We bump straight to 0.17.18 (skipping .17) so the
+            # recreate below is the LAST one ever — after it the VCT is
+            # byte-stable across versions and future bumps apply cleanly.
+            #
+            # ONE-TIME recreate (the full→stable VCT-label change is itself an
+            # immutable diff; non-destructive, pod + PVC survive), per world —
+            # root and world-a — see docs/runbook-world-version-bump.md:
+            #   kubectl delete statefulset <world> -n <ns> --cascade=orphan
+            #   kubectl -n argocd annotate application <world> \
+            #     argocd.argoproj.io/refresh=hard --overwrite
             image:
-              tag: "0.17.14"
+              tag: "0.17.18"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
