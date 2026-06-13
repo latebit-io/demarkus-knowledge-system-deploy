@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.1.33
+        targetRevision: 0.1.36
         helm:
           releaseName: demarkus-broker
           values: |
@@ -67,9 +67,12 @@ spec:
             # through the MCP gateway; 0.1.31 ships the chart wiring for
             # `oidc.allowDomains` (the broker code gate landed in a8d39a5);
             # 0.1.33 adds the confidential web-client registry (`webClients`,
-            # broker ADR 0001, landed in 117e2a6).
+            # broker ADR 0001, landed in 117e2a6); 0.1.36 adds the
+            # `mark_worlds` MCP tool (#182, 02e52ef — lists the worlds a
+            # bearer may read) that the library's universe floor enumerates,
+            # plus the LOOKUP `*` match-all description tweak (b8aedb7).
             image:
-              tag: "0.1.33"
+              tag: "0.1.36"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
