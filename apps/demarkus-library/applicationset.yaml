@@ -54,14 +54,14 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.0
+        targetRevision: 0.1.4
         helm:
           releaseName: demarkus-library
           values: |
             # Explicit image pin so an unexpected chart bump can't pull a
             # newer library than reviewed.
             image:
-              tag: "0.1.0"
+              tag: "0.1.4"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
