@@ -54,18 +54,20 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.5
+        targetRevision: 0.1.6
         helm:
           releaseName: demarkus-library
           values: |
             # Explicit image pin so an unexpected chart bump can't pull a
-            # newer library than reviewed. 0.1.5 is the Reading Room
+            # newer library than reviewed. 0.1.5 was the Reading Room
             # redesign — Tufte pane (R1), trail engine (R2), and the
-            # universe floor as pane zero (ADR 0005). The floor needs
-            # broker >= 0.1.36 (mark_worlds) and worlds >= 0.17.17
-            # (LOOKUP match-all); both bumped in this same change.
+            # universe floor as pane zero (ADR 0005). 0.1.6 fixes the trail
+            # parser rejecting world-root listing chunks ("<world>/d/"), so
+            # the floor's world-node links work. The floor needs broker >=
+            # 0.1.36 (mark_worlds) and worlds >= 0.17.18 (LOOKUP match-all +
+            # stable VCT labels).
             image:
-              tag: "0.1.5"
+              tag: "0.1.6"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
