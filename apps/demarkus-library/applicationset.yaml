@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.7
+        targetRevision: 0.1.9
         helm:
           releaseName: demarkus-library
           values: |
@@ -65,11 +65,13 @@ spec:
             # parser rejecting world-root listing chunks ("<world>/d/"). 0.1.7
             # is R3 (PR #17): hover preview cards, the backlinks margin block,
             # and the graph neighborhood pane (kind "<world>/g/<path>"), fed by
-            # a render-time observed-links map (per-pod, no broker store). The
-            # floor needs broker >= 0.1.36 (mark_worlds) and worlds >= 0.17.18
-            # (LOOKUP match-all + stable VCT labels).
+            # a render-time observed-links map (per-pod, no broker store). 0.1.8
+            # is floor enrichment (the hub-topology reader); 0.1.9 adds the
+            # DEMARKUS_HUB chart mapping (library.hub below). The floor needs
+            # broker >= 0.1.36 (mark_worlds) and worlds >= 0.17.18 (LOOKUP
+            # match-all + stable VCT labels).
             image:
-              tag: "0.1.7"
+              tag: "0.1.9"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
@@ -83,6 +85,10 @@ spec:
               # product; flip false to pin readers to home worlds.
               federation: true
               defaultDoc: /index.md
+              # Topology source for the floor's durable edges + portal nodes
+              # (DEMARKUS_HUB): the `root` hub, where the federation agent
+              # publishes its graph export (/graph.md, publishGraph above).
+              hub: root
               # Federation targets commonly run self-signed certs with no
               # shared CA (same posture as the broker's
               # worldDialer.insecureSkipVerify). QUIC still encrypts.
