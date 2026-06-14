@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.1.36
+        targetRevision: 0.1.37
         helm:
           releaseName: demarkus-broker
           values: |
@@ -71,8 +71,11 @@ spec:
             # `mark_worlds` MCP tool (#182, 02e52ef — lists the worlds a
             # bearer may read) that the library's universe floor enumerates,
             # plus the LOOKUP `*` match-all description tweak (b8aedb7).
+            # 0.1.37 adds the `address` column to mark_worlds (#188 — each
+            # world's internal dial host) so the floor joins topology-graph
+            # edges back to worldName instead of rendering crawl-host portals.
             image:
-              tag: "0.1.36"
+              tag: "0.1.37"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
