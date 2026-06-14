@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.12
+        targetRevision: 0.1.13
         helm:
           releaseName: demarkus-library
           values: |
@@ -82,9 +82,12 @@ spec:
             # (metadata out of band, expected_version conflict guard) and 303s
             # back to the doc. Editing is gated on an authenticated session; the
             # broker's existing per-world write token authorizes the publish, so
-            # no broker/worlds change.
+            # no broker/worlds change. 0.1.13 adds the create-new-document slice
+            # (PR #23): a margin "new" affordance opens the editor in create mode
+            # (editable path, expected_version 0); publishes a new doc and 303s
+            # to it. Same reader-only-deploy footprint (reuses the write path).
             image:
-              tag: "0.1.12"
+              tag: "0.1.13"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
