@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.9
+        targetRevision: 0.1.10
         helm:
           releaseName: demarkus-library
           values: |
@@ -67,11 +67,13 @@ spec:
             # and the graph neighborhood pane (kind "<world>/g/<path>"), fed by
             # a render-time observed-links map (per-pod, no broker store). 0.1.8
             # is floor enrichment (the hub-topology reader); 0.1.9 adds the
-            # DEMARKUS_HUB chart mapping (library.hub below). The floor needs
-            # broker >= 0.1.36 (mark_worlds) and worlds >= 0.17.18 (LOOKUP
-            # match-all + stable VCT labels).
+            # DEMARKUS_HUB chart mapping (library.hub below). 0.1.10 joins
+            # topology-graph edges to worldName via mark_worlds' new `address`
+            # column (needs broker >= 0.1.37) — cross-world edges render as
+            # cluster lines instead of crawl-host portals. The floor needs
+            # worlds >= 0.17.18 (LOOKUP match-all + stable VCT labels).
             image:
-              tag: "0.1.9"
+              tag: "0.1.10"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
