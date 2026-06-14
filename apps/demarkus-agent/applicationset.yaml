@@ -58,14 +58,15 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.12.38
+        targetRevision: 0.12.43
         helm:
           releaseName: demarkus-agent
           values: |
             # Image tag defaults to .Chart.appVersion; explicit pin so an
             # unexpected chart bump can't pull a newer crawler than reviewed.
+            # 0.12.43 adds --publish-graph (publishGraph below).
             image:
-              tag: "0.12.38"
+              tag: "0.12.43"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
@@ -99,6 +100,12 @@ spec:
             # the agent never writes root's curated /index.md. Requires root's
             # publish token to cover `/index/**` (widened in the worlds AppSet).
             perServer: true
+
+            # Also publish the link-graph export to the hub at /graph.md — the
+            # durable topology the reading-room floor renders as cross-world
+            # edges + portal nodes. Same root publish token (/index/** widened
+            # to /** covers /graph.md). The library reads it via DEMARKUS_HUB.
+            publishGraph: true
 
             # Self-signed world certs + no shared CA → skip outbound TLS verify.
             insecure: true
