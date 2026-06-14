@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.10
+        targetRevision: 0.1.11
         helm:
           releaseName: demarkus-library
           values: |
@@ -71,9 +71,14 @@ spec:
             # topology-graph edges to worldName via mark_worlds' new `address`
             # column (needs broker >= 0.1.37) — cross-world edges render as
             # cluster lines instead of crawl-host portals. The floor needs
-            # worlds >= 0.17.18 (LOOKUP match-all + stable VCT labels).
+            # worlds >= 0.17.18 (LOOKUP match-all + stable VCT labels). 0.1.11
+            # is the world-view zoom level (PR #21): clicking a world on the
+            # floor opens its map — the catalog as directory clusters with
+            # "+N more" aggregates into listing panes (trail chunk <world>/u/).
+            # Reader-only: no broker/worlds/agent change (reuses mark_worlds +
+            # lookup).
             image:
-              tag: "0.1.10"
+              tag: "0.1.11"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
