@@ -49,7 +49,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.17.18
+        targetRevision: 0.17.19
         helm:
           releaseName: "{{ .name }}"
           values: |
@@ -71,8 +71,16 @@ spec:
             #   kubectl delete statefulset <world> -n <ns> --cascade=orphan
             #   kubectl -n argocd annotate application <world> \
             #     argocd.argoproj.io/refresh=hard --overwrite
+            #
+            # 0.17.19 moves token-Secret ownership out of the chart: a
+            # pre-install/pre-upgrade bootstrap Job creates <world>-tokens +
+            # <world>-token-values atomically and hands off, so a GitOps
+            # controller never reconciles (and corrupts) the runtime-mutated
+            # tokens.toml. Existing keep-annotated Secrets are left intact;
+            # repairing the already-diverged `root` pair is a one-time delete
+            # (the Job recreates them consistently) — see the rollout notes.
             image:
-              tag: "0.17.18"
+              tag: "0.17.19"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
