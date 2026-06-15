@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.15
+        targetRevision: 0.1.16
         helm:
           releaseName: demarkus-library
           values: |
@@ -93,8 +93,11 @@ spec:
             # that centers the focused document over the dimmed trail — context
             # preserved behind, ✕/backdrop/Esc close. Web-only URL-state lens;
             # reader-only deploy footprint (no broker/worlds/agent change).
+            # 0.1.16 fixes that overlay to be a pure lens (PR #26): opening
+            # ?reader= no longer moves focus, so the canvas behind is unchanged
+            # (reader and focus are orthogonal). Same reader-only footprint.
             image:
-              tag: "0.1.15"
+              tag: "0.1.16"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
