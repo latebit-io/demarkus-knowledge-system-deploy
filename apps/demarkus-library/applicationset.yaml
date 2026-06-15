@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.18
+        targetRevision: 0.1.19
         helm:
           releaseName: demarkus-library
           values: |
@@ -106,9 +106,13 @@ spec:
             # page (PR #28): they are authed + per-session, so a shared cache (a
             # corporate forward proxy especially) must never hold one — that was
             # serving a frozen floor to a client that incognito could not bypass.
-            # Static assets stay cacheable (served separately).
+            # Static assets stay cacheable (served separately). 0.1.19 renders
+            # the honest empty floor ("no worlds visible to your identity") for
+            # an identity authorized for zero worlds instead of leaking world
+            # names + internal addresses as portal nodes (defense-in-depth for
+            # the broker mark_worlds read/write split, broker 0.1.38).
             image:
-              tag: "0.1.18"
+              tag: "0.1.19"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session

@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.1.37
+        targetRevision: 0.1.38
         helm:
           releaseName: demarkus-broker
           values: |
@@ -74,8 +74,14 @@ spec:
             # 0.1.37 adds the `address` column to mark_worlds (#188 — each
             # world's internal dial host) so the floor joins topology-graph
             # edges back to worldName instead of rendering crawl-host portals.
+            # 0.1.38 fixes mark_worlds to list READABLE worlds (gated by the SSO
+            # org gate alone), not the per-world Allow (which is the WRITER
+            # allowlist): it was hiding readable worlds from non-writers, so a
+            # non-admin login saw an empty reading-room floor. Reads are open to
+            # any allowed-domain login; Allow keeps gating writes. (Pairs with
+            # library 0.1.19.)
             image:
-              tag: "0.1.37"
+              tag: "0.1.38"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
