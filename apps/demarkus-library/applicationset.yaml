@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.13
+        targetRevision: 0.1.14
         helm:
           releaseName: demarkus-library
           values: |
@@ -86,8 +86,11 @@ spec:
             # (PR #23): a margin "new" affordance opens the editor in create mode
             # (editable path, expected_version 0); publishes a new doc and 303s
             # to it. Same reader-only-deploy footprint (reuses the write path).
+            # 0.1.14 adds the append slice (PR #24): a margin "append" affordance
+            # adds content to the end of a doc via mark_append (metadata-
+            # preserving, version auto-resolved). Same deploy footprint.
             image:
-              tag: "0.1.13"
+              tag: "0.1.14"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
