@@ -17,6 +17,16 @@ reviews:
     drafts: false
     base_branches:
       - main
+    # Skip auto-review on pure rollout PRs — an image/chart version bump in an
+    # applicationset has nothing for an AI reviewer to add, and each run counts
+    # against CodeRabbit's per-hour fair-use limit. Matched as title substrings:
+    #   "): deploy" → the chore(<app>): deploy ... convention for version bumps
+    #   "bump"      → chore: bump <x> to <y>
+    # Real infra changes (terraform, RBAC, new apps) don't carry these and still
+    # auto-review. Force a review on a skipped PR with `@coderabbitai review`.
+    ignore_title_keywords:
+      - "): deploy"
+      - "bump"
 
   # Only `!` patterns here — adding a positive include flips this into
   # allow-list mode and silently drops every file that doesn't match.
