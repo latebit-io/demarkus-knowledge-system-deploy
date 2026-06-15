@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.16
+        targetRevision: 0.1.17
         helm:
           releaseName: demarkus-library
           values: |
@@ -96,8 +96,14 @@ spec:
             # 0.1.16 fixes that overlay to be a pure lens (PR #26): opening
             # ?reader= no longer moves focus, so the canvas behind is unchanged
             # (reader and focus are orthogonal). Same reader-only footprint.
+            # 0.1.17 TTL-caches the universe floor (PR #27): the floor's heavy
+            # broker fan-out (mark_worlds + per-world lookup + hub graph) rebuilt
+            # on every focus/refresh and overran the broker's per-subject rate
+            # budget (see the broker rateLimit bump to 120/60). A 30s TTL + a
+            # stale-cache fallback (serve last-good through a transient gateway
+            # error, never on ErrUnauthorized) stop the floor from re-fanning-out.
             image:
-              tag: "0.1.16"
+              tag: "0.1.17"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
