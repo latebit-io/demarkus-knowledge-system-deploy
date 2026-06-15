@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.14
+        targetRevision: 0.1.15
         helm:
           releaseName: demarkus-library
           values: |
@@ -88,9 +88,13 @@ spec:
             # to it. Same reader-only-deploy footprint (reuses the write path).
             # 0.1.14 adds the append slice (PR #24): a margin "append" affordance
             # adds content to the end of a doc via mark_append (metadata-
-            # preserving, version auto-resolved). Same deploy footprint.
+            # preserving, version auto-resolved). Same deploy footprint. 0.1.15
+            # is R4 reader mode (PR #25): a focus overlay (?reader=<paneIndex>)
+            # that centers the focused document over the dimmed trail — context
+            # preserved behind, ✕/backdrop/Esc close. Web-only URL-state lens;
+            # reader-only deploy footprint (no broker/worlds/agent change).
             image:
-              tag: "0.1.14"
+              tag: "0.1.15"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
