@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.17
+        targetRevision: 0.1.18
         helm:
           releaseName: demarkus-library
           values: |
@@ -102,8 +102,13 @@ spec:
             # budget (see the broker rateLimit bump to 120/60). A 30s TTL + a
             # stale-cache fallback (serve last-good through a transient gateway
             # error, never on ErrUnauthorized) stop the floor from re-fanning-out.
+            # 0.1.18 sends Cache-Control: private, no-store on every reading-room
+            # page (PR #28): they are authed + per-session, so a shared cache (a
+            # corporate forward proxy especially) must never hold one — that was
+            # serving a frozen floor to a client that incognito could not bypass.
+            # Static assets stay cacheable (served separately).
             image:
-              tag: "0.1.17"
+              tag: "0.1.18"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
