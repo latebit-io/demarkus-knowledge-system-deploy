@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.20
+        targetRevision: 0.1.21
         helm:
           releaseName: demarkus-library
           values: |
@@ -114,9 +114,13 @@ spec:
             # shows the signed-in identity's email in the nav (PR #31): Workspace
             # SSO silently picks the browser's default account, so a reader had
             # no way to tell which identity they were on. Web-only, reader-only
-            # deploy footprint.
+            # deploy footprint. 0.1.21 lifts a document's leading "# H1" out of
+            # the body and renders it as the pane title (PR #31): the pane shows
+            # the title itself, so a body opening with "# Title" was rendering a
+            # double header (lowercase filename + the body H1). Now one header,
+            # properly cased. Web-only, reader-only footprint.
             image:
-              tag: "0.1.20"
+              tag: "0.1.21"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
