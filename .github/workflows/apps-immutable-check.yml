@@ -43,7 +43,12 @@ jobs:
         continue-on-error: true
         env:
           BASE_REF: ${{ github.event.pull_request.base.sha }}
-        run: bash scripts/check-immutable-fields.sh 2>&1 | tee /tmp/immutable-report.txt
+        # pipefail so the step's outcome carries the script's exit code, not
+        # tee's (always 0). Without it the "Fail if immutable change detected"
+        # gate never fires — the check could only ever comment, never block.
+        run: |
+          set -o pipefail
+          bash scripts/check-immutable-fields.sh 2>&1 | tee /tmp/immutable-report.txt
 
       - name: Comment result on PR
         # Fork PRs run with a read-only GITHUB_TOKEN, so the write API calls
