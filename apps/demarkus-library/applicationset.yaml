@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.21
+        targetRevision: 0.2.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -118,9 +118,14 @@ spec:
             # the body and renders it as the pane title (PR #31): the pane shows
             # the title itself, so a body opening with "# Title" was rendering a
             # double header (lowercase filename + the body H1). Now one header,
-            # properly cased. Web-only, reader-only footprint.
+            # properly cased. Web-only, reader-only footprint. 0.2.0 adds a
+            # world-map "new document" affordance (PR #33) — create the first
+            # doc in an empty world from the map — and degrades a world whose
+            # catalog read fails to a notice instead of 502'ing (context
+            # cancellation + ErrUnauthorized still propagate). First MINOR bump:
+            # the release config now regex-matches feat(scope): as minor.
             image:
-              tag: "0.1.21"
+              tag: "0.2.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
