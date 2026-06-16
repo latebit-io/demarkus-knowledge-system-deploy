@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.1.19
+        targetRevision: 0.1.20
         helm:
           releaseName: demarkus-library
           values: |
@@ -110,9 +110,13 @@ spec:
             # the honest empty floor ("no worlds visible to your identity") for
             # an identity authorized for zero worlds instead of leaking world
             # names + internal addresses as portal nodes (defense-in-depth for
-            # the broker mark_worlds read/write split, broker 0.1.38).
+            # the broker mark_worlds read/write split, broker 0.1.38). 0.1.20
+            # shows the signed-in identity's email in the nav (PR #31): Workspace
+            # SSO silently picks the browser's default account, so a reader had
+            # no way to tell which identity they were on. Web-only, reader-only
+            # deploy footprint.
             image:
-              tag: "0.1.19"
+              tag: "0.1.20"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
