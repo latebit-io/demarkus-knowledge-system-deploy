@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.2.0
+        targetRevision: 0.3.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -123,9 +123,15 @@ spec:
             # doc in an empty world from the map — and degrades a world whose
             # catalog read fails to a notice instead of 502'ing (context
             # cancellation + ErrUnauthorized still propagate). First MINOR bump:
-            # the release config now regex-matches feat(scope): as minor.
+            # the release config now regex-matches feat(scope): as minor. 0.3.0
+            # is the conflict merge flow (PR #34): a stale edit no longer reloads
+            # blank — the broker three-way-merges it (on_conflict=merge) and the
+            # desk re-opens with the merged body, the resolve-at version, and a
+            # notice (git-style markers where both sides edited the same lines).
+            # Create (version 0) still uses on_conflict=fail. Reader+writer; no
+            # broker/worlds/agent change (the broker already supports merge).
             image:
-              tag: "0.2.0"
+              tag: "0.3.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
