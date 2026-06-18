@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.1.38
+        targetRevision: 0.2.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -80,8 +80,15 @@ spec:
             # non-admin login saw an empty reading-room floor. Reads are open to
             # any allowed-domain login; Allow keeps gating writes. (Pairs with
             # library 0.1.19.)
+            # 0.2.0 adds the `writable` column to mark_worlds (#191): each row
+            # is flagged yes/no for whether the bearer may publish to that world
+            # (worldAllows on the per-world writer Allow), so a caller learns its
+            # {readable, writable} sets in one call. The read/write split (0.1.38)
+            # made legible — the access-discovery seam the soul→knowledge promote
+            # pipeline routes destinations on. Append-only column; readers of the
+            # prior 3-column table are unaffected.
             image:
-              tag: "0.1.38"
+              tag: "0.2.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
