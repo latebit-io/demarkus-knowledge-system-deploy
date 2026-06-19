@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.3.0
+        targetRevision: 0.5.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -130,8 +130,26 @@ spec:
             # notice (git-style markers where both sides edited the same lines).
             # Create (version 0) still uses on_conflict=fail. Reader+writer; no
             # broker/worlds/agent change (the broker already supports merge).
+            # 0.3.1 adopts the strict golangci config (PR #35) — internal lint
+            # only, no behavior change. 0.4.0 redesigns the sign-in page (PR #36):
+            # a black-and-white dark theme with a faint full-page SVG
+            # knowledge-graph backdrop (decorative, aria-hidden; the no-JS form
+            # behavior is unchanged). 0.5.0 is the robustness hardening (PR #37).
+            # Tier 1: CSRF on every state-changing POST (Echo's Sec-Fetch-Site
+            # primary + token fallback), HTTP ReadHeader/Idle timeouts plus a 30s
+            # handler ContextTimeout, a 2 MiB body limit on writes, and a
+            # post-turnstile ErrUnauthorized that re-logins instead of dead-ending
+            # on a 401. Tier 2: drop the single-flight mutex on dead-grant
+            # teardown (an inflight-map leak), a TTL + write-invalidation on the
+            # world-map cache (an unfocused map no longer serves a frozen first
+            # assembly), floor/world-map cache invalidation on write so an edit
+            # shows immediately, and a 5000-source LRU bound on the observed-links
+            # graph. Web/core only — no broker/worlds/agent change. 0.5.1 splits
+            # the ReadingService port into Reader/Graph/Map/Editor and centralizes
+            # the listing-vs-document read dispatch (Open/OpenCached,
+            # domain.IsListingPath) — pure refactor, no behavior change.
             image:
-              tag: "0.3.0"
+              tag: "0.5.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
