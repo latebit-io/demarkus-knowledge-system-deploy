@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.5.1
+        targetRevision: 0.5.2
         helm:
           releaseName: demarkus-library
           values: |
@@ -147,9 +147,13 @@ spec:
             # graph. Web/core only — no broker/worlds/agent change. 0.5.1 splits
             # the ReadingService port into Reader/Graph/Map/Editor and centralizes
             # the listing-vs-document read dispatch (Open/OpenCached,
-            # domain.IsListingPath) — pure refactor, no behavior change.
+            # domain.IsListingPath) — pure refactor, no behavior change. 0.5.2
+            # restyles the sign-in page to the reading room's Tufte palette
+            # (off-white/off-black paper+ink, Charter serif, light-dark()
+            # adaptive) so the turnstile and the library look like one place;
+            # the knowledge-graph backdrop is recolored to faint ink. CSS only.
             image:
-              tag: "0.5.1"
+              tag: "0.5.2"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
