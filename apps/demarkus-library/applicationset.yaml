@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.5.2
+        targetRevision: 0.11.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -152,8 +152,25 @@ spec:
             # (off-white/off-black paper+ink, Charter serif, light-dark()
             # adaptive) so the turnstile and the library look like one place;
             # the knowledge-graph backdrop is recolored to faint ink. CSS only.
+            # 0.6.0 is navigation rework phase 0: a ⌃K command palette
+            # (known-item name-mode jump) over the SSR/htmx active-search
+            # surface. 0.7.0 adds the trail dock — a bottom orientation strip
+            # (walk vs jump connectors, "from here →" chips). 0.8.0 makes the
+            # universe worlds-only (door cards; the federation topology a
+            # secondary "view as map") and the world map reference-only. 0.9.0
+            # is the rich title-first directory index (the stacks). 0.10.0
+            # replaces the docked graph pane with an on-demand graph overlay
+            # (m / g). 0.10.1 fixes the world door to enter the stacks, not the
+            # map pane; 0.10.2 is internal docs only. 0.11.0 is a usability pass
+            # on the map + graph overlays (PR #46): degree-tiered wide elliptical
+            # layouts that fill the near-fullscreen overlays, directional
+            # arrowheads (From→To), node-hover highlighting of incident edges +
+            # connected nodes (green), a host:port join fix so the durable hub
+            # graph populates the map cold, and /w/ permalink pages (d/u/g/tags)
+            # that redirect to the /t/ canvas so browsing never strands in the
+            # centered single-pane view.
             image:
-              tag: "0.5.2"
+              tag: "0.11.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
