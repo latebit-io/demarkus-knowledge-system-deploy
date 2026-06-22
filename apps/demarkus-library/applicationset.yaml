@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.11.0
+        targetRevision: 0.12.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -170,7 +170,7 @@ spec:
             # that redirect to the /t/ canvas so browsing never strands in the
             # centered single-pane view.
             image:
-              tag: "0.11.0"
+              tag: "0.12.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
