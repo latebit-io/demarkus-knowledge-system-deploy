@@ -49,7 +49,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.17.19
+        targetRevision: 0.18.0
         helm:
           releaseName: "{{ .name }}"
           values: |
@@ -79,8 +79,15 @@ spec:
             # tokens.toml. Existing keep-annotated Secrets are left intact;
             # repairing the already-diverged `root` pair is a one-time delete
             # (the Job recreates them consistently) — see the rollout notes.
+            #
+            # 0.18.0 brings Open Knowledge Format (OKF) compatibility: the
+            # server defaults `type: Document` on publish/append for untyped
+            # docs (typed OKF concepts by construction) and stores recognized
+            # OKF fields as bare frontmatter. No StatefulSet/VCT change expected
+            # — apps-immutable-check gates it; if it flags a diff, recreate per
+            # the runbook.
             image:
-              tag: "0.17.19"
+              tag: "0.18.0"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
