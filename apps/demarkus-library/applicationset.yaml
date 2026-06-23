@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.13.1
+        targetRevision: 0.13.2
         helm:
           releaseName: demarkus-library
           values: |
@@ -183,9 +183,12 @@ spec:
             # portal nodes: loopback/localhost/cluster-internal hosts from a
             # dev-dirtied hub graph are dropped and port-variant duplicates
             # (soul.demarkus.io vs soul.demarkus.io:6309) collapse to one portal
-            # (defense-in-depth alongside the agent-side fix at #209).
+            # (defense-in-depth alongside the agent-side fix at #209). 0.13.2
+            # joins an authorized world referenced by name+port (mark://root:6309,
+            # a port-normalized mark://root/... link) to the real world instead
+            # of doubling it as its own "root" portal.
             image:
-              tag: "0.13.1"
+              tag: "0.13.2"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
