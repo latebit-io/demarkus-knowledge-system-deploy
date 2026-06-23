@@ -58,15 +58,19 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.12.43
+        targetRevision: 0.13.1
         helm:
           releaseName: demarkus-agent
           values: |
             # Image tag defaults to .Chart.appVersion; explicit pin so an
             # unexpected chart bump can't pull a newer crawler than reviewed.
-            # 0.12.43 adds --publish-graph (publishGraph below).
+            # 0.12.43 adds --publish-graph (publishGraph below). 0.13.1 filters
+            # loopback/localhost link targets out of the published graph and
+            # normalizes target ports (#209), so dev-crawl artifacts
+            # (127.0.0.1:*, localhost) and port-variant duplicates no longer
+            # surface as phantom federated portals on the reading-room floor.
             image:
-              tag: "0.12.43"
+              tag: "0.13.1"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
