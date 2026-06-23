@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.12.0
+        targetRevision: 0.13.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -168,9 +168,20 @@ spec:
             # connected nodes (green), a host:port join fix so the durable hub
             # graph populates the map cold, and /w/ permalink pages (d/u/g/tags)
             # that redirect to the /t/ canvas so browsing never strands in the
-            # centered single-pane view.
+            # centered single-pane view. 0.12.0 gives the universe floor the
+            # on-demand overlay treatment (PR #47): a full-viewport "view as
+            # map" lens plus a scalable centered-grid layout, so a large
+            # universe wraps and grows downward instead of widening off one
+            # edge; one shared focus/ARIA implementation across the graph, map,
+            # and universe overlays. 0.13.0 groups the document margin's
+            # metadata (PR #48): an OKF group (type, tags, timestamp — the Open
+            # Knowledge Format frontmatter) plus a complete metadata block that
+            # surfaces every other out-of-band catalog key (importance, etag,
+            # content-hash, custom) instead of dropping all but a curated
+            # handful; the OKF `type` field is newly threaded through. Web-only,
+            # reader-only deploy footprint.
             image:
-              tag: "0.12.0"
+              tag: "0.13.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
