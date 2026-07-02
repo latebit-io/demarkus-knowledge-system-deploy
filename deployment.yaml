@@ -55,6 +55,13 @@ adminEmails:
   - fritz@latebit.io
   - fredrick.seitz@gmail.com
 
+# Per-world WRITER allowlist by domain — any login whose identity is in one of
+# these domains may publish to every world (including root). Complements
+# adminEmails, which lists individual writers; login itself is still gated by
+# allowDomains above. Empty list ⇒ writers are adminEmails only. (ArgoCD)
+writerDomains:
+  - nesto.ca
+
 # Broker-global OIDC domain allowlist — gates login at every auth surface
 # (callback, /oauth/authorize, device flow) on the Google `hd` claim. Empty list
 # leaves the gate open (any verified Google account). The gate matches `hd`,

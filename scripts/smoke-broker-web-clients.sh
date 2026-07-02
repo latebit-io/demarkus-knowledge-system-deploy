@@ -103,6 +103,7 @@ dnsTxtOwnerId: example-test
 oauthClientId: example-client-id.apps.googleusercontent.com
 adminEmails:
   - operator@example.com
+writerDomains: []
 allowDomains: []
 webClients: $clients_json
 worlds:
