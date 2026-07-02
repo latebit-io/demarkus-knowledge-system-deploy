@@ -110,4 +110,5 @@ webClients:
 worlds:
   - name: root
     hub: true
-  - name: world-a
+  - name: servicing
+  - name: origination
