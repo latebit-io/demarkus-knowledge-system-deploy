@@ -132,7 +132,8 @@ spec:
             #
             # Every world (hub or content) gets identical broker config: no
             # publicURL (reachable through the MCP gateway, not mark:// directly),
-            # the shared admin allowlist, and a publish-only write token. The
+            # the shared admin + writer-domain allowlist, and a publish-only
+            # write token. The
             # `paths: ["/**"]` is recursive — `/*` would reject `/sub/foo.md`
             # (Go path.Match treats `*` as non-separator only). operations are
             # gone: the broker hardcodes the write token to ["publish"] (#163)
@@ -153,6 +154,10 @@ spec:
                   emails:
                   {{- range $.adminEmails }}
                     - {{ . }}
+                  {{- end }}
+                  domains:
+                  {{- range $.writerDomains }}
+                    - {{ . | quote }}
                   {{- end }}
                 defaultToken:
                   paths: ["/**"]
