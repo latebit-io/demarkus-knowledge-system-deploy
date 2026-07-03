@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.13.2
+        targetRevision: 0.16.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -187,8 +187,21 @@ spec:
             # joins an authorized world referenced by name+port (mark://root:6309,
             # a port-normalized mark://root/... link) to the real world instead
             # of doubling it as its own "root" portal.
+            # 0.14.0 is Phase 4 steps 1-3 (PRs #51): the AI librarian — a
+            # nib-backed agent over the library's own read-only ports, joining
+            # the canvas as pane kind "a" with a CSRF'd ask form, SSE-streamed
+            # answers (one-shot ask tokens; the question never rides a GET
+            # URL), trail-continuing citations, and the UX pass (nav Librarian
+            # door, chat-scroll transcript, attention marker). Also fixes a
+            # pre-existing sanitizer bug: in-body mark:// links kept their
+            # hrefs for the first time. 0.15.0 is step 4 (PR #52): each ask
+            # carries the reader's trail context (pane labels + the focused
+            # document's cached text), injected on the model transcript only.
+            # 0.16.0 adds the chart's librarian LLM-key wiring (values below).
+            # The librarian is DARK unless the key env reaches the pod — this
+            # roll turns it on with MiniMax via the library-llm ExternalSecret.
             image:
-              tag: "0.13.2"
+              tag: "0.16.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
@@ -233,6 +246,18 @@ spec:
                 world: root
                 scopes: mark.read
                 cookieSecure: true
+
+              # The AI librarian (Phase 4), live on MiniMax: keyEnv selects
+              # nib's builtin minimax profile (api.minimax.io, OpenAI-
+              # compatible); the key is materialized by ESO from OpenBao
+              # (secret/library/llm) — external-secret.yaml. Model pinned
+              # explicitly so a nib default change can't silently swap it.
+              librarian:
+                keyEnv: MINIMAX_API_KEY
+                existingSecretRef:
+                  name: library-llm
+                  key: MINIMAX_API_KEY
+                model: MiniMax-M3
 
             ingress:
               enabled: true
