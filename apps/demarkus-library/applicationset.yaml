@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.16.0
+        targetRevision: 0.15.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -197,11 +197,11 @@ spec:
             # hrefs for the first time. 0.15.0 is step 4 (PR #52): each ask
             # carries the reader's trail context (pane labels + the focused
             # document's cached text), injected on the model transcript only.
-            # 0.16.0 adds the chart's librarian LLM-key wiring (values below).
+            # 0.15.1 adds the chart's librarian LLM-key wiring (values below).
             # The librarian is DARK unless the key env reaches the pod — this
             # roll turns it on with MiniMax via the library-llm ExternalSecret.
             image:
-              tag: "0.16.0"
+              tag: "0.15.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
