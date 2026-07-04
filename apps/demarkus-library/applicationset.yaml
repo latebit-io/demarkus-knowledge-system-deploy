@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.15.1
+        targetRevision: 0.17.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -200,8 +200,24 @@ spec:
             # 0.15.1 adds the chart's librarian LLM-key wiring (values below).
             # The librarian is DARK unless the key env reaches the pod — this
             # roll turns it on with MiniMax via the library-llm ExternalSecret.
+            # 0.16.0 is the UX round (PR #55): the hover/settle scroll fix
+            # (htmx afterSettle no longer yanks the viewport; canvas recenter
+            # is horizontal-only), anchor-positioned preview cards (per-pair
+            # names, position:fixed escapes pane clips, flip fallbacks; the
+            # Firefox degrade is the old clipped card), graph-pane arc caps
+            # ("+N more"), floor satellites scaling with world count, the
+            # margin metadata fold, the ?meta= record lens, and the
+            # pane-scroll room behind DEMARKUS_PANE_SCROLL (then default-off).
+            # Also the librarian nib-keystore fallback (DEMARKUS_LLM_KEYSTORE,
+            # default true) — inert here: the Secret-mounted env key resolves
+            # first and no keystore file exists in the image. 0.17.0 makes the
+            # pane-scroll room the DEFAULT (ADR 0007, PR #56): fixed-viewport
+            # canvas, per-pane scrolling, margin summoned via the ?meta= lens,
+            # wide bounded reading columns, status chip in the pane head.
+            # DEMARKUS_PANE_SCROLL is now the opt-out back to the page-scroll
+            # room. Reader-only: no broker/worlds/agent change.
             image:
-              tag: "0.15.1"
+              tag: "0.17.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
