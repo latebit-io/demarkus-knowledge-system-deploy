@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.2.0
+        targetRevision: 0.5.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -87,8 +87,18 @@ spec:
             # made legible — the access-discovery seam the soul→knowledge promote
             # pipeline routes destinations on. Append-only column; readers of the
             # prior 3-column table are unaffected.
+            # 0.5.0 is the MCP fetch-ergonomics parity release (demarkus #230,
+            # plus #224's include_archived LIST passthrough; 0.3.x/0.4.x were
+            # plugin-pin-only tools releases with no broker change). mark_fetch
+            # gains size-adaptive outline mode (<8KB full body, above it a
+            # heading-tree outline), url#anchor section slicing, force, and
+            # MCP-session-keyed unchanged-dedup (no session → no dedup; LRU
+            # eviction at the session cap); mark_explore joins as the 16th
+            # tool (one-call orientation card). Chart unchanged between 0.2.0
+            # and 0.5.0 — same values schema, version rides the 1:1
+            # chart/image pinning.
             image:
-              tag: "0.2.0"
+              tag: "0.5.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
