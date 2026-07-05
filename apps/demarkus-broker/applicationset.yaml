@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.5.0
+        targetRevision: 0.6.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -97,8 +97,16 @@ spec:
             # tool (one-call orientation card). Chart unchanged between 0.2.0
             # and 0.5.0 — same values schema, version rides the 1:1
             # chart/image pinning.
+            # 0.6.0 adds MCP resources + prompts to the gateway (demarkus
+            # #233): documents attach as resources (mark://{world}/{+path}
+            # template with #anchor section attach; each world's index.md is
+            # a concrete picker entry), and orient / recall / whats-new ship
+            # as server-vended prompts (world-sweeping variants — recall and
+            # whats-new start from mark_worlds). Desktop pickers and Claude
+            # Code slash commands light up for knowledge-system users. Chart
+            # again unchanged — same values schema.
             image:
-              tag: "0.5.0"
+              tag: "0.6.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
