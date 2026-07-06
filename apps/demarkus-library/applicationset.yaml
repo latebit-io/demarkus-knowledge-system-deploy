@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.17.0
+        targetRevision: 0.18.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -216,8 +216,18 @@ spec:
             # wide bounded reading columns, status chip in the pane head.
             # DEMARKUS_PANE_SCROLL is now the opt-out back to the page-scroll
             # room. Reader-only: no broker/worlds/agent change.
+            # 0.18.1 fixes the broker-0.5.0 regression: the gateway adapter now
+            # passes force=true on every mark_fetch, opting the renderer out of
+            # the gateway's agent ergonomics — without it, >8KB documents came
+            # back as outlines (the floor lost graph.md's federation edges, so
+            # the soul portal vanished) and re-fetched documents came back
+            # `status: unchanged` with no body (already-opened docs presented
+            # as unreachable). Also carries 0.18.0: the librarian's `open`
+            # tool adopts the shared mdoutline convention (outline ≥8KB,
+            # path#anchor section opens, force) replacing its blind 16KB
+            # truncation. Chart unchanged 0.17.0 → 0.18.1.
             image:
-              tag: "0.17.0"
+              tag: "0.18.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
