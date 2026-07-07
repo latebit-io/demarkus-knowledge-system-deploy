@@ -49,7 +49,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.19.0
+        targetRevision: 0.20.0
         helm:
           releaseName: "{{ .name }}"
           values: |
@@ -93,8 +93,17 @@ spec:
             # broker chart >= 0.4.0 to expose the tool arg through the MCP
             # gateway). Pure handler/store change — no StatefulSet/VCT diff
             # expected.
+            #
+            # 0.20.0 (monorepo #236) adds version retention: a `retention: N`
+            # publish-metadata key caps a document's history to its newest N
+            # versions (prune-on-write, audit-logged with token label; SPEC
+            # §9.9). Absent retention nothing changes. The crawl agent >=
+            # 0.19.0 sets retention=20 on its generated artifacts (/graph.md,
+            # hash indexes), so the root world's 545-version graph document
+            # prunes on the first agent publish after this rolls. Pure
+            # store/handler change — no StatefulSet/VCT diff expected.
             image:
-              tag: "0.19.0"
+              tag: "0.20.0"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default

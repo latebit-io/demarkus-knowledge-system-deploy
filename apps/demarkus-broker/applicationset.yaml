@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.6.0
+        targetRevision: 0.9.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -105,8 +105,17 @@ spec:
             # whats-new start from mark_worlds). Desktop pickers and Claude
             # Code slash commands light up for knowledge-system users. Chart
             # again unchanged — same values schema.
+            #
+            # 0.9.0 (broker now versions with the monorepo tools/ releases;
+            # 0.7.0–0.9.0 span demarkus #236–#240) carries the version
+            # retention surface: mark_publish documents the destructive
+            # `retention` metadata key, and mark_graph_publish gains a
+            # retention param (default 20, 0 disables) so gateway graph
+            # publishes keep their history bounded. Needs worlds at server
+            # 0.20.0 (this PR) for the pruning to actually happen. Chart
+            # unchanged — same values schema.
             image:
-              tag: "0.6.0"
+              tag: "0.9.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
