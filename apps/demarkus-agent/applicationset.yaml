@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.13.1
+        targetRevision: 0.19.0
         helm:
           releaseName: demarkus-agent
           values: |
@@ -69,8 +69,17 @@ spec:
             # normalizes target ports (#209), so dev-crawl artifacts
             # (127.0.0.1:*, localhost) and port-variant duplicates no longer
             # surface as phantom federated portals on the reading-room floor.
+            #
+            # 0.19.0 (monorepo #240; versions now track client/ releases,
+            # hence the jump from 0.13.x) publishes every generated artifact
+            # (/graph.md, hash indexes) with retention=20 by default: the hub
+            # world prunes each one to its newest 20 versions on write (needs
+            # server 0.20.0 — bumped in this same PR). Clears the hub graph
+            # document's 545-version backlog on the first publish after the
+            # roll. Override via -publish-retention or publish.retention in
+            # config; 0 keeps every version.
             image:
-              tag: "0.13.1"
+              tag: "0.19.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
