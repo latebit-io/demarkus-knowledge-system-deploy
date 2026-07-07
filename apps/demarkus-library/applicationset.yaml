@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.18.1
+        targetRevision: 0.21.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -226,8 +226,27 @@ spec:
             # tool adopts the shared mdoutline convention (outline ≥8KB,
             # path#anchor section opens, force) replacing its blind 16KB
             # truncation. Chart unchanged 0.17.0 → 0.18.1.
+            # 0.19.0 makes the edit flow return to the trail (PR #59): the
+            # canvas' edit/new/append affordances carry the trail as return
+            # context (?trail=&tpane=, echoed as hidden form fields), and
+            # save/cancel land back on the canvas via the click algebra —
+            # an edited doc refocuses in place, a created doc joins the
+            # trail as an appended pane — instead of stranding the reader
+            # on the standalone document page. Redirects are rebuilt from
+            # parsed panes (no open redirect); without the context the desk
+            # behaves as before. 0.20.0 is the side-by-side cataloging desk
+            # (PR #60): the edit page lifts the 60ch reading cap (like the
+            # canvas), markdown on the left and the live preview as a
+            # sticky, self-scrolling right pane (whisper scrollbars); the
+            # preview restores the leading H1 the renderer lifts into the
+            # pane title; save/cancel move into the metadata row. 0.21.0
+            # expands reader mode to near-fullscreen: the overlay panel
+            # fills the backdrop except a sliver of dimmed trail and the
+            # content column grows to fit it (1fr, margin alongside).
+            # All three reader/writer web-only: no broker/worlds/agent
+            # change.
             image:
-              tag: "0.18.1"
+              tag: "0.21.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
