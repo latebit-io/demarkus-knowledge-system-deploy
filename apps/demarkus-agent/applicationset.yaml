@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.21.1
+        targetRevision: 0.21.3
         helm:
           releaseName: demarkus-agent
           values: |
@@ -85,8 +85,11 @@ spec:
             # crawl that fails to fetch a node no longer blanks its stored
             # title, so a stalled crawl cannot publish title-less rows into
             # the hub aggregate for seeding to amplify.
+            # 0.21.3 (demarkus #259) falls back to the H1 for node titles when
+            # publisher metadata declares none, so soul-style docs stop
+            # publishing nameless into the hub graph. (0.21.2 was test-only.)
             image:
-              tag: "0.21.1"
+              tag: "0.21.3"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
