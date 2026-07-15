@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.19.0
+        targetRevision: 0.21.1
         helm:
           releaseName: demarkus-agent
           values: |
@@ -78,8 +78,15 @@ spec:
             # document's 545-version backlog on the first publish after the
             # roll. Override via -publish-retention or publish.retention in
             # config; 0 keeps every version.
+            #
+            # 0.21.1 (demarkus #251/#254) publishes the enriched six-column
+            # /graph.md (edges carry rel/label/anchor/count), which the MCP
+            # surfaces now seed from (#253). Includes the #222 Merge fix: a
+            # crawl that fails to fetch a node no longer blanks its stored
+            # title, so a stalled crawl cannot publish title-less rows into
+            # the hub aggregate for seeding to amplify.
             image:
-              tag: "0.19.0"
+              tag: "0.21.1"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}

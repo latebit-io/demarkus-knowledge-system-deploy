@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.9.0
+        targetRevision: 0.12.2
         helm:
           releaseName: demarkus-broker
           values: |
@@ -114,8 +114,16 @@ spec:
             # publishes keep their history bounded. Needs worlds at server
             # 0.20.0 (this PR) for the pruning to actually happen. Chart
             # unchanged — same values schema.
+            #
+            # 0.12.2 (demarkus #253/#254) seeds the gateway graph store from
+            # each world's published /graph.md on demand (conditional on the
+            # stored etag, per-world 5-minute throttle), so cold pods answer
+            # mark_backlinks without a crawl; local crawls take precedence.
+            # Also carries the #222 Merge fix: a failed re-crawl no longer
+            # blanks resolved node titles. Chart unchanged — same values
+            # schema.
             image:
-              tag: "0.9.0"
+              tag: "0.12.2"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
