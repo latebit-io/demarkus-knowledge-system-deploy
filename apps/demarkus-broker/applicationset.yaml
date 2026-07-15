@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.12.2
+        targetRevision: 0.12.3
         helm:
           releaseName: demarkus-broker
           values: |
@@ -122,8 +122,12 @@ spec:
             # Also carries the #222 Merge fix: a failed re-crawl no longer
             # blanks resolved node titles. Chart unchanged — same values
             # schema.
+            # 0.12.3 (demarkus #256) translates seed rows keyed by a world's
+            # internal dial address into mark://{worldName}/... form; without
+            # it the hub aggregate's rows were unreachable by any legal tool
+            # URL and seeding was inert in this topology.
             image:
-              tag: "0.12.2"
+              tag: "0.12.3"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
