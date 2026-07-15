@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.12.3
+        targetRevision: 0.12.4
         helm:
           releaseName: demarkus-broker
           values: |
@@ -126,8 +126,11 @@ spec:
             # internal dial address into mark://{worldName}/... form; without
             # it the hub aggregate's rows were unreachable by any legal tool
             # URL and seeding was inert in this topology.
+            # 0.12.4 (demarkus #257) seeds every configured world on any graph
+            # call instead of only the queried one, so a cold pod answers
+            # non-hub backlinks on the very first query.
             image:
-              tag: "0.12.3"
+              tag: "0.12.4"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
