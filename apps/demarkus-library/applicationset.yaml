@@ -54,7 +54,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.21.2
+        targetRevision: 0.22.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -250,8 +250,11 @@ spec:
             # column-count parser dropped every federation edge and misread
             # edge rows as phantom nodes once agent 0.21.1 started publishing
             # the enriched format.
+            # 0.22.0 (library #63) renders rel-typed edges on world maps:
+            # dashed stroke with the predicate as tooltip (supersedes etc.),
+            # carried from the enriched /graph.md through the parser port.
             image:
-              tag: "0.21.2"
+              tag: "0.22.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
