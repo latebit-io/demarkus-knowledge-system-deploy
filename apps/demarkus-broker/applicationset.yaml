@@ -129,8 +129,12 @@ spec:
             # 0.12.4 (demarkus #257) seeds every configured world on any graph
             # call instead of only the queried one, so a cold pod answers
             # non-hub backlinks on the very first query.
+            # 0.14.3 (demarkus #262) adds the SecretStore file backend for
+            # single-host mode (inert here — this deploy uses the k8s secret
+            # backend) and keeps the gateway current with protocol/client
+            # deps from the markdown-only-contract release train.
             image:
-              tag: "0.12.4"
+              tag: "0.14.3"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.

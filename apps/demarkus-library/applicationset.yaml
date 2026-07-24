@@ -253,8 +253,9 @@ spec:
             # 0.22.0 (library #63) renders rel-typed edges on world maps:
             # dashed stroke with the predicate as tooltip (supersedes etc.),
             # carried from the enriched /graph.md through the parser port.
+            # 0.23.0 (library #64) adds operator theming and branding.
             image:
-              tag: "0.22.0"
+              tag: "0.23.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
