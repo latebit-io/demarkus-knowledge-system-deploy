@@ -133,8 +133,14 @@ spec:
             # single-host mode (inert here — this deploy uses the k8s secret
             # backend) and keeps the gateway current with protocol/client
             # deps from the markdown-only-contract release train.
+            # 0.14.4 (demarkus #277, closes #276) guards the gateway's three
+            # render paths (mark_fetch, mark_explore, resource reads) against
+            # non-UTF-8 bodies: a notice instead of mojibake in agent context.
+            # Completes #273, which had guarded only the local demarkus-mcp.
+            # 0.14.5 carries no broker change (pin-bump release); taking it
+            # keeps the pin on the current tools tag.
             image:
-              tag: "0.14.3"
+              tag: "0.14.5"
 
             server:
               # Advertised as `issuer` in OIDC discovery on BOTH listeners.
