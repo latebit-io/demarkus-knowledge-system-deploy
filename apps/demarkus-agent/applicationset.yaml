@@ -88,8 +88,11 @@ spec:
             # 0.21.3 (demarkus #259) falls back to the H1 for node titles when
             # publisher metadata declares none, so soul-style docs stop
             # publishing nameless into the hub graph. (0.21.2 was test-only.)
+            # 0.24.0 rolls up #261 (join URLs), #267 (agent ships as a release
+            # tarball), and #273 (markdown-only content contract in the shared
+            # client, so the agent's generated publishes stay contract-clean).
             image:
-              tag: "0.21.3"
+              tag: "0.24.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}

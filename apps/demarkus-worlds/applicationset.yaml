@@ -102,8 +102,15 @@ spec:
             # hash indexes), so the root world's 545-version graph document
             # prunes on the first agent publish after this rolls. Pure
             # store/handler change — no StatefulSet/VCT diff expected.
+            # 0.21.0 (demarkus #249/#250) extracts a DocumentStore interface
+            # behind the handler and makes LOOKUP multi-replica-safe on the
+            # postgres backend.
+            # 0.22.0 (demarkus #273) enforces the markdown-only content
+            # contract: PUBLISH/APPEND require a lowercase .md path and a
+            # valid-UTF-8 body (bad-request otherwise), and the store refuses
+            # to persist binary regardless of caller.
             image:
-              tag: "0.20.0"
+              tag: "0.22.0"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
