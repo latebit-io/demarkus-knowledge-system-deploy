@@ -73,8 +73,8 @@ These need a human at a console; the script guides you and links the runbook:
 ## Verify
 
 ```sh
-curl -s https://<your-domain>/.well-known/oauth-protected-resource | jq .
-curl -s https://broker.<your-domain>/.well-known/oauth-authorization-server | jq .
+curl -fsS https://<your-domain>/.well-known/oauth-protected-resource | jq -e .
+curl -fsS https://broker.<your-domain>/.well-known/oauth-authorization-server | jq -e .
 ```
 
 should return RFC 9728 metadata (gateway host) and RFC 8414 metadata (issuer

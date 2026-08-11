@@ -272,12 +272,20 @@ guide_manual() {
 # ── 7. verify ────────────────────────────────────────────────────────────────
 verify() {
   phase "Verify"
-  info "curl -s https://$DOMAIN/.well-known/oauth-authorization-server | jq ."
-  if curl -fsS "https://$DOMAIN/.well-known/oauth-authorization-server" >/dev/null 2>&1; then
-    ok "$DOMAIN is serving RFC 8414 OAuth metadata — the broker MCP gateway is live."
-    info "Finish: /knowledge-join from a Claude Code plugin should complete the device flow."
+  # Split-host discovery: RFC 9728 on the gateway host, RFC 8414 on the
+  # issuer host (broker.<domain>).
+  info "curl -fsS https://$DOMAIN/.well-known/oauth-protected-resource | jq ."
+  if curl -fsS "https://$DOMAIN/.well-known/oauth-protected-resource" >/dev/null 2>&1; then
+    ok "$DOMAIN is serving RFC 9728 resource metadata — the MCP gateway is live."
   else
     warn "$DOMAIN not answering yet — normal until DNS + ArgoCD + OpenBao seed are done."
+  fi
+  info "curl -fsS https://broker.$DOMAIN/.well-known/oauth-authorization-server | jq ."
+  if curl -fsS "https://broker.$DOMAIN/.well-known/oauth-authorization-server" >/dev/null 2>&1; then
+    ok "broker.$DOMAIN is serving RFC 8414 OAuth metadata — the issuer is live."
+    info "Finish: /knowledge-join from a Claude Code plugin should complete the device flow."
+  else
+    warn "broker.$DOMAIN not answering yet — normal until DNS + ArgoCD + OpenBao seed are done."
   fi
 }
 
