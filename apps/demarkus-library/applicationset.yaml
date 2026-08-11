@@ -11,10 +11,11 @@
 #
 # Topology notes:
 #   - broker.url is the MCP GATEWAY origin (`https://<domain>`), NOT the
-#     management host (`broker.<domain>`). The library fetches RFC 8414
-#     metadata and POSTs /mcp against this one origin; the gateway's metadata
-#     points authorize/token at the management host, so both listeners get
-#     used without the library knowing the split.
+#     management host (`broker.<domain>`). The library POSTs /mcp here and
+#     discovers OAuth via the RFC 9728 chain (library >= 0.23.1): PRM on this
+#     origin names the issuer (`broker.<domain>`), whose RFC 8414 metadata
+#     carries authorize/token; revocation posts to the issuer origin. Both
+#     listeners get used without a second URL knob.
 #   - Reads ride the public https ingress (TCP 443) — the chart's default-on
 #     NetworkPolicy already admits that egress, plus UDP 6309 for federation
 #     link-following (direct, tokenless QUIC to hosts named by mark:// links).
@@ -54,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.22.0
+        targetRevision: 0.23.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -254,8 +255,14 @@ spec:
             # dashed stroke with the predicate as tooltip (supersedes etc.),
             # carried from the enriched /graph.md through the parser port.
             # 0.23.0 (library #64) adds operator theming and branding.
+            # 0.23.1 (library #65) restores sign-in against broker 0.14.9's
+            # spec-correct discovery: OAuth endpoints found via the RFC 9728
+            # chain (PRM on the gateway names the issuer; RFC 8414 fetched
+            # there, issuer echo validated, https downgrade rejected) with a
+            # single-origin fallback for older brokers. Also fixes logout
+            # revocation, which had been silently 404ing against the gateway.
             image:
-              tag: "0.23.0"
+              tag: "0.23.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
