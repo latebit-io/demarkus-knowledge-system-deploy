@@ -73,11 +73,13 @@ These need a human at a console; the script guides you and links the runbook:
 ## Verify
 
 ```sh
-curl -s https://<your-domain>/.well-known/oauth-authorization-server | jq .
+curl -s https://<your-domain>/.well-known/oauth-protected-resource | jq .
+curl -s https://broker.<your-domain>/.well-known/oauth-authorization-server | jq .
 ```
 
-should return RFC 8414 metadata, and `/knowledge-join` from a Claude Code plugin
-should complete the device flow end to end.
+should return RFC 9728 metadata (gateway host) and RFC 8414 metadata (issuer
+host) respectively, and `/knowledge-join` from a Claude Code plugin should
+complete the device flow end to end.
 
 ## Trim cost
 

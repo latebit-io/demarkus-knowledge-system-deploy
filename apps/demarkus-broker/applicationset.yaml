@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.12.4
+        targetRevision: 0.14.9
         helm:
           releaseName: demarkus-broker
           values: |
@@ -139,11 +139,20 @@ spec:
             # Completes #273, which had guarded only the local demarkus-mcp.
             # 0.14.5 carries no broker change (pin-bump release); taking it
             # keeps the pin on the current tools tag.
+            # 0.14.9 (demarkus #287) makes split-host OAuth discovery
+            # spec-correct: RFC 8414 metadata moves to the issuer host
+            # (broker.<domain>) and off the gateway; the RFC 9728 `resource`
+            # field + 401 resource_metadata now name the gateway host via the
+            # new server.mcp.publicURL knob (set below). Fixes strict MCP
+            # clients (pi) failing with an issuer mismatch. Chart targetRevision
+            # jumps 0.12.4 → 0.14.9: the chart now versions with the tools tag;
+            # values schema is additive (mcp.publicURL).
             image:
-              tag: "0.14.5"
+              tag: "0.14.9"
 
             server:
-              # Advertised as `issuer` in OIDC discovery on BOTH listeners.
+              # Advertised as `issuer` in OIDC discovery; the management
+              # listener at this host is the issuer origin (RFC 8414 §3.3).
               publicURL: "https://broker.{{ .domain }}"
               # Blank → chart generates + preserves a 32-byte HMAC cookie key.
               cookieKey: ""
@@ -151,6 +160,9 @@ spec:
               # ~76s to outlast kubelet's Secret-volume propagation lag after a
               # world tokens Secret is (re)bootstrapped.
               mcp:
+                # Gateway's own external host; feeds RFC 9728 `resource` +
+                # the 401 resource_metadata link (distinct from the issuer).
+                publicURL: "https://{{ .domain }}"
                 firstMintMaxAttempts: 10
                 firstMintMaxBackoff: 15s
 
