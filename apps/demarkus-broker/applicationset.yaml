@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.14.9
+        targetRevision: 0.14.20
         helm:
           releaseName: demarkus-broker
           values: |
@@ -147,8 +147,12 @@ spec:
             # clients (pi) failing with an issuer mismatch. Chart targetRevision
             # jumps 0.12.4 → 0.14.9: the chart now versions with the tools tag;
             # values schema is additive (mcp.publicURL).
+            # 0.14.20 carries no broker behavior change: the 0.14.10–0.14.20
+            # train is server-store fixes riding the shared tools tag, plus
+            # the #302 code-quality sweep and #305 dependency bumps
+            # (x/crypto, x/net, quic-go). Chart values schema unchanged.
             image:
-              tag: "0.14.9"
+              tag: "0.14.20"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
