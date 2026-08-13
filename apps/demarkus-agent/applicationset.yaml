@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.21.3
+        targetRevision: 0.24.4
         helm:
           releaseName: demarkus-agent
           values: |
@@ -91,8 +91,13 @@ spec:
             # 0.24.0 rolls up #261 (join URLs), #267 (agent ships as a release
             # tarball), and #273 (markdown-only content contract in the shared
             # client, so the agent's generated publishes stay contract-clean).
+            # 0.24.4 rolls up #277 (shared-client render guard against
+            # non-UTF-8 bodies), #282/#284 (tokens minted with recursive /**
+            # scope), the #302 code-quality sweep, and #305 dependency bumps
+            # (x/crypto, x/net, quic-go). Chart 0.21.3 → 0.24.4 realigns with
+            # appVersion; values schema unchanged.
             image:
-              tag: "0.24.0"
+              tag: "0.24.4"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
