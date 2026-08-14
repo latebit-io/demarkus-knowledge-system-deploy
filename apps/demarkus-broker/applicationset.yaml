@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.14.20
+        targetRevision: 0.14.22
         helm:
           releaseName: demarkus-broker
           values: |
@@ -151,8 +151,12 @@ spec:
             # train is server-store fixes riding the shared tools tag, plus
             # the #302 code-quality sweep and #305 dependency bumps
             # (x/crypto, x/net, quic-go). Chart values schema unchanged.
+            # 0.14.22 (demarkus #309) makes APPEND merge the current
+            # version's publisher metadata instead of dropping it, so tags,
+            # importance and title survive an append and the doc stays
+            # visible to lookup. Chart values schema unchanged.
             image:
-              tag: "0.14.20"
+              tag: "0.14.22"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management

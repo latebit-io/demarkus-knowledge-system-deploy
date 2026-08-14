@@ -49,7 +49,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.22.6
+        targetRevision: 0.22.7
         helm:
           releaseName: "{{ .name }}"
           values: |
@@ -118,8 +118,12 @@ spec:
             # startup probe (pod template only — no StatefulSet/VCT diff)
             # and flips the default token scope to /** — inert here, this
             # deploy already sets paths: ["/**"] below.
+            # 0.22.7 (demarkus #309) makes APPEND merge the current
+            # version's publisher metadata instead of dropping it, so tags,
+            # importance and title survive an append. Chart values schema
+            # unchanged.
             image:
-              tag: "0.22.6"
+              tag: "0.22.7"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
