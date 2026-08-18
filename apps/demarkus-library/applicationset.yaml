@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.23.1
+        targetRevision: 0.23.2
         helm:
           releaseName: demarkus-library
           values: |
@@ -261,8 +261,14 @@ spec:
             # there, issuer echo validated, https downgrade rejected) with a
             # single-origin fallback for older brokers. Also fixes logout
             # revocation, which had been silently 404ing against the gateway.
+            #
+            # 0.23.2 (library #66) stops pinned editions feeding the
+            # observed-links map. A version path renders as a document, so
+            # every edition a reader opened became a permanent "referenced by"
+            # entry labelled v1, v2, ... The map is per-pod and in-memory, so
+            # this roll also clears the entries already accumulated.
             image:
-              tag: "0.23.1"
+              tag: "0.23.2"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
