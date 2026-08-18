@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.14.22
+        targetRevision: 0.15.3
         helm:
           releaseName: demarkus-broker
           values: |
@@ -155,8 +155,17 @@ spec:
             # version's publisher metadata instead of dropping it, so tags,
             # importance and title survive an append and the doc stays
             # visible to lookup. Chart values schema unchanged.
+            #
+            # 0.15.3 (demarkus #320, ADR 0005) canonicalizes both sides of
+            # the seed-URL translation. Node identity now omits the default
+            # port, so the agent publishes /graph.md rows without :6309; a
+            # broker on 0.14.x keys its world prefixes on the dial address
+            # WITH the port and would translate none of them, leaving every
+            # seeded row unreachable and cold pods answering "no backlinks"
+            # silently. Must roll before the agent; sync-wave 1 vs 2 already
+            # guarantees that. Chart values schema unchanged.
             image:
-              tag: "0.14.22"
+              tag: "0.15.3"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management

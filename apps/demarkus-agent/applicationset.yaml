@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.24.5
+        targetRevision: 0.24.7
         helm:
           releaseName: demarkus-agent
           values: |
@@ -99,8 +99,16 @@ spec:
             # 0.24.5 picks up the #309 APPEND metadata-merge fix through
             # the shared client; no agent behavior change. Chart values
             # schema unchanged.
+            #
+            # 0.24.7 (demarkus #318 and #320, ADR 0005) keys graph nodes by
+            # identity: the authority with the default port omitted. The
+            # published /graph.md changes shape with it, so the broker must
+            # already be on 0.15.2+ to translate the new rows; sync-wave 1
+            # rolls it first. Consumers normalize on ingest, so exports
+            # written under either rule keep working. Chart values schema
+            # unchanged.
             image:
-              tag: "0.24.5"
+              tag: "0.24.7"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
