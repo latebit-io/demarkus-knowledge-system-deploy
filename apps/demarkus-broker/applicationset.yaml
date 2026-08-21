@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.15.3
+        targetRevision: 0.17.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -164,8 +164,22 @@ spec:
             # seeded row unreachable and cold pods answering "no backlinks"
             # silently. Must roll before the agent; sync-wave 1 vs 2 already
             # guarantees that. Chart values schema unchanged.
+            #
+            # 0.17.0 (demarkus #332-#342) is the current head of the tools
+            # train and the reason for this bump: GHCR keeps only the last
+            # five chart tags, so 0.15.3 has aged out of
+            # ghcr.io/latebit-io/charts and a fresh chart pull can no longer
+            # resolve the old pin. The 0.15.4-0.17.0 span is store-side and
+            # client-side work riding the shared tools tag: #334 Helm support
+            # for file vs PostgreSQL document stores, #336 the document
+            # history migration API and demarkus-migrate CLI, #338 PostgreSQL
+            # catalog-lookup and pool-limit tuning, #339 a 32-bit build fix,
+            # #342 unified plugin prompts. No broker behavior change is
+            # expected. Chart 0.17.0 is byte-identical to 0.15.8 (values.yaml
+            # and every template), so the values schema is unchanged and only
+            # the image tag moves.
             image:
-              tag: "0.15.3"
+              tag: "0.17.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
