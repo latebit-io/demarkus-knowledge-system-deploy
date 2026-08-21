@@ -49,7 +49,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.22.7
+        targetRevision: 0.24.2
         helm:
           releaseName: "{{ .name }}"
           values: |
@@ -122,8 +122,26 @@ spec:
             # version's publisher metadata instead of dropping it, so tags,
             # importance and title survive an append. Chart values schema
             # unchanged.
+            # 0.24.2 is a forced bump: GHCR keeps only the last five chart
+            # tags, so 0.22.7 has aged out of ghcr.io/latebit-io/charts and
+            # neither a new world install nor a re-render of an existing one
+            # can resolve it (helm: "not found"). The 0.22.8-0.24.2 span is
+            # #331 store test coverage, #334 Helm support for file vs
+            # PostgreSQL document stores (the Postgres backend moves to its
+            # own binary and chart, demarkus-server-pg, so the file store this
+            # deploy uses is unaffected), #336 the document history migration
+            # API and demarkus-migrate CLI, and #339 a 32-bit build fix. The
+            # chart moved _helpers.tpl to _backend.tpl and touched the
+            # StatefulSet, but the four immutable fields (serviceName,
+            # podManagementPolicy, selector, volumeClaimTemplates) render
+            # byte-identical to 0.22.12 with these values, so no recreate is
+            # expected. apps-immutable-check cannot confirm that on this PR:
+            # it renders the base revision too, and base still pins the
+            # vanished 0.22.7, so the check fails to render until this lands.
+            # If a live sync does wedge, recreate per
+            # docs/runbook-world-version-bump.md.
             image:
-              tag: "0.22.7"
+              tag: "0.24.2"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
