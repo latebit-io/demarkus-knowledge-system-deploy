@@ -104,7 +104,7 @@ render_chart() {
   errf="$(mktemp)"
   if ! "${cmd[@]}" 2>"$errf"; then
     { echo "helm render failed for $name @ $version:"; cat "$errf"; } >&2
-    exit 2
+    return 3
   fi
 }
 
@@ -150,8 +150,18 @@ process_app() {
   local base_p head_p
   base_p="$(path_prefix "$base_manifest")"
   head_p="$(path_prefix "$head_manifest")"
-  render_chart "$base_manifest" "${base_p}.source" "$release" "$name" > "$base_render"
-  render_chart "$head_manifest" "${head_p}.source" "$release" "$name" > "$head_render"
+  # Head first, and a failure here IS a PR defect: this PR's own pin must
+  # resolve and render. Checking it before the base means a dead base pin
+  # (below) can't mask a broken head one.
+  render_chart "$head_manifest" "${head_p}.source" "$release" "$name" > "$head_render" || exit 2
+  # A base render that no longer resolves is not a PR defect: GHCR keeps only
+  # the last few chart tags, so a long-lived pin can vanish from the registry
+  # while still being what main says. There is nothing to diff against, so skip
+  # the app loudly rather than failing the PR that replaces the dead pin.
+  if ! render_chart "$base_manifest" "${base_p}.source" "$release" "$name" > "$base_render"; then
+    echo "⚠️  $name: base ($BASE) chart version no longer resolvable — skipping the immutable comparison for this app." >&2
+    return 0
+  fi
 
   # A field is compared only when it's considered (not ArgoCD-stripped) on BOTH
   # sides — mirroring the per-side stripped computation in the original.

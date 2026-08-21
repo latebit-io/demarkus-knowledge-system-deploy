@@ -48,7 +48,13 @@ jobs:
         # gate never fires — the check could only ever comment, never block.
         run: |
           set -o pipefail
-          bash scripts/check-immutable-fields.sh 2>&1 | tee /tmp/immutable-report.txt
+          # `|| code=$?` keeps the step's `bash -e` from exiting before the
+          # code is recorded; the gate step below reads it to tell an
+          # immutable-field finding (1) from a script failure (2).
+          code=0
+          bash scripts/check-immutable-fields.sh 2>&1 | tee /tmp/immutable-report.txt || code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit $code
 
       - name: Comment result on PR
         # Fork PRs run with a read-only GITHUB_TOKEN, so the write API calls
@@ -89,6 +95,16 @@ jobs:
 
       - name: Fail if immutable change detected
         if: steps.check.outcome == 'failure'
+        env:
+          # 1 = the guard found an immutable change; anything else (2) is the
+          # script failing to run — a broken head render or missing tooling.
+          # Reporting both as "immutable change detected" sends reviewers
+          # hunting for a StatefulSet diff that isn't there.
+          CHECK_CODE: ${{ steps.check.outputs.code }}
         run: |
-          echo "Immutable StatefulSet field change detected — see the PR comment."
+          if [ "$CHECK_CODE" = "1" ]; then
+            echo "Immutable StatefulSet field change detected — see the PR comment."
+          else
+            echo "check-immutable-fields.sh could not complete (exit ${CHECK_CODE:-unknown}) — see the PR comment."
+          fi
           exit 1
