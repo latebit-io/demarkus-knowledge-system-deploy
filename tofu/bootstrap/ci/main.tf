@@ -79,10 +79,8 @@ resource "google_project_iam_custom_role" "tofu_ci_knowledge_storage" {
   description = "Manage knowledge-world buckets and their IAM policies"
   permissions = [
     "storage.buckets.create",
-    "storage.buckets.delete",
     "storage.buckets.get",
     "storage.buckets.getIamPolicy",
-    "storage.buckets.list",
     "storage.buckets.setIamPolicy",
     "storage.buckets.update",
   ]
@@ -92,6 +90,16 @@ resource "google_project_iam_member" "tofu_ci_knowledge_storage" {
   project = var.prod_project_id
   role    = google_project_iam_custom_role.tofu_ci_knowledge_storage.id
   member  = "serviceAccount:${google_service_account.tofu_ci.email}"
+
+  condition {
+    title       = "knowledge-world-buckets-only"
+    description = "Restrict CI to the deployment's knowledge-world bucket prefix"
+    expression  = "resource.type == \"storage.googleapis.com/Bucket\" && resource.name.startsWith(\"projects/_/buckets/${var.prod_project_id}-demarkus-\")"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Prod roles map to managed modules; owner/editor remain intentionally absent.

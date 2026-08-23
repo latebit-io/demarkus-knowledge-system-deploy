@@ -78,7 +78,7 @@ spec:
                 tokenSecret:
                   name: {{ .name }}-tokens
                   key: tokens.toml
-                readOnly: {{ index .storage "readOnly" }}
+                readOnly: {{ default false (index .storage "readOnly") }}
             {{- end }}
             {{- end }}
       destination:
