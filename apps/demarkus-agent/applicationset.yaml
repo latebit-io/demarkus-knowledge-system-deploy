@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.24.7
+        targetRevision: 0.26.1
         helm:
           releaseName: demarkus-agent
           values: |
@@ -107,8 +107,10 @@ spec:
             # rolls it first. Consumers normalize on ingest, so exports
             # written under either rule keep working. Chart values schema
             # unchanged.
+            # 0.26.1 adds the policy metadata required for generated graph and
+            # index publishes against the production shared server.
             image:
-              tag: "0.24.7"
+              tag: "0.26.1"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
