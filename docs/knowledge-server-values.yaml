@@ -1,0 +1,62 @@
+fullnameOverride: knowledge
+
+image:
+  repository: ghcr.io/latebit-io/demarkus-knowledge-server
+  tag: 0.25.1
+
+service:
+  type: ClusterIP
+
+tls:
+  certManager:
+    enabled: true
+    issuerRef:
+      kind: ClusterIssuer
+      name: selfsigned
+
+serviceAccount:
+  workloadIdentity:
+    gsa: demarkus-knowledge-server@knowledge-49722.iam.gserviceaccount.com
+
+networkPolicy:
+  allowUnrestrictedHTTPS: true
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+worlds:
+  - name: root
+    authorities:
+      - root-knowledge.demarkus-knowledge.svc.cluster.local
+    bucket:
+      url: gs://knowledge-49722-demarkus-root
+      worldID: 1bb83179-7275-41a2-9519-a3410a7ac5dd
+    tokenSecret:
+      name: root-tokens
+      key: tokens.toml
+    readOnly: false
+  - name: latebit
+    authorities:
+      - latebit-knowledge.demarkus-knowledge.svc.cluster.local
+    bucket:
+      url: gs://knowledge-49722-demarkus-latebit
+      worldID: d7867876-1369-4b39-a33d-b175a4320acf
+    tokenSecret:
+      name: latebit-tokens
+      key: tokens.toml
+    readOnly: false
+  - name: ontehfritz
+    authorities:
+      - ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local
+    bucket:
+      url: gs://knowledge-49722-demarkus-ontehfritz
+      worldID: 829f3c1d-bae5-4c5c-b9d3-6263fdcc2c80
+    tokenSecret:
+      name: ontehfritz-tokens
+      key: tokens.toml
+    readOnly: false

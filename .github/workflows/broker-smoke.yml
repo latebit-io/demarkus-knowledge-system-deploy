@@ -16,9 +16,13 @@ on:
     branches: [main]
     paths:
       - "apps/demarkus-broker/**"
+      - "apps/demarkus-agent/**"
+      - "apps/demarkus-knowledge-server/**"
+      - "apps/demarkus-worlds/**"
       - "deployment.yaml"
       - "scripts/smoke-broker-allow-domains.sh"
       - "scripts/smoke-broker-web-clients.sh"
+      - "scripts/smoke-shared-knowledge.sh"
       - ".github/workflows/broker-smoke.yml"
 
 permissions:
@@ -37,6 +41,18 @@ jobs:
 
       - name: Set up Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install yq
+        env:
+          YQ_VERSION: v4.47.2
+          YQ_SHA256: 1bb99e1019e23de33c7e6afc23e93dad72aad6cf2cb03c797f068ea79814ddb0
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/yq \
+            "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          echo "${YQ_SHA256}  /tmp/yq" | sha256sum -c -
+          install -m 0755 /tmp/yq /usr/local/bin/yq
+          yq --version
 
       - name: Install gomplate
         # gomplate renders the ApplicationSet's helm.values text with the same
@@ -59,3 +75,6 @@ jobs:
 
       - name: Render-and-assert webClients
         run: bash scripts/smoke-broker-web-clients.sh
+
+      - name: Render-and-assert shared knowledge routing
+        run: bash scripts/smoke-shared-knowledge.sh

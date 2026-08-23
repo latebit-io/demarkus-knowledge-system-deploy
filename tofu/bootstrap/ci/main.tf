@@ -70,22 +70,39 @@ resource "google_storage_bucket_iam_member" "tofu_ci_state" {
   member = "serviceAccount:${google_service_account.tofu_ci.email}"
 }
 
-# Prod project: the curated role set covering everything the prod env manages.
-# Deliberately NOT roles/owner or roles/editor — each role maps to one module:
-#   networkAdmin           → modules/network (VPC, subnet, NAT, firewall)
-#   container.admin        → modules/gke (cluster + node pool) AND the
-#                            cluster-admin RBAC the helm/kubectl providers need
-#                            for modules/argocd-bootstrap
-#   dns.admin              → modules/dns (managed zone + records)
-#   serviceUsageAdmin      → modules/project (google_project_service enables)
-#   serviceAccountAdmin    → modules/platform-iam, modules/gke (GSAs)
-#   projectIamAdmin        → modules/platform-iam (project IAM + WI bindings)
-#   serviceAccountUser     → act as the SAs the modules create/reference
-#   cloudkms.admin         → modules/platform-iam (KMS key ring + unseal key)
-#   monitoring.notificationChannelEditor
-#                          → modules/billing-budget (the budget's email
-#                            notification channel is a project-level Monitoring
-#                            resource; the budget itself uses the billing grant)
+# Bucket lifecycle and IAM only; object access remains scoped to the state
+# bucket above and the runtime service account in the production root.
+resource "google_project_iam_custom_role" "tofu_ci_knowledge_storage" {
+  project     = var.prod_project_id
+  role_id     = "tofuCiKnowledgeStorage"
+  title       = "OpenTofu CI knowledge storage"
+  description = "Manage knowledge-world buckets and their IAM policies"
+  permissions = [
+    "storage.buckets.create",
+    "storage.buckets.get",
+    "storage.buckets.getIamPolicy",
+    "storage.buckets.setIamPolicy",
+    "storage.buckets.update",
+  ]
+}
+
+resource "google_project_iam_member" "tofu_ci_knowledge_storage" {
+  project = var.prod_project_id
+  role    = google_project_iam_custom_role.tofu_ci_knowledge_storage.id
+  member  = "serviceAccount:${google_service_account.tofu_ci.email}"
+
+  condition {
+    title       = "knowledge-world-buckets-only"
+    description = "Restrict CI to the deployment's knowledge-world bucket prefix"
+    expression  = "resource.type == \"storage.googleapis.com/Bucket\" && resource.name.startsWith(\"projects/_/buckets/${var.prod_project_id}-demarkus-\")"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Prod roles map to managed modules; owner/editor remain intentionally absent.
 resource "google_project_iam_member" "tofu_ci_prod" {
   for_each = toset([
     "roles/compute.networkAdmin",

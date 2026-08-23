@@ -121,7 +121,7 @@ spec:
               seeds:
               {{- range .worlds }}
               {{- if not (index . "hub") }}
-                - mark://{{ .name }}.{{ .name }}.svc.cluster.local:6309
+                - mark://{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309
               {{- end }}
               {{- end }}
               # Publish the aggregated index into the hub world(s). `index . "hub"`
@@ -130,7 +130,7 @@ spec:
               hubs:
               {{- range .worlds }}
               {{- if (index . "hub") }}
-                - mark://{{ .name }}.{{ .name }}.svc.cluster.local:6309
+                - mark://{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309
               {{- end }}
               {{- end }}
               # Re-crawl hourly. Small universe, cheap reads; keeps the hash

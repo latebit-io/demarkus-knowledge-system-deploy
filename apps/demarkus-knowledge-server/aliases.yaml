@@ -1,0 +1,40 @@
+# DNS-only aliases preserve each logical world name as QUIC TLS SNI while all
+# traffic resolves to the shared knowledge Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: root-knowledge
+  namespace: demarkus-knowledge
+spec:
+  type: ExternalName
+  externalName: knowledge.demarkus-knowledge.svc.cluster.local
+  ports:
+    - name: mark
+      protocol: UDP
+      port: 6309
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: latebit-knowledge
+  namespace: demarkus-knowledge
+spec:
+  type: ExternalName
+  externalName: knowledge.demarkus-knowledge.svc.cluster.local
+  ports:
+    - name: mark
+      protocol: UDP
+      port: 6309
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ontehfritz-knowledge
+  namespace: demarkus-knowledge
+spec:
+  type: ExternalName
+  externalName: knowledge.demarkus-knowledge.svc.cluster.local
+  ports:
+    - name: mark
+      protocol: UDP
+      port: 6309

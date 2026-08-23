@@ -106,12 +106,30 @@ webClients:
       - https://library.dev.test:8443/auth/callback
     name: Universe Library (local dev)
 
-# The worlds in this knowledge system. ONE list — drives the worlds
-# ApplicationSet (one server per entry), the broker's worlds[], and the
-# federation agent's crawl seeds. `hub: true` marks the fixed-name discovery
-# hub: the agent publishes its index there and does NOT crawl it; every other
-# world is a content world the agent crawls. (ArgoCD)
+# The worlds in this knowledge system. ONE list drives backend selection,
+# broker routing, and federation seeds. `backend: shared` selects the GCS
+# server; storage remains declared if routing rolls back to legacy. `hub: true`
+# marks the discovery hub; every other world is crawled. (ArgoCD + tofu)
 worlds:
   - name: root
     hub: true
+    backend: shared
+    storage:
+      # Regenerated hub; legacy root content is intentionally not migrated.
+      bucket: knowledge-49722-demarkus-root
+      worldID: 1bb83179-7275-41a2-9519-a3410a7ac5dd
+      readOnly: false
   - name: latebit
+    backend: shared
+    storage:
+      # Shared organizational world.
+      bucket: knowledge-49722-demarkus-latebit
+      worldID: d7867876-1369-4b39-a33d-b175a4320acf
+      readOnly: false
+  - name: ontehfritz
+    backend: shared
+    storage:
+      # Public personal publishing world.
+      bucket: knowledge-49722-demarkus-ontehfritz
+      worldID: 829f3c1d-bae5-4c5c-b9d3-6263fdcc2c80
+      readOnly: false

@@ -61,6 +61,19 @@ module "platform_iam" {
   workload_identity_pool = module.gke.workload_identity_pool
 }
 
+module "knowledge_storage" {
+  source = "../../modules/knowledge-storage"
+
+  project_id                 = module.project.project_id
+  region                     = local.region
+  workload_identity_pool     = module.gke.workload_identity_pool
+  kubernetes_namespace       = "demarkus-knowledge"
+  kubernetes_service_account = "knowledge"
+  worlds                     = local.knowledge_storage_worlds
+
+  depends_on = [module.project]
+}
+
 module "billing_budget" {
   source = "../../modules/billing-budget"
 

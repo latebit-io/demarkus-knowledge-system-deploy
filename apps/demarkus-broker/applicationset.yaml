@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.17.0
+        targetRevision: 0.18.1
         helm:
           releaseName: demarkus-broker
           values: |
@@ -165,7 +165,7 @@ spec:
             # silently. Must roll before the agent; sync-wave 1 vs 2 already
             # guarantees that. Chart values schema unchanged.
             #
-            # 0.17.0 (demarkus #332-#342) is the current head of the tools
+            # 0.17.0 (demarkus #332-#342) was the previous tools release.
             # train and the reason for this bump: GHCR keeps only the last
             # five chart tags, so 0.15.3 has aged out of
             # ghcr.io/latebit-io/charts and a fresh chart pull can no longer
@@ -178,8 +178,10 @@ spec:
             # expected. Chart 0.17.0 is byte-identical to 0.15.8 (values.yaml
             # and every template), so the values schema is unchanged and only
             # the image tag moves.
+            # 0.18.1 adds shared-world routing support and permits broker QUIC
+            # egress on UDP 6309 in the chart NetworkPolicy.
             image:
-              tag: "0.17.0"
+              tag: "0.18.1"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
@@ -221,9 +223,8 @@ spec:
             # Worlds — generated from deployment.yaml's worlds[]. Wired here so
             # the broker boots with a valid config (the binary refuses to start
             # with empty worlds[]). Each world's namespace + tokens Secret are
-            # provisioned by apps/demarkus-worlds; the per-world Role+RoleBinding
-            # in this chart needs that namespace, so the two Applications
-            # self-heal into convergence as each world lands.
+            # must already exist in either its legacy namespace or the shared
+            # knowledge namespace. The chart scopes one Role per token Secret.
             #
             # Every world (hub or content) gets identical broker config: no
             # publicURL (reachable through the MCP gateway, not mark:// directly),
@@ -243,8 +244,11 @@ spec:
             worlds:
             {{- range .worlds }}
               - name: {{ .name }}
-                namespace: {{ .name }}
+                namespace: {{ if eq (index . "backend") "shared" }}demarkus-knowledge{{ else }}{{ .name }}{{ end }}
                 tokensSecret: {{ .name }}-tokens
+                {{- if eq (index . "backend") "shared" }}
+                internalAddress: "{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local:6309"
+                {{- end }}
                 allow:
                   emails:
                   {{- range $.adminEmails }}

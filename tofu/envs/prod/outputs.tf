@@ -67,3 +67,18 @@ output "external_dns_gsa_email" {
   description = "GSA to annotate on the external-dns KSA (iam.gke.io/gcp-service-account)."
   value       = module.platform_iam.external_dns_gsa_email
 }
+
+output "knowledge_storage_buckets" {
+  description = "Knowledge-server bucket name by storage-enabled world."
+  value       = module.knowledge_storage.bucket_names
+}
+
+output "knowledge_storage_world_ids" {
+  description = "Immutable world ID by storage-enabled world."
+  value       = module.knowledge_storage.world_ids
+}
+
+output "knowledge_server_gsa_email" {
+  description = "GSA bound to the shared knowledge-server KSA."
+  value       = module.knowledge_storage.service_account_email
+}

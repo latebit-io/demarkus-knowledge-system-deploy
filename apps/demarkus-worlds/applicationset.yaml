@@ -1,5 +1,5 @@
-# Demarkus worlds. One Argo Application per entry in deployment.yaml's
-# worlds[]; each installs the demarkus-server chart into its own namespace.
+# Legacy file-backed worlds. One Argo Application per deployment.yaml world
+# not using backend: shared; shared worlds retain storage during rollback.
 # deployment.yaml is the single source — the same list drives the broker's
 # worlds[] and the agent's crawl seeds, so adding a world is one edit there.
 #
@@ -25,10 +25,9 @@ spec:
   # is safe and catches template typos.
   goTemplateOptions: ["missingkey=error"]
   # The matrix feeds the git-files generator's parsed deployment.yaml into a
-  # list generator whose elementsYaml expands worlds[] into one param-set per
-  # world — the stock ArgoCD way to fan a single in-file array out to N
-  # Applications (no plugin). Which world is the `root` hub, etc. is declared
-  # in deployment.yaml; here every world gets identical demarkus-server config.
+  # list generator filters worlds[] into one param-set per legacy world. A
+  # backend: shared is the explicit routing switch; it must never produce both
+  # a PVC server and a shared GCS route for the same logical world.
   generators:
     - matrix:
         generators:
@@ -40,7 +39,17 @@ spec:
               files:
                 - path: deployment.yaml
           - list:
-              elementsYaml: "{{ .worlds | toJson }}"
+              elementsYaml: |
+                {{- $hasLegacyWorld := false }}
+                {{- range .worlds }}
+                {{- if ne (index . "backend") "shared" }}
+                {{- $hasLegacyWorld = true }}
+                - name: {{ .name | quote }}
+                {{- end }}
+                {{- end }}
+                {{- if not $hasLegacyWorld }}
+                []
+                {{- end }}
   template:
     metadata:
       name: "{{ .name }}"
