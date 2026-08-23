@@ -83,10 +83,16 @@ defaults in `tofu/envs/prod/variables.tf` — no Actions config needed.
 Defined in `tofu/bootstrap/ci/main.tf`. State bucket: `storage.objectAdmin`.
 Prod project: `compute.networkAdmin`, `container.admin` (also the cluster-admin
 RBAC the helm/kubectl providers need), `dns.admin`,
+`storage.admin` (knowledge-server bucket lifecycle and bucket IAM),
 `serviceusage.serviceUsageAdmin`, `iam.serviceAccountAdmin`,
-`resourcemanager.projectIamAdmin`, `iam.serviceAccountUser`, `cloudkms.admin`.
+`resourcemanager.projectIamAdmin`, `iam.serviceAccountUser`, `cloudkms.admin`,
+`monitoring.notificationChannelEditor`.
 Billing account: `billing.user` + `billing.costsManager` (budgets live at the
 billing-account level, not the project).
+
+Re-apply `tofu/bootstrap/ci` locally before a prod plan that introduces a newly
+required role. The bootstrap apply grants the CI identity permission to plan and
+apply the corresponding prod resources.
 
 ## Notes & gotchas
 

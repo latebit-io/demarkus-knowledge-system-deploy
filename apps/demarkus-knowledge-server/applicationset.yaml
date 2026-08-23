@@ -1,0 +1,94 @@
+# Shared GCS-backed knowledge server. Storage-enabled deployment worlds route
+# through distinct DNS/SNI aliases on one UDP listener.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demarkus-knowledge-server
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: demarkus-knowledge-server
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      project: default
+      source:
+        repoURL: ghcr.io/latebit-io/charts
+        chart: demarkus-knowledge-server
+        targetRevision: 0.25.1
+        helm:
+          releaseName: knowledge
+          values: |
+            fullnameOverride: knowledge
+
+            image:
+              tag: "0.25.1"
+
+            service:
+              type: ClusterIP
+
+            tls:
+              certManager:
+                enabled: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: selfsigned
+
+            serviceAccount:
+              workloadIdentity:
+                gsa: demarkus-knowledge-server@{{ .projectId }}.iam.gserviceaccount.com
+
+            networkPolicy:
+              allowUnrestrictedHTTPS: true
+
+            # Pilot sizing fits the current saturated e2-medium pool. Increase
+            # node capacity before raising these to chart production defaults.
+            resources:
+              requests:
+                cpu: 25m
+                memory: 256Mi
+              limits:
+                cpu: "1"
+                memory: 1Gi
+
+            {{- $hasStorageWorld := false }}
+            {{- range .worlds }}{{- if eq (index . "backend") "shared" }}{{- $hasStorageWorld = true }}{{- end }}{{- end }}
+            {{- if not $hasStorageWorld }}{{ fail "deployment.yaml: shared knowledge server requires at least one backend: shared world" }}{{- end }}
+            worlds:
+            {{- range .worlds }}
+            {{- if eq (index . "backend") "shared" }}
+              - name: {{ .name }}
+                authorities:
+                  - {{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local
+                bucket:
+                  url: gs://{{ .storage.bucket }}
+                  worldID: {{ .storage.worldID }}
+                tokenSecret:
+                  name: {{ .name }}-tokens
+                  key: tokens.toml
+                readOnly: {{ index .storage "readOnly" }}
+            {{- end }}
+            {{- end }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demarkus-knowledge
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true

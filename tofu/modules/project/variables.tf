@@ -34,6 +34,7 @@ variable "apis" {
     "compute.googleapis.com",
     "container.googleapis.com",
     "dns.googleapis.com",
+    "storage.googleapis.com",
     "iam.googleapis.com",
     "cloudkms.googleapis.com",
     "billingbudgets.googleapis.com",

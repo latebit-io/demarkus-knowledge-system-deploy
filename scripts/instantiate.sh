@@ -90,6 +90,11 @@ collect_config() {
   if yq -e '(.worlds // []) | map(select(.hub == true)) | length > 0' deployment.yaml >/dev/null 2>&1; then
     PRESERVE_WORLDS=1
     yq '.worlds' deployment.yaml > /tmp/instantiate-worlds.yaml
+    if [ "$PROJECT_ID" != "$(yq -r '.projectId // ""' deployment.yaml)" ]; then
+      yq 'map(del(.storage, .backend))' /tmp/instantiate-worlds.yaml > /tmp/instantiate-worlds-new-project.yaml
+      mv /tmp/instantiate-worlds-new-project.yaml /tmp/instantiate-worlds.yaml
+      warn "removed deployment-specific world storage from the new project config"
+    fi
     WORLDS_SUMMARY="$(yq -r '[.worlds[].name] | join(", ")' deployment.yaml) (preserved — edit deployment.yaml to change)"
   else
     PRESERVE_WORLDS=0

@@ -11,6 +11,14 @@ locals {
   project_id = local.deployment.projectId
   region     = local.deployment.region
 
+  knowledge_storage_worlds = {
+    for world in local.deployment.worlds : world.name => {
+      bucket    = world.storage.bucket
+      world_id  = world.storage.worldID
+      read_only = try(world.storage.readOnly, false)
+    } if try(world.storage, null) != null
+  }
+
   # Cloud DNS zones are fully-qualified with a trailing dot.
   dns_name = "${local.deployment.domain}."
 

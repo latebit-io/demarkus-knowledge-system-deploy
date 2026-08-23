@@ -70,27 +70,14 @@ resource "google_storage_bucket_iam_member" "tofu_ci_state" {
   member = "serviceAccount:${google_service_account.tofu_ci.email}"
 }
 
-# Prod project: the curated role set covering everything the prod env manages.
-# Deliberately NOT roles/owner or roles/editor — each role maps to one module:
-#   networkAdmin           → modules/network (VPC, subnet, NAT, firewall)
-#   container.admin        → modules/gke (cluster + node pool) AND the
-#                            cluster-admin RBAC the helm/kubectl providers need
-#                            for modules/argocd-bootstrap
-#   dns.admin              → modules/dns (managed zone + records)
-#   serviceUsageAdmin      → modules/project (google_project_service enables)
-#   serviceAccountAdmin    → modules/platform-iam, modules/gke (GSAs)
-#   projectIamAdmin        → modules/platform-iam (project IAM + WI bindings)
-#   serviceAccountUser     → act as the SAs the modules create/reference
-#   cloudkms.admin         → modules/platform-iam (KMS key ring + unseal key)
-#   monitoring.notificationChannelEditor
-#                          → modules/billing-budget (the budget's email
-#                            notification channel is a project-level Monitoring
-#                            resource; the budget itself uses the billing grant)
+# Prod roles map to managed modules; owner/editor remain intentionally absent.
+# storage.admin covers knowledge-storage bucket lifecycle and bucket IAM.
 resource "google_project_iam_member" "tofu_ci_prod" {
   for_each = toset([
     "roles/compute.networkAdmin",
     "roles/container.admin",
     "roles/dns.admin",
+    "roles/storage.admin",
     "roles/serviceusage.serviceUsageAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/resourcemanager.projectIamAdmin",

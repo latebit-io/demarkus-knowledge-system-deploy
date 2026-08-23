@@ -16,9 +16,13 @@ on:
     branches: [main]
     paths:
       - "apps/demarkus-broker/**"
+      - "apps/demarkus-agent/**"
+      - "apps/demarkus-knowledge-server/**"
+      - "apps/demarkus-worlds/**"
       - "deployment.yaml"
       - "scripts/smoke-broker-allow-domains.sh"
       - "scripts/smoke-broker-web-clients.sh"
+      - "scripts/smoke-shared-knowledge.sh"
       - ".github/workflows/broker-smoke.yml"
 
 permissions:
@@ -59,3 +63,6 @@ jobs:
 
       - name: Render-and-assert webClients
         run: bash scripts/smoke-broker-web-clients.sh
+
+      - name: Render-and-assert shared knowledge routing
+        run: bash scripts/smoke-shared-knowledge.sh
