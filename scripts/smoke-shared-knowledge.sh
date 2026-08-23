@@ -45,6 +45,26 @@ yq -e '.worlds[] | select(.name == "ontehfritz" and .namespace == "demarkus-know
 
 AGENT_APPSET="apps/demarkus-agent/applicationset.yaml"
 render_field "$AGENT_APPSET" '.spec.template.spec.source.helm.values' "$TMPD/agent-values.yaml"
+
+AGENT_TEMPLATE="$TMPD/agent-values.yaml.tmpl"
+yq '.spec.template.spec.source.helm.values' "$AGENT_APPSET" > "$AGENT_TEMPLATE"
+expect_agent_render_failure() { # <case> <deployment yq expression>
+  local name="$1" expression="$2" config="$TMPD/agent-$1.json" output
+  yq -o=json "$expression" deployment.yaml > "$config"
+  if output="$(gomplate --missing-key error --context ".=$config" --file "$AGENT_TEMPLATE" 2>&1)"; then
+    echo "agent hub validation accepted invalid case: $name" >&2
+    exit 1
+  fi
+  if [[ "$output" != *"exactly one hub is required and it must be named root"* ]]; then
+    echo "agent hub validation failed unexpectedly for case: $name" >&2
+    echo "$output" >&2
+    exit 1
+  fi
+}
+expect_agent_render_failure no-hub 'del(.worlds[].hub)'
+expect_agent_render_failure multiple-hubs '.worlds[1].hub = true'
+expect_agent_render_failure wrong-hub-name '.worlds[0].name = "not-root"'
+
 yq -e '.config.seeds | sort | join(",") == "mark://latebit,mark://ontehfritz"' "$TMPD/agent-values.yaml" >/dev/null
 yq -e '.config.hubs | join(",") == "mark://root"' "$TMPD/agent-values.yaml" >/dev/null
 yq -e '.config.endpoints.root.dialAddress == "root-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.root.serverName == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null

@@ -116,8 +116,9 @@ spec:
               tag: "0.27.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
-            {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
-            {{- if not $hasHub }}{{ fail "deployment.yaml: at least one world must have hub: true — the agent needs a hub to publish its index to" }}{{- end }}
+            {{- $hubName := "" }}{{- $multipleHubs := false }}
+            {{- range .worlds }}{{- if index . "hub" }}{{- if ne $hubName "" }}{{- $multipleHubs = true }}{{- end }}{{- $hubName = .name }}{{- end }}{{- end }}
+            {{- if or $multipleHubs (ne $hubName "root") }}{{ fail "deployment.yaml: exactly one hub is required and it must be named root — the agent token is keyed to root:6309" }}{{- end }}
             config:
               # Graph, index, state, and token identity use stable logical
               # world authorities. Explicit endpoints below carry private
