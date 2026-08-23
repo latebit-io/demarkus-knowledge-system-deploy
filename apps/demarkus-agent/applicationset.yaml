@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.26.1
+        targetRevision: 0.27.0
         helm:
           releaseName: demarkus-agent
           values: |
@@ -109,21 +109,26 @@ spec:
             # unchanged.
             # 0.26.1 adds the policy metadata required for generated graph and
             # index publishes against the production shared server.
+            # 0.27.0 separates logical Mark authority from dial address and
+            # TLS SNI, keeps publish-only hubs out of discovery, and prevents
+            # generated /graph.md links from recursively amplifying topology.
             image:
-              tag: "0.26.1"
+              tag: "0.27.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
-            {{- $hasHub := false }}{{- range .worlds }}{{- if index . "hub" }}{{- $hasHub = true }}{{- end }}{{- end }}
-            {{- if not $hasHub }}{{ fail "deployment.yaml: at least one world must have hub: true — the agent needs a hub to publish its index to" }}{{- end }}
+            {{- $hubName := "" }}{{- $multipleHubs := false }}
+            {{- range .worlds }}{{- if index . "hub" }}{{- if ne $hubName "" }}{{- $multipleHubs = true }}{{- end }}{{- $hubName = .name }}{{- end }}{{- end }}
+            {{- if or $multipleHubs (ne $hubName "root") }}{{ fail "deployment.yaml: exactly one hub is required and it must be named root — the agent token is keyed to root:6309" }}{{- end }}
             config:
-              # Content worlds to crawl, by cluster-internal Service DNS —
-              # every world WITHOUT `hub: true`. The hub is intentionally not
-              # seeded (it's the aggregation point, reachable via its curated
-              # /index.md, not a world to be discovered).
+              # Graph, index, state, and token identity use stable logical
+              # world authorities. Explicit endpoints below carry private
+              # cluster dialing + the SNI expected by the shared listener.
+              # Every world WITHOUT `hub: true` is a seed. The hub remains a
+              # publish-only aggregation point unless also listed here.
               seeds:
               {{- range .worlds }}
               {{- if not (index . "hub") }}
-                - mark://{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309
+                - mark://{{ .name }}
               {{- end }}
               {{- end }}
               # Publish the aggregated index into the hub world(s). `index . "hub"`
@@ -132,8 +137,14 @@ spec:
               hubs:
               {{- range .worlds }}
               {{- if (index . "hub") }}
-                - mark://{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309
+                - mark://{{ .name }}
               {{- end }}
+              {{- end }}
+              endpoints:
+              {{- range .worlds }}
+                {{ .name }}:
+                  dialAddress: "{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309"
+                  serverName: "{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}"
               {{- end }}
               # Re-crawl hourly. Small universe, cheap reads; keeps the hash
               # index fresh (politeness defaults still throttle per-server).

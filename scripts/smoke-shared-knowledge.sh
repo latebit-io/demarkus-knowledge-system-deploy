@@ -43,9 +43,42 @@ yq -e '.worlds | map(.name) | sort | join(",") == "latebit,ontehfritz,root"' "$T
 yq -e '.worlds | map((.allow.emails | contains(["fritz@latebit.io"])) and (.defaultToken.paths | length == 1) and (.defaultToken.paths[0] == "/**")) | all' "$TMPD/broker-values.yaml" >/dev/null
 yq -e '.worlds[] | select(.name == "ontehfritz" and .namespace == "demarkus-knowledge" and .internalAddress == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309")' "$TMPD/broker-values.yaml" >/dev/null
 
-render_field apps/demarkus-agent/applicationset.yaml '.spec.template.spec.source.helm.values' "$TMPD/agent-values.yaml"
-yq -e '.config.seeds[] == "mark://ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309"' "$TMPD/agent-values.yaml" >/dev/null
-yq -e '.config.hubs[] == "mark://root-knowledge.demarkus-knowledge.svc.cluster.local:6309"' "$TMPD/agent-values.yaml" >/dev/null
+AGENT_APPSET="apps/demarkus-agent/applicationset.yaml"
+render_field "$AGENT_APPSET" '.spec.template.spec.source.helm.values' "$TMPD/agent-values.yaml"
+
+AGENT_TEMPLATE="$TMPD/agent-values.yaml.tmpl"
+yq '.spec.template.spec.source.helm.values' "$AGENT_APPSET" > "$AGENT_TEMPLATE"
+expect_agent_render_failure() { # <case> <deployment yq expression>
+  local name="$1" expression="$2" config="$TMPD/agent-$1.json" output
+  yq -o=json "$expression" deployment.yaml > "$config"
+  if output="$(gomplate --missing-key error --context ".=$config" --file "$AGENT_TEMPLATE" 2>&1)"; then
+    echo "agent hub validation accepted invalid case: $name" >&2
+    exit 1
+  fi
+  if [[ "$output" != *"exactly one hub is required and it must be named root"* ]]; then
+    echo "agent hub validation failed unexpectedly for case: $name" >&2
+    echo "$output" >&2
+    exit 1
+  fi
+}
+expect_agent_render_failure no-hub 'del(.worlds[].hub)'
+expect_agent_render_failure multiple-hubs '.worlds[1].hub = true'
+expect_agent_render_failure wrong-hub-name '.worlds[0].name = "not-root"'
+
+yq -e '.config.seeds | sort | join(",") == "mark://latebit,mark://ontehfritz"' "$TMPD/agent-values.yaml" >/dev/null
+yq -e '.config.hubs | join(",") == "mark://root"' "$TMPD/agent-values.yaml" >/dev/null
+yq -e '.config.endpoints.root.dialAddress == "root-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.root.serverName == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
+yq -e '.config.endpoints.latebit.dialAddress == "latebit-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.latebit.serverName == "latebit-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
+yq -e '.config.endpoints.ontehfritz.dialAddress == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.ontehfritz.serverName == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
+
+AGENT_REPO="$(yq '.spec.template.spec.source.repoURL' "$AGENT_APPSET")"
+AGENT_CHART="$(yq '.spec.template.spec.source.chart' "$AGENT_APPSET")"
+AGENT_VERSION="$(yq '.spec.template.spec.source.targetRevision' "$AGENT_APPSET")"
+helm template demarkus-agent "oci://$AGENT_REPO/$AGENT_CHART" --version "$AGENT_VERSION" \
+  --namespace demarkus-agent -f "$TMPD/agent-values.yaml" > "$TMPD/agent.yaml"
+yq 'select(.kind == "ConfigMap") | .data["agent.toml"]' "$TMPD/agent.yaml" > "$TMPD/agent.toml"
+yq -p=toml -oy -e '.endpoints.root.dial_address == "root-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .endpoints.root.server_name == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent.toml" >/dev/null
+yq -e '.spec.target.template.data["tokens.toml"] | contains("[\"root:6309\"]")' apps/demarkus-agent/external-secret.yaml >/dev/null
 
 render_field apps/demarkus-worlds/applicationset.yaml '.spec.generators[0].matrix.generators[1].list.elementsYaml' "$TMPD/legacy-worlds.yaml"
 yq -e 'length == 0' "$TMPD/legacy-worlds.yaml" >/dev/null
