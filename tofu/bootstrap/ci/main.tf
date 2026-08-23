@@ -70,14 +70,36 @@ resource "google_storage_bucket_iam_member" "tofu_ci_state" {
   member = "serviceAccount:${google_service_account.tofu_ci.email}"
 }
 
+# Bucket lifecycle and IAM only; object access remains scoped to the state
+# bucket above and the runtime service account in the production root.
+resource "google_project_iam_custom_role" "tofu_ci_knowledge_storage" {
+  project     = var.prod_project_id
+  role_id     = "tofuCiKnowledgeStorage"
+  title       = "OpenTofu CI knowledge storage"
+  description = "Manage knowledge-world buckets and their IAM policies"
+  permissions = [
+    "storage.buckets.create",
+    "storage.buckets.delete",
+    "storage.buckets.get",
+    "storage.buckets.getIamPolicy",
+    "storage.buckets.list",
+    "storage.buckets.setIamPolicy",
+    "storage.buckets.update",
+  ]
+}
+
+resource "google_project_iam_member" "tofu_ci_knowledge_storage" {
+  project = var.prod_project_id
+  role    = google_project_iam_custom_role.tofu_ci_knowledge_storage.id
+  member  = "serviceAccount:${google_service_account.tofu_ci.email}"
+}
+
 # Prod roles map to managed modules; owner/editor remain intentionally absent.
-# storage.admin covers knowledge-storage bucket lifecycle and bucket IAM.
 resource "google_project_iam_member" "tofu_ci_prod" {
   for_each = toset([
     "roles/compute.networkAdmin",
     "roles/container.admin",
     "roles/dns.admin",
-    "roles/storage.admin",
     "roles/serviceusage.serviceUsageAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/resourcemanager.projectIamAdmin",

@@ -67,6 +67,10 @@ preflight() {
 
 # ── 1. config — write deployment.yaml + tfvars + backend.tf + propagate ──────
 collect_config() {
+  CONFIG_TMPDIR="$(mktemp -d)"
+  trap 'rm -rf "$CONFIG_TMPDIR"' EXIT
+  WORLDS_FILE="$CONFIG_TMPDIR/worlds.yaml"
+
   phase "Config — the deployment identity (deployment.yaml is the single source)"
   info "deployment.yaml is COMMITTED and non-secret. terraform.tfvars is gitignored"
   info "and holds the secret/substrate knobs. Defaults shown in [brackets]."
@@ -89,12 +93,12 @@ collect_config() {
   CONTENT_WORLD=""
   if yq -e '(.worlds // []) | map(select(.hub == true)) | length > 0' deployment.yaml >/dev/null 2>&1; then
     PRESERVE_WORLDS=1
-    yq '.worlds' deployment.yaml > /tmp/instantiate-worlds.yaml
     if [ "$PROJECT_ID" != "$(yq -r '.projectId // ""' deployment.yaml)" ]; then
-      yq 'map(del(.storage, .backend))' /tmp/instantiate-worlds.yaml > /tmp/instantiate-worlds-new-project.yaml
-      mv /tmp/instantiate-worlds-new-project.yaml /tmp/instantiate-worlds.yaml
-      warn "removed deployment-specific world storage from the new project config"
+      warn "projectId changed; existing shared-world storage belongs to another project."
+      info "Reconfigure deployment.yaml worlds[].backend/storage before instantiating."
+      exit 2
     fi
+    yq '.worlds' deployment.yaml > "$WORLDS_FILE"
     WORLDS_SUMMARY="$(yq -r '[.worlds[].name] | join(", ")' deployment.yaml) (preserved — edit deployment.yaml to change)"
   else
     PRESERVE_WORLDS=0
@@ -103,15 +107,16 @@ collect_config() {
   fi
   DNS_TXT_OWNER="$(ask 'external-dns TXT owner id (unique per cluster)' "$(yq -r '.dnsTxtOwnerId // ""' deployment.yaml || true)")"
   [ -n "$DNS_TXT_OWNER" ] || DNS_TXT_OWNER="$PROJECT_ID"
-  # allowDomains / webClients: PRESERVE existing values verbatim across re-runs
+  # Writer and login policy plus webClients are preserved across re-runs
   # (same idempotency contract as worlds[] — never reset auth policy or
   # deregister web clients on a rerun); seed [] on a truly fresh config. Both
-  # keys must EXIST even when empty — the broker ApplicationSet renders with
+  # keys must exist even when empty; the broker ApplicationSet renders with
   # missingkey=error. Captured here as single-line JSON (valid YAML flow style)
   # BEFORE write_deployment_yaml truncates the file. Edit deployment.yaml by
   # hand to change (see docs/runbook-broker-allow-domains.md,
   # docs/runbook-broker-web-clients.md).
   ALLOW_DOMAINS_JSON="$(yq -o=json -I=0 '.allowDomains // []' deployment.yaml 2>/dev/null || echo '[]')"
+  WRITER_DOMAINS_JSON="$(yq -o=json -I=0 '.writerDomains // []' deployment.yaml 2>/dev/null || echo '[]')"
   WEB_CLIENTS_JSON="$(yq -o=json -I=0 '.webClients // []' deployment.yaml 2>/dev/null || echo '[]')"
 
   echo
@@ -175,11 +180,12 @@ write_deployment_yaml() {
     local e
     IFS=',' read -ra _emails <<<"$ADMIN_EMAILS"
     for e in "${_emails[@]}"; do echo "  - ${e// /}"; done
+    echo "writerDomains: $WRITER_DOMAINS_JSON"
     echo "allowDomains: $ALLOW_DOMAINS_JSON"
     echo "webClients: $WEB_CLIENTS_JSON"
     echo "worlds:"
-    if [ "${PRESERVE_WORLDS:-0}" = 1 ] && [ -s /tmp/instantiate-worlds.yaml ]; then
-      sed 's/^/  /' /tmp/instantiate-worlds.yaml
+    if [ "${PRESERVE_WORLDS:-0}" = 1 ] && [ -s "$WORLDS_FILE" ]; then
+      sed 's/^/  /' "$WORLDS_FILE"
     else
       echo "  - name: root"
       echo "    hub: true"

@@ -15,7 +15,7 @@ locals {
     for world in local.deployment.worlds : world.name => {
       bucket    = world.storage.bucket
       world_id  = world.storage.worldID
-      read_only = try(world.storage.readOnly, false)
+      read_only = world.storage.readOnly
     } if try(world.storage, null) != null
   }
 
