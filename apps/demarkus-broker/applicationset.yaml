@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.18.1
+        targetRevision: 0.20.1
         helm:
           releaseName: demarkus-broker
           values: |
@@ -180,8 +180,11 @@ spec:
             # the image tag moves.
             # 0.18.1 adds shared-world routing support and permits broker QUIC
             # egress on UDP 6309 in the chart NetworkPolicy.
+            # 0.20.1 adds mark_lookup_all: one bounded, cancellable catalog
+            # query across every readable world with qualified result URLs,
+            # deterministic global limiting, and explicit partial failures.
             image:
-              tag: "0.18.1"
+              tag: "0.20.1"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
