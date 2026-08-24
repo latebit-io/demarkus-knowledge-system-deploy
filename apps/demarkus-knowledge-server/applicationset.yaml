@@ -33,6 +33,9 @@ spec:
           values: |
             fullnameOverride: knowledge
 
+            # Exercise one knowledge-server replica per current cluster node.
+            replicaCount: 3
+
             image:
               tag: "0.25.1"
 
