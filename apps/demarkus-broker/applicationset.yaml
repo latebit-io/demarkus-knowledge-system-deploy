@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.20.1
+        targetRevision: 0.21.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -183,8 +183,11 @@ spec:
             # 0.20.1 adds mark_lookup_all: one bounded, cancellable catalog
             # query across every readable world with qualified result URLs,
             # deterministic global limiting, and explicit partial failures.
+            # 0.21.0 adopts mark_lookup_all in server-vended recall/whats-new
+            # prompts, preserving explicit-world scope and failing closed on
+            # tool errors or incomplete results.
             image:
-              tag: "0.20.1"
+              tag: "0.21.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
