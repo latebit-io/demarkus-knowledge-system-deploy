@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.23.2
+        targetRevision: 0.24.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -267,8 +267,11 @@ spec:
             # every edition a reader opened became a permanent "referenced by"
             # entry labelled v1, v2, ... The map is per-pod and in-memory, so
             # this roll also clears the entries already accumulated.
+            # 0.24.0 (library #67) replaces the universe palette and librarian
+            # fan-out with broker mark_lookup_all. Partial results retain
+            # matches and disclose failed worlds; direct QUIC remains one-world.
             image:
-              tag: "0.23.2"
+              tag: "0.24.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
