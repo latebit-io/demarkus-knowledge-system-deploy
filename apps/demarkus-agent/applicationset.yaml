@@ -149,6 +149,10 @@ spec:
                   dialAddress: "{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309"
                   serverName: "{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}"
               {{- end }}
+              # Completeness enforcement rejects any reached directory at the
+              # depth boundary. Current project and journal trees reach depth 4.
+              crawl:
+                maxDepth: 10
               # Re-crawl hourly. Small universe, cheap reads; keeps the hash
               # index fresh (politeness defaults still throttle per-server).
               schedule:
