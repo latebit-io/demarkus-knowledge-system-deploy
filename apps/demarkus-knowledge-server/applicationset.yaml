@@ -27,7 +27,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.25.1
+        targetRevision: 0.30.0
         helm:
           releaseName: knowledge
           values: |
@@ -37,7 +37,9 @@ spec:
             replicaCount: 3
 
             image:
-              tag: "0.25.1"
+              # 0.30.0 adds pageable LIST metadata required for complete
+              # federation inventories and atomic generated snapshots.
+              tag: "0.30.0"
 
             service:
               type: ClusterIP

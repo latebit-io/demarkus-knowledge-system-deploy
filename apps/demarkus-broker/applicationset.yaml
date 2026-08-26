@@ -52,7 +52,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-broker
-        targetRevision: 0.21.0
+        targetRevision: 0.24.1
         helm:
           releaseName: demarkus-broker
           values: |
@@ -186,8 +186,10 @@ spec:
             # 0.21.0 adopts mark_lookup_all in server-vended recall/whats-new
             # prompts, preserving explicit-world scope and failing closed on
             # tool errors or incomplete results.
+            # 0.24.1 adds snapshot-first graph seeding with verified immutable
+            # shards and legacy /graph.md fallback only when no manifest exists.
             image:
-              tag: "0.21.0"
+              tag: "0.24.1"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
