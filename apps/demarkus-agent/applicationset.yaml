@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.27.0
+        targetRevision: 0.31.0
         helm:
           releaseName: demarkus-agent
           values: |
@@ -112,8 +112,11 @@ spec:
             # 0.27.0 separates logical Mark authority from dial address and
             # TLS SNI, keeps publish-only hubs out of discovery, and prevents
             # generated /graph.md links from recursively amplifying topology.
+            # 0.31.0 adds complete pageable inventory, atomic sharded hash
+            # indexes, and manifest-last graph snapshots while dual-publishing
+            # legacy /graph.md for existing consumers.
             image:
-              tag: "0.27.0"
+              tag: "0.31.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hubName := "" }}{{- $multipleHubs := false }}
