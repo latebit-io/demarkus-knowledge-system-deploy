@@ -112,6 +112,13 @@ spec:
                 perMinute: 120
                 burst: 60
 
+            # Tenant worlds carry self-signed certs (cert-manager
+            # selfsigned issuer, no shared CA); same in-cluster trust
+            # model as the knowledge broker: QUIC still encrypts,
+            # NetworkPolicy + RBAC do the isolation.
+            worldDialer:
+              insecureSkipVerify: true
+
             ingress:
               enabled: true
               className: nginx
