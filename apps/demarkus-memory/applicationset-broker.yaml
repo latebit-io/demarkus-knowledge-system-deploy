@@ -44,7 +44,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-memory-broker
-        targetRevision: 0.1.1
+        targetRevision: 0.2.0
         helm:
           releaseName: demarkus-memory-broker
           values: |
@@ -56,7 +56,7 @@ spec:
             replicaCount: 1
 
             image:
-              tag: "0.1.1"
+              tag: "0.2.0"
 
             server:
               publicURL: "https://auth.{{ .memoryDomain }}"
