@@ -37,7 +37,10 @@ yq -e 'select(.kind == "ConfigMap") | .data["config.yaml"] | from_yaml | .worlds
 yq -e 'select(.kind == "ConfigMap") | .data["config.yaml"] | from_yaml | .worlds | map(select((.bucket.url // "") == "" or (.bucket.worldID // "") == "" or .readOnly != false)) | length == 0' "$TMPD/shared.yaml" >/dev/null
 yq -e 'select(.kind == "Certificate") | .spec.dnsNames | sort | join(",") == "latebit-knowledge.demarkus-knowledge.svc.cluster.local,ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local,root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/shared.yaml" >/dev/null
 yq -e 'select(.kind == "Deployment") | .spec.replicas == 3' "$TMPD/shared.yaml" >/dev/null
-yq -e 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image == "ghcr.io/latebit-io/demarkus-knowledge-server:0.25.1"' "$TMPD/shared.yaml" >/dev/null
+# Image tag comes from the rendered values so an appset image bump can't
+# drift from a second hardcoded pin here (bit 6a67b4b: 0.25.1 vs 0.30.0).
+SHARED_TAG="$(yq -e '.image.tag' "$TMPD/shared-values.yaml")"
+yq -e 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image == "ghcr.io/latebit-io/demarkus-knowledge-server:'"$SHARED_TAG"'"' "$TMPD/shared.yaml" >/dev/null
 
 render_field apps/demarkus-broker/applicationset.yaml '.spec.template.spec.source.helm.values' "$TMPD/broker-values.yaml"
 yq -e '.worlds | map(.name) | sort | join(",") == "latebit,ontehfritz,root"' "$TMPD/broker-values.yaml" >/dev/null
