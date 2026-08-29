@@ -104,6 +104,14 @@ spec:
               worldsSecret: memory-worlds-config
               tokensSecret: memory-worlds-tokens
 
+            # The chart's 10/min per-subject default throttles an MCP
+            # session handshake (initialize + tools/prompts/resources
+            # lists arrive in a burst); size for interactive tool use.
+            rateLimit:
+              tokens:
+                perMinute: 120
+                burst: 60
+
             ingress:
               enabled: true
               className: nginx
