@@ -82,3 +82,28 @@ output "knowledge_server_gsa_email" {
   description = "GSA bound to the shared knowledge-server KSA."
   value       = module.knowledge_storage.service_account_email
 }
+
+output "memory_dns_zone_name" {
+  description = "Memory-service Cloud DNS managed zone name."
+  value       = module.dns_memory.zone_name
+}
+
+output "memory_dns_name_servers" {
+  description = "Authoritative name servers for the memory zone. Add as NS records at the parent (Cloudflare) for delegation."
+  value       = module.dns_memory.name_servers
+}
+
+output "memory_dns_ds_records" {
+  description = "DS records for the memory zone's DNSSEC chain of trust."
+  value       = module.dns_memory.ds_records
+}
+
+output "memory_broker_gsa_email" {
+  description = "Memory-broker GSA email (matches the broker chart's workloadIdentity.gsa)."
+  value       = module.memory_storage.broker_gsa_email
+}
+
+output "memory_server_gsa_email" {
+  description = "Memory knowledge-server GSA email (matches the server chart's workloadIdentity.gsa)."
+  value       = module.memory_storage.server_gsa_email
+}

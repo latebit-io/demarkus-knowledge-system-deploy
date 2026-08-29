@@ -1,0 +1,96 @@
+# Memory knowledge server: a dedicated demarkus-knowledge-server instance
+# serving ONLY dynamically provisioned tenant soul worlds. Kept separate
+# from the org knowledge server (apps/demarkus-knowledge-server) so
+# personal souls and organizational knowledge never share a blast radius.
+#
+# It runs with ZERO static worlds: the world set lives entirely in the
+# dynamicWorlds fragment Secret (memory-worlds-config) that the memory
+# broker writes and this server hot-reloads, with per-tenant tokens in
+# memory-worlds-tokens. Both Secrets live in this namespace; the broker
+# chart's provisioning RBAC grants the broker write access to them.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demarkus-memory-server
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: demarkus-memory-server
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      project: default
+      source:
+        repoURL: ghcr.io/latebit-io/charts
+        chart: demarkus-knowledge-server
+        targetRevision: 0.31.0
+        helm:
+          releaseName: memory
+          values: |
+            # Service DNS memory.demarkus-memory.svc.cluster.local — the
+            # broker's provisioning.dialAddress and the base of every
+            # tenant authority (<slug>.memory.demarkus-memory.svc.cluster.local).
+            fullnameOverride: memory
+
+            replicaCount: 2
+
+            image:
+              # 0.31.0 ships dynamicWorlds (hot-reloaded worlds fragment +
+              # tokens dir) — the memory broker's server-side half.
+              tag: "0.31.0"
+
+            service:
+              type: ClusterIP
+
+            tls:
+              certManager:
+                enabled: true
+                issuerRef:
+                  kind: ClusterIssuer
+                  name: selfsigned
+
+            serviceAccount:
+              workloadIdentity:
+                # tofu module.memory_storage: objectUser scoped to the
+                # {{ .projectId }}-memory-* tenant bucket prefix.
+                gsa: demarkus-memory-server@{{ .projectId }}.iam.gserviceaccount.com
+
+            networkPolicy:
+              allowUnrestrictedHTTPS: true
+
+            resources:
+              requests:
+                cpu: 25m
+                memory: 256Mi
+              limits:
+                cpu: "1"
+                memory: 1Gi
+
+            # Zero static worlds: everything arrives via the fragment.
+            worlds: []
+
+            dynamicWorlds:
+              enabled: true
+              worldsSecret: memory-worlds-config
+              tokensSecret: memory-worlds-tokens
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demarkus-memory
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true

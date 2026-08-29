@@ -74,6 +74,34 @@ module "knowledge_storage" {
   depends_on = [module.project]
 }
 
+module "dns_memory" {
+  source = "../../modules/dns"
+
+  project_id  = module.project.project_id
+  zone_name   = "demarkus-memory"
+  dns_name    = local.memory_dns_name
+  description = "Demarkus memory service — managed by OpenTofu"
+}
+
+# external-dns manages records in the memory zone too (its project-level
+# dns.reader from platform-iam already lets it discover the zone).
+resource "google_dns_managed_zone_iam_member" "external_dns_memory" {
+  project      = module.project.project_id
+  managed_zone = module.dns_memory.zone_name
+  role         = "roles/dns.admin"
+  member       = "serviceAccount:${module.platform_iam.external_dns_gsa_email}"
+}
+
+module "memory_storage" {
+  source = "../../modules/memory-storage"
+
+  project_id             = module.project.project_id
+  workload_identity_pool = module.gke.workload_identity_pool
+  bucket_prefix          = "${local.project_id}-memory-"
+
+  depends_on = [module.project]
+}
+
 module "billing_budget" {
   source = "../../modules/billing-budget"
 
