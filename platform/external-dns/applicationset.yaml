@@ -65,6 +65,7 @@ spec:
               project: {{ .projectId }}
             domainFilters:
               - {{ .domain }}
+              - {{ .memoryDomain }}
 
             # Only watch Ingress resources. Not LoadBalancer Services, not nodes,
             # not anything else — keeps DNS state predictable.

@@ -1,0 +1,135 @@
+# demarkus-memory-broker: OAuth-fronted MCP gateway giving each identity a
+# private personal soul world (identity = world; reads AND writes locked to
+# the caller's own world). Shares the knowledge broker's libraries and
+# two-listener shape:
+#
+#   - Management API (8080) — OIDC issuer origin, /auth/callback, /device/*.
+#     Fronted at auth.<memoryDomain>.
+#   - MCP gateway (8081) — /mcp + RFC 9728 metadata. Fronted at
+#     <memoryDomain> (the connector URL users paste into MCP hosts).
+#
+# Dynamic provisioning: first authorized arrival creates the tenant's GCS
+# bucket ({{ .projectId }}-memory-<slug>), registry entry, tokens key, and
+# worlds-fragment entry; the memory knowledge server (applicationset-server)
+# hot-reloads the fragment. Gate: allowlisted on deployment.yaml's
+# memory.allowEmails.
+#
+# Secrets via ESO (external-secrets.yaml here):
+#   - oidc-client Secret         → OIDC_CLIENT_SECRET (same OpenBao entry as
+#     the knowledge broker — one shared Google OAuth client).
+#   - memory-jwks-signing-key    → BROKER_SIGNING_KEY (its OWN key at
+#     broker/memory-jwks-signing-key: separate issuer, separate rotation).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demarkus-memory-broker
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
+        revision: main
+        files:
+          - path: deployment.yaml
+  template:
+    metadata:
+      name: demarkus-memory-broker
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+    spec:
+      project: default
+      source:
+        repoURL: ghcr.io/latebit-io/charts
+        chart: demarkus-memory-broker
+        targetRevision: 0.1.0
+        helm:
+          releaseName: demarkus-memory-broker
+          values: |
+            # Single replica for the same reason as the knowledge broker:
+            # the in-memory deviceStore + authCodeStore are per-pod, so an
+            # OAuth callback landing on a different replica than the one
+            # that started the flow fails. Provisioning itself is
+            # replica-safe (registry Secret optimistic concurrency).
+            replicaCount: 1
+
+            image:
+              tag: "0.1.0"
+
+            server:
+              publicURL: "https://auth.{{ .memoryDomain }}"
+              mcp:
+                publicURL: "https://{{ .memoryDomain }}"
+
+            oidc:
+              issuer: "https://accounts.google.com"
+              clientID: "{{ .oauthClientId }}"
+              existingSecretRef:
+                name: oidc-client
+              redirectURL: "https://auth.{{ .memoryDomain }}/auth/callback"
+              existingSigningKeyRef:
+                name: memory-jwks-signing-key
+
+            serviceAccount:
+              workloadIdentity:
+                # tofu module.memory_storage: storage.admin scoped to the
+                # {{ .projectId }}-memory-* tenant bucket prefix.
+                gsa: demarkus-memory-broker@{{ .projectId }}.iam.gserviceaccount.com
+
+            # No static worlds: every tenant world is dynamically
+            # provisioned into the registry + fragment.
+            worlds: []
+
+            provisioning:
+              mode: allowlisted
+              allow:
+                emails:
+                {{- range .memory.allowEmails }}
+                  - {{ . }}
+                {{- end }}
+              maxTenants: {{ .memory.maxTenants }}
+              maxDocumentsPerTenant: {{ .memory.maxDocumentsPerTenant }}
+              # Tenant authorities <slug>.<authorityDomain> ride SNI to the
+              # shared memory knowledge server's Service.
+              authorityDomain: memory.demarkus-memory.svc.cluster.local
+              dialAddress: memory.demarkus-memory.svc.cluster.local:6309
+              bucketPrefix: "{{ .projectId }}-memory-"
+              bucketProject: "{{ .projectId }}"
+              bucketLocation: northamerica-northeast2
+              # Broker and server share this namespace, so the fragment +
+              # tokens Secrets are namespace-local.
+              serverNamespace: demarkus-memory
+              worldsSecret: memory-worlds-config
+              tokensSecret: memory-worlds-tokens
+
+            ingress:
+              enabled: true
+              className: nginx
+              host: "auth.{{ .memoryDomain }}"
+              tls:
+                certManager:
+                  enabled: true
+                  issuerRef:
+                    kind: ClusterIssuer
+                    name: letsencrypt-prod
+              mcp:
+                host: "{{ .memoryDomain }}"
+                tls:
+                  certManager:
+                    enabled: true
+                    issuerRef:
+                      kind: ClusterIssuer
+                      name: letsencrypt-prod
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demarkus-memory
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true

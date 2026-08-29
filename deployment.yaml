@@ -106,6 +106,25 @@ webClients:
       - https://library.dev.test:8443/auth/callback
     name: Universe Library (local dev)
 
+# ── Memory-as-a-service (demarkus-memory-broker) ─────────────────────────
+# Public MCP endpoint: https://<memoryDomain>/mcp; OAuth issuer/management
+# API: https://auth.<memoryDomain>. Its own Cloud DNS zone (tofu
+# module.dns_memory) — delegate at the parent like the knowledge zone.
+# Reuses oauthClientId above: add https://auth.<memoryDomain>/auth/callback
+# to that client's redirect URIs in the Google console. (tofu + ArgoCD)
+memoryDomain: memory.demarkus.io
+
+memory:
+  # Provisioning gate (mode: allowlisted) — only these identities can
+  # create a soul world. Flip to open + a maxTenants raise for GA.
+  allowEmails:
+    - fritz@latebit.io
+    - fredrick.seitz@gmail.com
+  # Hard cap on dynamic tenants (defense in depth behind the allowlist).
+  maxTenants: 25
+  # Per-tenant document quota, enforced server-side at write time.
+  maxDocumentsPerTenant: 20000
+
 # The worlds in this knowledge system. ONE list drives backend selection,
 # broker routing, and federation seeds. `backend: shared` selects the GCS
 # server; storage remains declared if routing rolls back to legacy. `hub: true`
