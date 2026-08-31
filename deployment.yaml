@@ -59,7 +59,8 @@ adminEmails:
 # these domains may publish to every world (including root). Complements
 # adminEmails, which lists individual writers; login itself is still gated by
 # allowDomains above. Empty list ⇒ writers are adminEmails only. (ArgoCD)
-writerDomains: []
+writerDomains:
+  - latebit.io
 
 # Broker-global OIDC domain allowlist — gates login at every auth surface
 # (callback, /oauth/authorize, device flow) on the Google `hd` claim. Empty list
@@ -69,8 +70,7 @@ writerDomains: []
 # and consumer Gmail accounts have no `hd` so they are rejected when this list
 # is non-empty. Google's `hd` authorize-param is single-valued, so multi-domain
 # support is enforced broker-side against the returned claim. (ArgoCD)
-allowDomains:
-  - latebit.io
+allowDomains: []
 
 # Confidential OAuth web clients (RFC 6749 §2.1) registered with the broker —
 # server-side web apps (e.g. a library reading room) that authenticate with a
