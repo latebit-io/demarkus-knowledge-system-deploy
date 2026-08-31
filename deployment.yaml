@@ -152,3 +152,10 @@ worlds:
       bucket: knowledge-49722-demarkus-ontehfritz
       worldID: 829f3c1d-bae5-4c5c-b9d3-6263fdcc2c80
       readOnly: false
+  - name: music
+    backend: shared
+    storage:
+      # Music knowledge graph — artists, genres, works, scenes.
+      bucket: knowledge-49722-demarkus-music
+      worldID: d14acd92-0991-420f-88a8-22480a09bd8f
+      readOnly: false
