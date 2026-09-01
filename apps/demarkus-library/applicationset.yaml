@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.24.0
+        targetRevision: 0.25.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -270,8 +270,10 @@ spec:
             # 0.24.0 (library #67) replaces the universe palette and librarian
             # fan-out with broker mark_lookup_all. Partial results retain
             # matches and disclose failed worlds; direct QUIC remains one-world.
+            # 0.25.0 (library #69) makes the world map 1:1 with the catalog:
+            # every doc renders as a labeled node; "+N more" only past 500.
             image:
-              tag: "0.24.0"
+              tag: "0.25.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
