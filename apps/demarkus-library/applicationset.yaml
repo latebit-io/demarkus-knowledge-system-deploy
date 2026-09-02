@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.25.0
+        targetRevision: 0.26.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -272,8 +272,14 @@ spec:
             # matches and disclose failed worlds; direct QUIC remains one-world.
             # 0.25.0 (library #69) makes the world map 1:1 with the catalog:
             # every doc renders as a labeled node; "+N more" only past 500.
+            # 0.26.0 (library #70) turns the world map into collapsible
+            # directory aggregates (rest state budgeted to ~50 nodes, expand
+            # via htmx), ring/sunflower layout with hub at centre, hover focus
+            # layer, wheel/drag zoom, filter; the universe overlay renders in
+            # the same grammar (worlds as aggregates, edges bundled by count,
+            # no satellites). ADR 0006 §7.
             image:
-              tag: "0.25.0"
+              tag: "0.26.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session

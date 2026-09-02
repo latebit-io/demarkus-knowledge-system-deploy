@@ -153,10 +153,11 @@ spec:
               # depth boundary. Current project and journal trees reach depth 4.
               crawl:
                 maxDepth: 10
-              # Re-crawl hourly. Small universe, cheap reads; keeps the hash
-              # index fresh (politeness defaults still throttle per-server).
+              # Re-crawl every five minutes. Small universe, cheap reads; keeps
+              # the hash index fresh (politeness defaults still throttle
+              # per-server).
               schedule:
-                interval: 1h
+                interval: 5m
 
             # One machine index per discovered server at /index/<host>.md, so
             # the agent never writes root's curated /index.md. Requires root's
