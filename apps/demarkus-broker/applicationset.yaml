@@ -61,7 +61,10 @@ spec:
             # Release name no longer contains the chart name, so the chart's
             # fullname would render demarkus-broker-demarkus-knowledge-broker.
             # Pin it to keep Service/KSA/Secret/RBAC names (and the OpenBao
-            # KSA binding) stable across the rename.
+            # KSA binding) stable across the rename. nameOverride keeps the
+            # app.kubernetes.io/name selector label, which is immutable on
+            # the live Deployment.
+            nameOverride: demarkus-broker
             fullnameOverride: demarkus-broker
 
             # Single replica until the broker has shared state for the
