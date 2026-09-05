@@ -54,7 +54,7 @@ spec:
         # Chart renamed demarkus-broker -> demarkus-knowledge-broker at
         # monorepo #380; the old chart name stopped at 0.24.7.
         chart: demarkus-knowledge-broker
-        targetRevision: 0.27.3
+        targetRevision: 0.28.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -204,8 +204,11 @@ spec:
             # <fullname>-dynamic-clients Secret + RBAC), #391 resolves tenants
             # by identity, #387 permits zero static worlds with provisioning.
             # Image repository moves to ghcr.io/latebit-io/demarkus-knowledge-broker.
+            # 0.28.0 (#416) makes the Deployment strategy configurable and
+            # defaults maxUnavailable to 0, so the single replica rolls
+            # surge-first with no serving gap. No broker behavior change.
             image:
-              tag: "0.27.3"
+              tag: "0.28.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
