@@ -33,7 +33,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.31.1
+        targetRevision: 0.32.1
         helm:
           releaseName: memory
           values: |
@@ -47,7 +47,9 @@ spec:
             image:
               # 0.31.0 ships dynamicWorlds (hot-reloaded worlds fragment +
               # tokens dir) — the memory broker's server-side half.
-              tag: "0.31.1"
+              # 0.32.x adds the per-world token-bootstrap Job; it renders only
+              # when worlds[] is non-empty, so inert here (dynamicWorlds only).
+              tag: "0.32.1"
 
             service:
               type: ClusterIP

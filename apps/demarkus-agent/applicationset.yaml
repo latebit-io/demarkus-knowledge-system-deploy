@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.31.0
+        targetRevision: 0.31.6
         helm:
           releaseName: demarkus-agent
           values: |
@@ -115,8 +115,10 @@ spec:
             # 0.31.0 adds complete pageable inventory, atomic sharded hash
             # indexes, and manifest-last graph snapshots while dual-publishing
             # legacy /graph.md for existing consumers.
+            # 0.31.6 flips the chart's perServer default to true (already set
+            # below) and trims MCP tool descriptions (#409).
             image:
-              tag: "0.31.0"
+              tag: "0.31.6"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hubName := "" }}{{- $multipleHubs := false }}

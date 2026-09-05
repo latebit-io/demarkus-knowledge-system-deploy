@@ -44,7 +44,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-memory-broker
-        targetRevision: 0.2.0
+        targetRevision: 0.3.3
         helm:
           releaseName: demarkus-memory-broker
           values: |
@@ -55,8 +55,11 @@ spec:
             # replica-safe (registry Secret optimistic concurrency).
             replicaCount: 1
 
+            # 0.3.3: #391 resolves tenants by identity (slug pinned across
+            # email changes), #397 soul -> memory rename in vended prompts,
+            # #409/#412 trimmed tool descriptions. Chart unchanged.
             image:
-              tag: "0.2.0"
+              tag: "0.3.3"
 
             server:
               publicURL: "https://auth.{{ .memoryDomain }}"

@@ -51,11 +51,19 @@ spec:
       project: default
       source:
         repoURL: ghcr.io/latebit-io/charts
-        chart: demarkus-broker
-        targetRevision: 0.24.1
+        # Chart renamed demarkus-broker -> demarkus-knowledge-broker at
+        # monorepo #380; the old chart name stopped at 0.24.7.
+        chart: demarkus-knowledge-broker
+        targetRevision: 0.27.3
         helm:
           releaseName: demarkus-broker
           values: |
+            # Release name no longer contains the chart name, so the chart's
+            # fullname would render demarkus-broker-demarkus-knowledge-broker.
+            # Pin it to keep Service/KSA/Secret/RBAC names (and the OpenBao
+            # KSA binding) stable across the rename.
+            fullnameOverride: demarkus-broker
+
             # Single replica until the broker has shared state for the
             # in-memory deviceStore + authCodeStore. With N>=2 the OAuth
             # callback can land on a different pod than /device/authorize did
@@ -188,8 +196,13 @@ spec:
             # tool errors or incomplete results.
             # 0.24.1 adds snapshot-first graph seeding with verified immutable
             # shards and legacy /graph.md fallback only when no manifest exists.
+            # 0.27.3 (chart demarkus-knowledge-broker): #390 trusts MCP hosts'
+            # RFC 7591 registered redirect URIs (new keep-annotated
+            # <fullname>-dynamic-clients Secret + RBAC), #391 resolves tenants
+            # by identity, #387 permits zero static worlds with provisioning.
+            # Image repository moves to ghcr.io/latebit-io/demarkus-knowledge-broker.
             image:
-              tag: "0.24.1"
+              tag: "0.27.3"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management

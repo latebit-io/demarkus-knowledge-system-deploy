@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.24.2
+        targetRevision: 0.32.1
         helm:
           releaseName: "{{ .name }}"
           values: |
@@ -149,8 +149,12 @@ spec:
             # vanished 0.22.7, so the check fails to render until this lands.
             # If a live sync does wedge, recreate per
             # docs/runbook-world-version-bump.md.
+            # 0.32.1: #361 complete paginated LIST traversal, #375 removes the
+            # Postgres backend (file store only), #409 trims MCP tool
+            # descriptions. Chart diff drops the backend-swap guard only; no
+            # StatefulSet/VCT change.
             image:
-              tag: "0.24.2"
+              tag: "0.32.1"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default

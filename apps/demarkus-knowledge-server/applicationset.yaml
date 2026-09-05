@@ -27,7 +27,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.32.0
+        targetRevision: 0.32.1
         helm:
           releaseName: knowledge
           values: |
@@ -40,7 +40,9 @@ spec:
               # 0.32.0: chart gains the per-world token-Secret bootstrap Job
               # (pre-install/PreSync), so new shared worlds no longer need a
               # hand-applied <world>-tokens Secret.
-              tag: "0.32.0"
+              # 0.32.1: image-only (chart identical), #409 trimmed MCP tool
+              # descriptions.
+              tag: "0.32.1"
 
             service:
               type: ClusterIP
