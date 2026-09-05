@@ -73,6 +73,17 @@ spec:
             # and fail with "authorization session expired".
             replicaCount: 1
 
+            # Chart default requests 100m CPU; observed usage is ~1m. The
+            # 3-node pool sits at ~93% CPU requests, so the surge pod from
+            # maxUnavailable: 0 could not schedule at 100m. Limits unchanged.
+            resources:
+              requests:
+                cpu: 25m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+
             # Explicit image pin so an unexpected chart bump can't pull a
             # controller newer than what was reviewed. 0.1.27+ allows LOOKUP
             # through the MCP gateway; 0.1.31 ships the chart wiring for

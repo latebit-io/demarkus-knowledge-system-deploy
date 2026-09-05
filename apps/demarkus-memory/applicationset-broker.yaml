@@ -55,6 +55,17 @@ spec:
             # replica-safe (registry Secret optimistic concurrency).
             replicaCount: 1
 
+            # Chart default requests 100m CPU; observed usage is ~1m. The
+            # 3-node pool sits at ~93% CPU requests, so the surge pod from
+            # maxUnavailable: 0 could not schedule at 100m. Limits unchanged.
+            resources:
+              requests:
+                cpu: 25m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+
             # 0.3.3: #391 resolves tenants by identity (slug pinned across
             # email changes), #397 soul -> memory rename in vended prompts,
             # #409/#412 trimmed tool descriptions. Chart unchanged.
