@@ -11,7 +11,21 @@ name: broker-smoke
 # Cluster-free: just helm template + yq + a pinned gomplate. Bash-only
 # tooling — the deployment surface stays uniform on bash, see
 # scripts/check-immutable-fields.sh for the same posture.
+# Runs on push to main too: direct pushes (music and bruno worlds) skipped
+# the PR-only trigger and shipped a red smoke nobody saw until the next PR.
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/demarkus-broker/**"
+      - "apps/demarkus-agent/**"
+      - "apps/demarkus-knowledge-server/**"
+      - "apps/demarkus-worlds/**"
+      - "deployment.yaml"
+      - "scripts/smoke-broker-allow-domains.sh"
+      - "scripts/smoke-broker-web-clients.sh"
+      - "scripts/smoke-shared-knowledge.sh"
+      - ".github/workflows/broker-smoke.yml"
   pull_request:
     branches: [main]
     paths:
