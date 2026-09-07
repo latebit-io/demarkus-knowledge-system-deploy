@@ -54,7 +54,7 @@ spec:
         # Chart renamed demarkus-broker -> demarkus-knowledge-broker at
         # monorepo #380; the old chart name stopped at 0.24.7.
         chart: demarkus-knowledge-broker
-        targetRevision: 0.28.0
+        targetRevision: 0.28.1
         helm:
           releaseName: demarkus-broker
           values: |
@@ -218,8 +218,11 @@ spec:
             # 0.28.0 (#416) makes the Deployment strategy configurable and
             # defaults maxUnavailable to 0, so the single replica rolls
             # surge-first with no serving gap. No broker behavior change.
+            # 0.28.1 (#422, ADR 0011) accepts Cursor's private-use scheme
+            # callback at RFC 7591 registration via an exact-match allowlist,
+            # so Cursor's MCP OAuth reaches the browser. Chart unchanged.
             image:
-              tag: "0.28.0"
+              tag: "0.28.1"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
