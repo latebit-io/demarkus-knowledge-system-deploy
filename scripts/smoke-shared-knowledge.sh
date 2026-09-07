@@ -33,9 +33,14 @@ VERSION="$(yq '.spec.template.spec.source.targetRevision' "$SHARED_APPSET")"
 helm template knowledge "oci://$REPO/$CHART" --version "$VERSION" \
   --namespace demarkus-knowledge -f "$TMPD/shared-values.yaml" > "$TMPD/shared.yaml"
 
-yq -e 'select(.kind == "ConfigMap") | .data["config.yaml"] | from_yaml | .worlds | length == 3' "$TMPD/shared.yaml" >/dev/null
+# Expectations derive from deployment.yaml so adding a world cannot
+# silently break this smoke (music and bruno did, twice).
+SHARED_COUNT="$(yq '[.worlds[] | select(.backend == "shared")] | length' deployment.yaml)"
+SHARED_DNS="$(yq '[.worlds[] | select(.backend == "shared") | .name + "-knowledge.demarkus-knowledge.svc.cluster.local"] | sort | join(",")' deployment.yaml)"
+ALL_WORLD_NAMES="$(yq '[.worlds[].name] | sort | join(",")' deployment.yaml)"
+yq -e 'select(.kind == "ConfigMap") | .data["config.yaml"] | from_yaml | .worlds | length == '"$SHARED_COUNT" "$TMPD/shared.yaml" >/dev/null
 yq -e 'select(.kind == "ConfigMap") | .data["config.yaml"] | from_yaml | .worlds | map(select((.bucket.url // "") == "" or (.bucket.worldID // "") == "" or .readOnly != false)) | length == 0' "$TMPD/shared.yaml" >/dev/null
-yq -e 'select(.kind == "Certificate") | .spec.dnsNames | sort | join(",") == "latebit-knowledge.demarkus-knowledge.svc.cluster.local,ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local,root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/shared.yaml" >/dev/null
+yq -e 'select(.kind == "Certificate") | .spec.dnsNames | sort | join(",") == "'"$SHARED_DNS"'"' "$TMPD/shared.yaml" >/dev/null
 yq -e 'select(.kind == "Deployment") | .spec.replicas == 3' "$TMPD/shared.yaml" >/dev/null
 # Image tag comes from the rendered values so an appset image bump can't
 # drift from a second hardcoded pin here (bit 6a67b4b: 0.25.1 vs 0.30.0).
@@ -43,7 +48,7 @@ SHARED_TAG="$(yq -e '.image.tag' "$TMPD/shared-values.yaml")"
 yq -e 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image == "ghcr.io/latebit-io/demarkus-knowledge-server:'"$SHARED_TAG"'"' "$TMPD/shared.yaml" >/dev/null
 
 render_field apps/demarkus-broker/applicationset.yaml '.spec.template.spec.source.helm.values' "$TMPD/broker-values.yaml"
-yq -e '.worlds | map(.name) | sort | join(",") == "latebit,ontehfritz,root"' "$TMPD/broker-values.yaml" >/dev/null
+yq -e '.worlds | map(.name) | sort | join(",") == "'"$ALL_WORLD_NAMES"'"' "$TMPD/broker-values.yaml" >/dev/null
 yq -e '.worlds | map((.allow.emails | contains(["fritz@latebit.io"])) and (.defaultToken.paths | length == 1) and (.defaultToken.paths[0] == "/**")) | all' "$TMPD/broker-values.yaml" >/dev/null
 yq -e '.worlds[] | select(.name == "ontehfritz" and .namespace == "demarkus-knowledge" and .internalAddress == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309")' "$TMPD/broker-values.yaml" >/dev/null
 
@@ -69,7 +74,8 @@ expect_agent_render_failure no-hub 'del(.worlds[].hub)'
 expect_agent_render_failure multiple-hubs '.worlds[1].hub = true'
 expect_agent_render_failure wrong-hub-name '.worlds[0].name = "not-root"'
 
-yq -e '.config.seeds | sort | join(",") == "mark://latebit,mark://ontehfritz"' "$TMPD/agent-values.yaml" >/dev/null
+SEEDS="$(yq '[.worlds[] | select(.hub != true) | "mark://" + .name] | sort | join(",")' deployment.yaml)"
+yq -e '.config.seeds | sort | join(",") == "'"$SEEDS"'"' "$TMPD/agent-values.yaml" >/dev/null
 yq -e '.config.hubs | join(",") == "mark://root"' "$TMPD/agent-values.yaml" >/dev/null
 yq -e '.config.endpoints.root.dialAddress == "root-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.root.serverName == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
 yq -e '.config.endpoints.latebit.dialAddress == "latebit-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.latebit.serverName == "latebit-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null

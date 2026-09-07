@@ -295,7 +295,8 @@ spec:
                   {{- range $.adminEmails }}
                     - {{ . }}
                   {{- end }}
-                  {{- range (index . "writerEmails" | default list) }}
+                  {{- /* index, not `default list`: sprig-only, absent from the gomplate smoke. index yields nil on a missing key, so range is a no-op. */}}
+                  {{- range (index . "writerEmails") }}
                     - {{ . }}
                   {{- end }}
                   domains:
