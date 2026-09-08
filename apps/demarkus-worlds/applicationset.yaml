@@ -58,7 +58,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-server
-        targetRevision: 0.32.1
+        targetRevision: 0.35.0
         helm:
           releaseName: "{{ .name }}"
           values: |
@@ -153,8 +153,10 @@ spec:
             # Postgres backend (file store only), #409 trims MCP tool
             # descriptions. Chart diff drops the backend-swap guard only; no
             # StatefulSet/VCT change.
+            # 0.35.0 (#426, #428): LOOKUP body match from an in-memory section
+            # index (ADR 0012) and the retuned ranking. Chart identical.
             image:
-              tag: "0.32.1"
+              tag: "0.35.0"
             # fullnameOverride pins every chart-rendered resource name
             # to the bare world name (Service, StatefulSet, tokens
             # Secret, ServiceAccount) instead of the chart's default
