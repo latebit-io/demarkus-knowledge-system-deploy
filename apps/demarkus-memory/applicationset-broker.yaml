@@ -44,7 +44,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-memory-broker
-        targetRevision: 0.4.1
+        targetRevision: 0.7.0
         helm:
           releaseName: demarkus-memory-broker
           values: |
@@ -74,9 +74,10 @@ spec:
             # No broker behavior change.
             # 0.4.1 (#422, ADR 0011) accepts Cursor's private-use scheme
             # callback at RFC 7591 registration (shared broker package).
-            # Chart unchanged.
+            # 0.7.0 (#426, #431): body match, lean envelope, budget on
+            # mark_lookup (shared broker package).
             image:
-              tag: "0.4.1"
+              tag: "0.7.0"
 
             server:
               publicURL: "https://auth.{{ .memoryDomain }}"
