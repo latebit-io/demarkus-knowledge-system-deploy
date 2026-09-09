@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.26.0
+        targetRevision: 0.27.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -278,8 +278,12 @@ spec:
             # layer, wheel/drag zoom, filter; the universe overlay renders in
             # the same grammar (worlds as aggregates, edges bundled by count,
             # no satellites). ADR 0006 §7.
+            # 0.27.0 (library #71) upgrades htmx 2.0.10 to 4.0.0 with the
+            # first-party hx-sse extension: explicit attribute inheritance,
+            # history restores served as full pages, librarian SSE frames as
+            # hx-partial, 4xx/5xx kept non-swapping. ADR 0003 amendment.
             image:
-              tag: "0.26.0"
+              tag: "0.27.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
