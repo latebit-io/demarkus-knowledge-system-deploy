@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.27.0
+        targetRevision: 0.28.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -282,8 +282,16 @@ spec:
             # first-party hx-sse extension: explicit attribute inheritance,
             # history restores served as full pages, librarian SSE frames as
             # hx-partial, 4xx/5xx kept non-swapping. ADR 0003 amendment.
+            # 0.28.0 (library #72-#77) is the first release cut from main since
+            # 0.27.0, which was tagged on an unmerged branch: the nav advertises
+            # the graph and map pull-ups with their hotkeys and the graph
+            # affordance appears only where references exist; archived documents
+            # answer 410 "archived" instead of 404, and every read-path error now
+            # renders HTML rather than Echo's JSON default (ADR 0003); the
+            # branding manifest adds a static overlay and per-world in-world
+            # branding (ADR 0008).
             image:
-              tag: "0.27.0"
+              tag: "0.28.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
