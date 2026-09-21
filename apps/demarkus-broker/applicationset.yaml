@@ -54,7 +54,7 @@ spec:
         # Chart renamed demarkus-broker -> demarkus-knowledge-broker at
         # monorepo #380; the old chart name stopped at 0.24.7.
         chart: demarkus-knowledge-broker
-        targetRevision: 0.31.0
+        targetRevision: 0.37.2
         helm:
           releaseName: demarkus-broker
           values: |
@@ -222,8 +222,12 @@ spec:
             # and snippets, lean MCP envelope with verbose, budget on
             # mark_lookup and mark_lookup_all (matched sections' text in one
             # call), warn-only narrowing gate on mark_publish.
+            # 0.37.2 (#443 to #491): section-first retrieval, graph freshness
+            # and bounded crawls (#447 to #468), shared tool schemas (#471),
+            # identity gate on refresh and capped pending grants (#489).
+            # Chart adds server.mcp.toolProfile, default "full".
             image:
-              tag: "0.31.0"
+              tag: "0.37.2"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
