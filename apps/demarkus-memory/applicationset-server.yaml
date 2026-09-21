@@ -33,7 +33,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.37.0
+        targetRevision: 0.43.2
         helm:
           releaseName: memory
           values: |
@@ -53,7 +53,12 @@ spec:
               # 0.37.0 (#438, #441): world self-creation and policy seeding.
               # Inert here: tenant worlds are bootstrap worlds, which take no
               # seed because the broker owns their policy.
-              tag: "0.37.0"
+              # 0.43.2 (#489, #491): NOT inert. bootstrap is ignored at open:
+              # a tenant world with no policy gets the marked default seed,
+              # which memory broker 0.13.2 or later replaces as version two
+              # (ADR 0017). A tenant world whose policy is archived or
+              # unenforceable now fails to open instead of refusing writes.
+              tag: "0.43.2"
 
             service:
               type: ClusterIP

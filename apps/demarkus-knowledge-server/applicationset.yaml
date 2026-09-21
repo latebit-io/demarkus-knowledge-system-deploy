@@ -27,7 +27,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.37.0
+        targetRevision: 0.43.2
         helm:
           releaseName: knowledge
           values: |
@@ -47,7 +47,11 @@ spec:
               # seeds and enforces its own policy, optionally from
               # policy.file. Inert for these worlds: seeding is create-only
               # and every one already holds a policy.
-              tag: "0.37.0"
+              # 0.43.2 (#489, #491): bounded writes and stream deadlines,
+              # client errors answer bad-request, policy enforced above the
+              # store inside its commit (ADR 0016, 0017). Chart unchanged
+              # since 0.37.0. Inert here: every world holds a valid policy.
+              tag: "0.43.2"
 
             service:
               type: ClusterIP
