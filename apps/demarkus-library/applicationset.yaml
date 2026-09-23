@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.28.0
+        targetRevision: 0.29.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -290,8 +290,14 @@ spec:
             # renders HTML rather than Echo's JSON default (ADR 0003); the
             # branding manifest adds a static overlay and per-world in-world
             # branding (ADR 0008).
+            # 0.29.0 (library #78) lets the hub world's /.well-known/library/
+            # documents brand the whole room (name, logo, favicon, stylesheet,
+            # sign-in page included) ahead of the manifest, so a rebrand is a
+            # publish on `root`, not a ConfigMap and a rollout. Every page now
+            # carries a Content-Security-Policy and document stylesheets are
+            # refused if they reference another origin (ADR 0008 amendment).
             image:
-              tag: "0.28.0"
+              tag: "0.29.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
