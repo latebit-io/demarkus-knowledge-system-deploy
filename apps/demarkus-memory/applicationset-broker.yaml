@@ -44,7 +44,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-memory-broker
-        targetRevision: 0.13.2
+        targetRevision: 0.14.0
         helm:
           releaseName: demarkus-memory-broker
           values: |
@@ -82,7 +82,7 @@ spec:
             # memory policy as version two. Roll before the memory server
             # reaches 0.43.2. Chart adds server.mcp.toolProfile, default "full".
             image:
-              tag: "0.13.2"
+              tag: "0.14.0"
 
             server:
               publicURL: "https://auth.{{ .memoryDomain }}"
