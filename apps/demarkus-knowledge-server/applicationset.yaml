@@ -27,7 +27,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.43.2
+        targetRevision: 0.44.0
         helm:
           releaseName: knowledge
           values: |
@@ -51,7 +51,7 @@ spec:
               # client errors answer bad-request, policy enforced above the
               # store inside its commit (ADR 0016, 0017). Chart unchanged
               # since 0.37.0. Inert here: every world holds a valid policy.
-              tag: "0.43.2"
+              tag: "0.44.0"
 
             service:
               type: ClusterIP
