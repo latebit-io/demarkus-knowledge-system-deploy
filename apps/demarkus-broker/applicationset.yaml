@@ -54,7 +54,7 @@ spec:
         # Chart renamed demarkus-broker -> demarkus-knowledge-broker at
         # monorepo #380; the old chart name stopped at 0.24.7.
         chart: demarkus-knowledge-broker
-        targetRevision: 0.38.0
+        targetRevision: 0.40.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -226,8 +226,13 @@ spec:
             # and bounded crawls (#447 to #468), shared tool schemas (#471),
             # identity gate on refresh and capped pending grants (#489).
             # Chart adds server.mcp.toolProfile, default "full".
+            # 0.40.0 (demarkus #513): worlds[].dialAddress renders, so shared
+            # worlds dial the one knowledge Service directly (SNI stays the
+            # per-world internalAddress) and the ExternalName aliases become
+            # unused. tokensSecret and defaultToken now come from chart
+            # defaults. Signing key stays on existingSigningKeyRef.
             image:
-              tag: "0.38.0"
+              tag: "0.40.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
@@ -291,9 +296,9 @@ spec:
             {{- range .worlds }}
               - name: {{ .name }}
                 namespace: {{ if eq (index . "backend") "shared" }}demarkus-knowledge{{ else }}{{ .name }}{{ end }}
-                tokensSecret: {{ .name }}-tokens
                 {{- if eq (index . "backend") "shared" }}
                 internalAddress: "{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local:6309"
+                dialAddress: "knowledge.demarkus-knowledge.svc.cluster.local:6309"
                 {{- end }}
                 allow:
                   emails:
@@ -308,8 +313,6 @@ spec:
                   {{- range $.writerDomains }}
                     - {{ . | quote }}
                   {{- end }}
-                defaultToken:
-                  paths: ["/**"]
             {{- end }}
 
             # Confidential web clients (RFC 6749 §2.1) — generated from

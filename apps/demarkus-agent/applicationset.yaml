@@ -68,7 +68,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.40.0
+        targetRevision: 0.41.0
         helm:
           releaseName: demarkus-agent
           values: |
@@ -132,8 +132,11 @@ spec:
             # source re-crawl) and #510 (agent reads ~/.mark/tokens.d; chart
             # gains tokens.fromWorldSecrets, used below in place of the ESO
             # tokens.toml template). Values schema otherwise unchanged.
+            # 0.41.0 (demarkus #513): chart can derive the topology; kept
+            # explicit here because deployment.yaml carries a legacy backend.
+            # Shared worlds now dial the knowledge Service directly.
             image:
-              tag: "0.40.0"
+              tag: "0.41.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hubName := "" }}{{- $multipleHubs := false }}
@@ -163,7 +166,7 @@ spec:
               endpoints:
               {{- range .worlds }}
                 {{ .name }}:
-                  dialAddress: "{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309"
+                  dialAddress: "{{ if eq (index . "backend") "shared" }}knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}:6309"
                   serverName: "{{ if eq (index . "backend") "shared" }}{{ .name }}-knowledge.demarkus-knowledge.svc.cluster.local{{ else }}{{ .name }}.{{ .name }}.svc.cluster.local{{ end }}"
               {{- end }}
               # Completeness enforcement rejects any reached directory at the

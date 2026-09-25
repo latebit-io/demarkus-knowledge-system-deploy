@@ -27,7 +27,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.44.0
+        targetRevision: 0.46.0
         helm:
           releaseName: knowledge
           values: |
@@ -51,7 +51,10 @@ spec:
               # client errors answer bad-request, policy enforced above the
               # store inside its commit (ADR 0016, 0017). Chart unchanged
               # since 0.37.0. Inert here: every world holds a valid policy.
-              tag: "0.44.0"
+              # 0.46.0 (demarkus #513): chart derives tokenSecret
+              # (<name>-tokens / tokens.toml), so the per-world block is gone.
+              # fullnameOverride keeps resource names; NetworkPolicy stays on.
+              tag: "0.46.0"
 
             service:
               type: ClusterIP
@@ -92,9 +95,6 @@ spec:
                 bucket:
                   url: gs://{{ .storage.bucket }}
                   worldID: {{ .storage.worldID }}
-                tokenSecret:
-                  name: {{ .name }}-tokens
-                  key: tokens.toml
                 readOnly: {{ default false (index .storage "readOnly") }}
             {{- end }}
             {{- end }}
