@@ -33,7 +33,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.44.0
+        targetRevision: 0.46.0
         helm:
           releaseName: memory
           values: |
@@ -58,7 +58,10 @@ spec:
               # which memory broker 0.13.2 or later replaces as version two
               # (ADR 0017). A tenant world whose policy is archived or
               # unenforceable now fails to open instead of refusing writes.
-              tag: "0.44.0"
+              # 0.46.0 (demarkus #513): chart gains per-world defaults and a
+              # global.worlds fallback, both inert with dynamicWorlds only.
+              # fullnameOverride keeps names; NetworkPolicy stays on.
+              tag: "0.46.0"
 
             service:
               type: ClusterIP
