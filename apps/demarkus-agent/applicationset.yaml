@@ -55,6 +55,12 @@ spec:
       namespace: argocd
       annotations:
         argocd.argoproj.io/sync-wave: "2"
+        # Argo v2.13 ServerSideDiff cannot diff a volume whose type changes
+        # (secret -> projected, agent chart 0.40.0): "associative list with
+        # keys has an element that omits key field name" (argo-cd #20792).
+        # The app then never syncs. Classic diff for this app until Argo is
+        # upgraded past the fix; sync still uses ServerSideApply.
+        argocd.argoproj.io/compare-options: ServerSideDiff=false
     spec:
       project: default
       source:
