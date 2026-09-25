@@ -19,8 +19,9 @@
 #   - Worlds use self-signed certs with no shared CA → `insecure: true` (same
 #     posture as the broker's worldDialer.insecureSkipVerify).
 #   - Reads are open (publish-only invariant), so crawling needs NO token. Only
-#     the PUBLISH into `root` needs one — provisioned by ESO from root's raw
-#     admin token (cluster-secret-store.yaml + external-secret.yaml).
+#     the PUBLISH into `root` needs one — ESO copies root's raw admin token
+#     into this namespace (cluster-secret-store.yaml + external-secret.yaml)
+#     and the chart projects it to ~/.mark/tokens.d/root:6309.
 #   - `perServer: true` → publishes `/index/<host>.md`, never clobbering root's
 #     curated /index.md. That subpath needs root's admin token widened to `/**`
 #     (set in the worlds ApplicationSet).
@@ -28,9 +29,10 @@
 #     so the `hub: true` world in deployment.yaml MUST be named `root`.
 #
 # Sync wave: 2 — after the broker + worlds (wave 1), so `root` and its
-# `root-token-values` Secret exist before ESO reshapes the token. The agent's
-# token volume is `optional` and the daemon tolerates transient errors, so it
-# self-heals into convergence regardless.
+# `root-token-values` Secret exist before ESO copies the token. The world
+# token source is not optional: the agent container waits in
+# ContainerCreating until ESO has materialized the Secret, then starts with
+# the token in place.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -58,7 +60,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.31.6
+        targetRevision: 0.40.0
         helm:
           releaseName: demarkus-agent
           values: |
@@ -117,8 +119,13 @@ spec:
             # legacy /graph.md for existing consumers.
             # 0.31.6 flips the chart's perServer default to true (already set
             # below) and trims MCP tool descriptions (#409).
+            # 0.40.0 rolls up #447 (unified graph edge extraction and relative
+            # link resolution), #451 (revision-aware graph freshness, bounded
+            # source re-crawl) and #510 (agent reads ~/.mark/tokens.d; chart
+            # gains tokens.fromWorldSecrets, used below in place of the ESO
+            # tokens.toml template). Values schema otherwise unchanged.
             image:
-              tag: "0.31.6"
+              tag: "0.40.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hubName := "" }}{{- $multipleHubs := false }}
@@ -175,12 +182,15 @@ spec:
             # Self-signed world certs + no shared CA → skip outbound TLS verify.
             insecure: true
 
-            # Publish credential for the `root` hub. ESO materializes this
-            # Secret (key tokens.toml) from root-token-values — see
-            # external-secret.yaml. The volume mount is `optional`, so the pod
-            # starts before the Secret lands and converges once ESO reshapes it.
+            # Publish credential for the `root` hub. ESO copies root-token-values
+            # (key admin) into this namespace as demarkus-agent-hub-tokens — see
+            # external-secret.yaml. The chart projects it to
+            # ~/.mark/tokens.d/root:6309; the mount is not optional, so the pod
+            # waits for the Secret rather than starting unauthenticated.
             tokens:
-              existingSecret: demarkus-agent-hub-tokens
+              fromWorldSecrets:
+                - hostPort: "root:6309"
+                  secret: demarkus-agent-hub-tokens
       destination:
         server: https://kubernetes.default.svc
         namespace: demarkus-agent

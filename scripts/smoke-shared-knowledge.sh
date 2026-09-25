@@ -88,7 +88,12 @@ helm template demarkus-agent "oci://$AGENT_REPO/$AGENT_CHART" --version "$AGENT_
   --namespace demarkus-agent -f "$TMPD/agent-values.yaml" > "$TMPD/agent.yaml"
 yq 'select(.kind == "ConfigMap") | .data["agent.toml"]' "$TMPD/agent.yaml" > "$TMPD/agent.toml"
 yq -p=toml -oy -e '.endpoints.root.dial_address == "root-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .endpoints.root.server_name == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent.toml" >/dev/null
-yq -e '.spec.target.template.data["tokens.toml"] | contains("[\"root:6309\"]")' apps/demarkus-agent/external-secret.yaml >/dev/null
+# Publish token: ESO copies root-token-values:admin verbatim (no template);
+# the chart projects that key to tokens.d/root:6309 as a required source.
+yq -e '.spec.target | has("template") | not' apps/demarkus-agent/external-secret.yaml >/dev/null
+yq -e '.spec.data[0].secretKey == "admin" and .spec.data[0].remoteRef.key == "root-token-values" and .spec.data[0].remoteRef.property == "admin"' apps/demarkus-agent/external-secret.yaml >/dev/null
+yq -e '.tokens.fromWorldSecrets[0].hostPort == "root:6309" and .tokens.fromWorldSecrets[0].secret == "demarkus-agent-hub-tokens"' "$TMPD/agent-values.yaml" >/dev/null
+yq -e 'select(.kind == "Deployment") | .spec.template.spec.volumes[] | select(.name == "tokens") | .projected.sources[] | select(.secret.name == "demarkus-agent-hub-tokens") | ((.secret | has("optional") | not) and .secret.items[0].key == "admin" and .secret.items[0].path == "tokens.d/root:6309")' "$TMPD/agent.yaml" >/dev/null
 
 render_field apps/demarkus-worlds/applicationset.yaml '.spec.generators[0].matrix.generators[1].list.elementsYaml' "$TMPD/legacy-worlds.yaml"
 yq -e 'length == 0' "$TMPD/legacy-worlds.yaml" >/dev/null
