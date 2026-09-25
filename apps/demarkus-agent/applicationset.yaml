@@ -55,12 +55,14 @@ spec:
       namespace: argocd
       annotations:
         argocd.argoproj.io/sync-wave: "2"
-        # Argo v2.13 ServerSideDiff cannot diff a volume whose type changes
-        # (secret -> projected, agent chart 0.40.0): "associative list with
-        # keys has an element that omits key field name" (argo-cd #20792).
-        # The app then never syncs. Classic diff for this app until Argo is
-        # upgraded past the fix; sync still uses ServerSideApply.
-        argocd.argoproj.io/compare-options: ServerSideDiff=false
+        # Argo v2.13 ServerSideDiff fails while stripping mutation-webhook
+        # fields when a volume changes type (secret -> projected, agent chart
+        # 0.40.0): "associative list with keys has an element that omits key
+        # field name" (argo-cd #20792). Classic diff is no way out: this
+        # cluster's k8s has status fields Argo's bundled schema lacks. Keeping
+        # webhook mutations in the diff skips the failing step. Drop once
+        # Argo is upgraded past the fix.
+        argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
     spec:
       project: default
       source:
