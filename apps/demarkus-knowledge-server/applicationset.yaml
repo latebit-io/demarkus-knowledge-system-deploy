@@ -1,5 +1,7 @@
-# Shared GCS-backed knowledge server. Storage-enabled deployment worlds route
-# through distinct DNS/SNI aliases on one UDP listener.
+# Shared GCS-backed knowledge server. Storage-enabled deployment worlds share
+# one UDP listener; clients dial the knowledge Service and select the world by
+# TLS SNI (<name>-knowledge.demarkus-knowledge.svc.cluster.local), a name that
+# never resolves in DNS.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
