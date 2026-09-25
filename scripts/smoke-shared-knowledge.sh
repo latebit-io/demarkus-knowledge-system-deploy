@@ -46,11 +46,26 @@ yq -e 'select(.kind == "Deployment") | .spec.replicas == 3' "$TMPD/shared.yaml" 
 # drift from a second hardcoded pin here (bit 6a67b4b: 0.25.1 vs 0.30.0).
 SHARED_TAG="$(yq -e '.image.tag' "$TMPD/shared-values.yaml")"
 yq -e 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image == "ghcr.io/latebit-io/demarkus-knowledge-server:'"$SHARED_TAG"'"' "$TMPD/shared.yaml" >/dev/null
+# Token Secrets are chart-derived (<name>-tokens); each shared world mounts its own.
+SHARED_TOKENS="$(yq '[.worlds[] | select(.backend == "shared") | .name + "-tokens"] | sort | join(",")' deployment.yaml)"
+yq -e 'select(.kind == "Deployment") | [.spec.template.spec.volumes[] | select(.name | test("^world-token-")) | .secret.secretName] | sort | join(",") == "'"$SHARED_TOKENS"'"' "$TMPD/shared.yaml" >/dev/null
 
 render_field apps/demarkus-broker/applicationset.yaml '.spec.template.spec.source.helm.values' "$TMPD/broker-values.yaml"
 yq -e '.worlds | map(.name) | sort | join(",") == "'"$ALL_WORLD_NAMES"'"' "$TMPD/broker-values.yaml" >/dev/null
-yq -e '.worlds | map((.allow.emails | contains(["fritz@latebit.io"])) and (.defaultToken.paths | length == 1) and (.defaultToken.paths[0] == "/**")) | all' "$TMPD/broker-values.yaml" >/dev/null
-yq -e '.worlds[] | select(.name == "ontehfritz" and .namespace == "demarkus-knowledge" and .internalAddress == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309")' "$TMPD/broker-values.yaml" >/dev/null
+yq -e '.worlds | map(.allow.emails | contains(["fritz@latebit.io"])) | all' "$TMPD/broker-values.yaml" >/dev/null
+yq -e '.worlds[] | select(.name == "ontehfritz" and .namespace == "demarkus-knowledge" and .internalAddress == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .dialAddress == "knowledge.demarkus-knowledge.svc.cluster.local:6309")' "$TMPD/broker-values.yaml" >/dev/null
+
+# tokensSecret and defaultToken come from chart defaults: check the rendered
+# broker config, not the values.
+BROKER_APPSET="apps/demarkus-broker/applicationset.yaml"
+BROKER_REPO="$(yq '.spec.template.spec.source.repoURL' "$BROKER_APPSET")"
+BROKER_CHART="$(yq '.spec.template.spec.source.chart' "$BROKER_APPSET")"
+BROKER_VERSION="$(yq '.spec.template.spec.source.targetRevision' "$BROKER_APPSET")"
+helm template demarkus-broker "oci://$BROKER_REPO/$BROKER_CHART" --version "$BROKER_VERSION" \
+  --namespace demarkus-broker -f "$TMPD/broker-values.yaml" > "$TMPD/broker.yaml"
+yq 'select(.kind == "Secret" and .metadata.name == "demarkus-broker-config") | .stringData["config.yaml"]' "$TMPD/broker.yaml" > "$TMPD/broker-config.yaml"
+yq -e '.worlds | map(.tokensSecret == .name + "-tokens" and (.defaultToken.paths | length == 1) and .defaultToken.paths[0] == "/**") | all' "$TMPD/broker-config.yaml" >/dev/null
+yq -e '[.worlds[] | select(.namespace == "demarkus-knowledge") | .dialAddress == "knowledge.demarkus-knowledge.svc.cluster.local:6309"] | all' "$TMPD/broker-config.yaml" >/dev/null
 
 AGENT_APPSET="apps/demarkus-agent/applicationset.yaml"
 render_field "$AGENT_APPSET" '.spec.template.spec.source.helm.values' "$TMPD/agent-values.yaml"
@@ -77,9 +92,10 @@ expect_agent_render_failure wrong-hub-name '.worlds[0].name = "not-root"'
 SEEDS="$(yq '[.worlds[] | select(.hub != true) | "mark://" + .name] | sort | join(",")' deployment.yaml)"
 yq -e '.config.seeds | sort | join(",") == "'"$SEEDS"'"' "$TMPD/agent-values.yaml" >/dev/null
 yq -e '.config.hubs | join(",") == "mark://root"' "$TMPD/agent-values.yaml" >/dev/null
-yq -e '.config.endpoints.root.dialAddress == "root-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.root.serverName == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
-yq -e '.config.endpoints.latebit.dialAddress == "latebit-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.latebit.serverName == "latebit-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
-yq -e '.config.endpoints.ontehfritz.dialAddress == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints.ontehfritz.serverName == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
+# Every shared world dials the one knowledge Service and presents its own SNI.
+for world in $(yq '.worlds[] | select(.backend == "shared") | .name' deployment.yaml); do
+  yq -e '.config.endpoints["'"$world"'"].dialAddress == "knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints["'"$world"'"].serverName == "'"$world"'-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
+done
 
 AGENT_REPO="$(yq '.spec.template.spec.source.repoURL' "$AGENT_APPSET")"
 AGENT_CHART="$(yq '.spec.template.spec.source.chart' "$AGENT_APPSET")"
@@ -87,7 +103,7 @@ AGENT_VERSION="$(yq '.spec.template.spec.source.targetRevision' "$AGENT_APPSET")
 helm template demarkus-agent "oci://$AGENT_REPO/$AGENT_CHART" --version "$AGENT_VERSION" \
   --namespace demarkus-agent -f "$TMPD/agent-values.yaml" > "$TMPD/agent.yaml"
 yq 'select(.kind == "ConfigMap") | .data["agent.toml"]' "$TMPD/agent.yaml" > "$TMPD/agent.toml"
-yq -p=toml -oy -e '.endpoints.root.dial_address == "root-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .endpoints.root.server_name == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent.toml" >/dev/null
+yq -p=toml -oy -e '.endpoints.root.dial_address == "knowledge.demarkus-knowledge.svc.cluster.local:6309" and .endpoints.root.server_name == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent.toml" >/dev/null
 # Publish token: ESO copies root-token-values:admin verbatim (no template);
 # the chart projects that key to tokens.d/root:6309 as a required source.
 yq -e '.spec.target | has("template") | not' apps/demarkus-agent/external-secret.yaml >/dev/null
