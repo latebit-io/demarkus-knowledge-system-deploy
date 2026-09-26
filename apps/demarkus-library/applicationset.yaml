@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.29.0
+        targetRevision: 0.30.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -296,8 +296,14 @@ spec:
             # publish on `root`, not a ConfigMap and a rollout. Every page now
             # carries a Content-Security-Policy and document stylesheets are
             # refused if they reference another origin (ADR 0008 amendment).
+            # 0.30.0 (library #79) makes e-ink the default look (self-hosted
+            # Literata, no new origins under the CSP), keeps every click in
+            # place (document and graph/map node links no longer full-reload),
+            # remembers each pane's scroll, and adds graph re-centring and a
+            # map filter that finds folded documents. Listings beside the focus
+            # stay titled via a cached name index (ADR 0009).
             image:
-              tag: "0.29.0"
+              tag: "0.30.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
