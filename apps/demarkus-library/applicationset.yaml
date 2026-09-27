@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.32.0
+        targetRevision: 0.33.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -309,8 +309,10 @@ spec:
             # 0.32.0 (library #81) turns the universe into world cards: a
             # constellation of each world's documents, counts, sections, and
             # featured documents, with the world's own name, logo, and accent.
+            # 0.33.0 (library #82) drops the visible "Universe" heading (the
+            # pane head names it); screen readers keep it.
             image:
-              tag: "0.32.0"
+              tag: "0.33.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
