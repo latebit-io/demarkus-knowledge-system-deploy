@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.30.0
+        targetRevision: 0.32.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -302,8 +302,15 @@ spec:
             # remembers each pane's scroll, and adds graph re-centring and a
             # map filter that finds folded documents. Listings beside the focus
             # stay titled via a cached name index (ADR 0009).
+            # 0.31.0 (library #80) gives the librarian catalog lookup, flat-cost
+            # exchanges, stop and restart, cited sources, and a persona the
+            # hub world declares (ADR 0010); new chart values (librarianTerm,
+            # asksPerHour) are optional and left at their defaults here.
+            # 0.32.0 (library #81) turns the universe into world cards: a
+            # constellation of each world's documents, counts, sections, and
+            # featured documents, with the world's own name, logo, and accent.
             image:
-              tag: "0.30.0"
+              tag: "0.32.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
