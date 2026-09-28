@@ -46,9 +46,13 @@ yq -e 'select(.kind == "Deployment") | .spec.replicas == 3' "$TMPD/shared.yaml" 
 # drift from a second hardcoded pin here (bit 6a67b4b: 0.25.1 vs 0.30.0).
 SHARED_TAG="$(yq -e '.image.tag' "$TMPD/shared-values.yaml")"
 yq -e 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image == "ghcr.io/latebit-io/demarkus-knowledge-server:'"$SHARED_TAG"'"' "$TMPD/shared.yaml" >/dev/null
-# Token Secrets are chart-derived (<name>-tokens); each shared world mounts its own.
+# Token Secrets are chart-derived; each shared world projects its optional
+# <name>-tokens and <name>-static-tokens pair, and no bootstrap Job renders.
 SHARED_TOKENS="$(yq '[.worlds[] | select(.backend == "shared") | .name + "-tokens"] | sort | join(",")' deployment.yaml)"
-yq -e 'select(.kind == "Deployment") | [.spec.template.spec.volumes[] | select(.name | test("^world-token-")) | .secret.secretName] | sort | join(",") == "'"$SHARED_TOKENS"'"' "$TMPD/shared.yaml" >/dev/null
+SHARED_STATIC_TOKENS="$(yq '[.worlds[] | select(.backend == "shared") | .name + "-static-tokens"] | sort | join(",")' deployment.yaml)"
+yq -e 'select(.kind == "Deployment") | [.spec.template.spec.volumes[] | select(.name | test("^world-token-")) | .projected.sources[0].secret | select(.optional == true) | .name] | sort | join(",") == "'"$SHARED_TOKENS"'"' "$TMPD/shared.yaml" >/dev/null
+yq -e 'select(.kind == "Deployment") | [.spec.template.spec.volumes[] | select(.name | test("^world-token-")) | .projected.sources[1].secret | select(.optional == true) | .name] | sort | join(",") == "'"$SHARED_STATIC_TOKENS"'"' "$TMPD/shared.yaml" >/dev/null
+yq -e '[select(.kind == "Job")] | length == 0' "$TMPD/shared.yaml" >/dev/null
 
 render_field apps/demarkus-broker/applicationset.yaml '.spec.template.spec.source.helm.values' "$TMPD/broker-values.yaml"
 yq -e '.worlds | map(.name) | sort | join(",") == "'"$ALL_WORLD_NAMES"'"' "$TMPD/broker-values.yaml" >/dev/null
