@@ -29,7 +29,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.47.0
+        targetRevision: 0.49.2
         helm:
           releaseName: knowledge
           values: |
@@ -61,7 +61,11 @@ spec:
               # <name>-tokens and <name>-static-tokens optional, so the
               # bootstrap Job is off below. Existing root-tokens and
               # root-token-values stay as they are.
-              tag: "0.47.0"
+              # 0.49.2 (demarkus #516, #525, #527): WATCH streaming; replicas
+              # notify peers on port 6310 via a headless Service the chart's
+              # NetworkPolicy admits; racing world genesis and writer memory
+              # fixes.
+              tag: "0.49.2"
 
             # No pre-install Job: the broker creates <world>-tokens on its
             # first mint; no PreSync hook, Secret RBAC or kubectl skew to
