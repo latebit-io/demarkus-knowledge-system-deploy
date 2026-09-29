@@ -68,7 +68,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-agent
-        targetRevision: 0.41.0
+        targetRevision: 0.44.0
         helm:
           releaseName: demarkus-agent
           values: |
@@ -135,8 +135,11 @@ spec:
             # 0.41.0 (demarkus #513): chart can derive the topology; kept
             # explicit here because deployment.yaml carries a legacy backend.
             # Shared worlds now dial the knowledge Service directly.
+            # 0.44.0 (demarkus #516, #518, #524) rides client releases: WATCH
+            # protocol support in the shared client. Chart templates and
+            # values unchanged; the agent keeps its ESO root token.
             image:
-              tag: "0.41.0"
+              tag: "0.44.0"
 
             {{- if not .worlds }}{{ fail "deployment.yaml: worlds[] must not be empty — the agent has nothing to crawl or publish to" }}{{- end }}
             {{- $hubName := "" }}{{- $multipleHubs := false }}
