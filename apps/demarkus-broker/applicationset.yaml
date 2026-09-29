@@ -54,7 +54,7 @@ spec:
         # Chart renamed demarkus-broker -> demarkus-knowledge-broker at
         # monorepo #380; the old chart name stopped at 0.24.7.
         chart: demarkus-knowledge-broker
-        targetRevision: 0.40.0
+        targetRevision: 0.42.0
         helm:
           releaseName: demarkus-broker
           values: |
@@ -231,14 +231,19 @@ spec:
             # per-world internalAddress) and the ExternalName aliases become
             # unused. tokensSecret and defaultToken now come from chart
             # defaults. Signing key stays on existingSigningKeyRef.
+            # 0.42.0 (demarkus #518, #524): broker persists its cookie key in
+            # demarkus-broker-cookie-key, so the render is deterministic under
+            # Argo; one worlds Role gains Secret create for first-mint
+            # <world>-tokens. agentTokens renders none: no hub in worlds[].
             image:
-              tag: "0.40.0"
+              tag: "0.42.0"
 
             server:
               # Advertised as `issuer` in OIDC discovery; the management
               # listener at this host is the issuer origin (RFC 8414 §3.3).
               publicURL: "https://broker.{{ .domain }}"
-              # Blank → chart generates + preserves a 32-byte HMAC cookie key.
+              # Blank → broker generates the HMAC cookie key on first start and
+              # keeps it in the demarkus-broker-cookie-key Secret.
               cookieKey: ""
               # First-mint retry budget tuned up from chart defaults (~16s) to
               # ~76s to outlast kubelet's Secret-volume propagation lag after a
