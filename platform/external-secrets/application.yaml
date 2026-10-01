@@ -1,10 +1,10 @@
 # External Secrets Operator (ESO). Bridges OpenBao secrets into native
 # Kubernetes Secrets so helm charts that expect `secretKeyRef`-shaped env
-# (like demarkus-broker) can consume them without modification.
+# (like demarkus-knowledge-server) can consume them without modification.
 #
 # Sync wave: -1. ESO doesn't depend on OpenBao to install — it only calls
 # OpenBao when an ExternalSecret resource references a ClusterSecretStore
-# backed by it. The first apps/* ExternalSecret lands in Phase 7b.
+# backed by it. The store itself is cluster-secret-store.yaml here.
 #
 # ────────────────────────────────────────────────────────────────────────
 # ONE-TIME OPENBAO WIRING (after this Application is Synced+Healthy):

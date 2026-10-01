@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test: the broker chart honours the confidential web-client registry
+# Smoke test: the knowledge-server chart honours the web-client registry
 # (`webClients`) end-to-end through the ApplicationSet's goTemplate values
 # block — i.e. the registry set in `deployment.yaml` actually lands in the
 # rendered broker config Secret. Drift here is a silent SSO failure for every
@@ -21,7 +21,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-APPSET="apps/demarkus-broker/applicationset.yaml"
+APPSET="apps/demarkus-knowledge-server/applicationset.yaml"
 
 for tool in yq helm gomplate; do
   command -v "$tool" >/dev/null 2>&1 || {
@@ -59,8 +59,8 @@ render_values() { # <fixture_deployment_yaml> -> rendered values to stdout
 render_chart() { # <values_file> -> rendered manifests to stdout
   local vfile="$1" errf
   errf="$(mktemp)"
-  if ! helm template demarkus-broker "oci://$REPO/$CHART" \
-        --version "$VERSION" -f "$vfile" --kube-version 1.31.0 2>"$errf"; then
+  if ! helm template knowledge "oci://$REPO/$CHART" \
+        --version "$VERSION" --namespace demarkus-knowledge -f "$vfile" --kube-version 1.31.0 2>"$errf"; then
     { echo "helm render failed for $CHART@$VERSION:"; cat "$errf"; } >&2
     exit 2
   fi
@@ -106,10 +106,25 @@ adminEmails:
 writerDomains: []
 allowDomains: []
 webClients: $clients_json
+brokerStateBucket: example-broker-state
+memoryDomain: memory.example.com
+memory:
+  allowEmails:
+    - operator@example.com
+  maxTenants: 5
+  maxDocumentsPerTenant: 100
 worlds:
   - name: root
     hub: true
+    backend: shared
+    storage:
+      bucket: example-world-root
+      worldID: 11111111-1111-4111-8111-111111111111
   - name: world-a
+    backend: shared
+    storage:
+      bucket: example-world-a
+      worldID: 22222222-2222-4222-8222-222222222222
 EOF
 
   vfile="$TMPD/$label.values.yaml"

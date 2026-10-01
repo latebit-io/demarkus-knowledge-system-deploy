@@ -98,12 +98,7 @@ output "memory_dns_ds_records" {
   value       = module.dns_memory.ds_records
 }
 
-output "memory_broker_gsa_email" {
-  description = "Memory-broker GSA email (matches the broker chart's workloadIdentity.gsa)."
-  value       = module.memory_storage.broker_gsa_email
-}
-
-output "memory_server_gsa_email" {
-  description = "Memory knowledge-server GSA email (matches the server chart's workloadIdentity.gsa)."
-  value       = module.memory_storage.server_gsa_email
+output "broker_state_bucket" {
+  description = "Bucket holding the broker's logins and MCP host registrations."
+  value       = module.knowledge_storage.broker_state_bucket
 }

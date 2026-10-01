@@ -4,8 +4,9 @@ The broker supports **confidential web clients** (RFC 6749 §2.1) — server-sid
 web apps (e.g. a library reading room) that authenticate to the token endpoint
 with a client secret and receive the authorization-code redirect at a real
 https URL instead of a native-app loopback. The registry is operator-curated
-via `webClients:` in `deployment.yaml`, templated into the broker chart by the
-`apps/demarkus-broker/applicationset.yaml` git-files generator. Broker-side
+via `webClients:` in `deployment.yaml`, templated into the knowledge-server
+chart's `broker.webClients` by the
+`apps/demarkus-knowledge-server/applicationset.yaml` git-files generator. Broker-side
 mechanics: broker repo ADR 0001 (`docs/adr/0001-broker-confidential-web-clients.md`).
 
 Native/CLI agents (Claude Code MCP SDK, demarkus-join) never appear here — no
@@ -65,12 +66,12 @@ After the ArgoCD Application reports `Synced`:
 
 ```sh
 # The rendered config Secret carries the registry.
-kubectl -n demarkus-broker get secret demarkus-broker-config \
+kubectl -n demarkus-knowledge get secret knowledge-broker-config \
   -o jsonpath='{.data.config\.yaml}' | base64 -d | yq '.webClients'
 ```
 
 The chart change is a config Secret change, not an immutable-field change —
-the StatefulSet rolls automatically; apps-immutable-check does not apply.
+the Deployment rolls automatically; apps-immutable-check does not apply.
 
 End-to-end: log in through the web app. Expect the standard redirect SSO
 round trip (authorize → Google → callback → app session). Negative checks:

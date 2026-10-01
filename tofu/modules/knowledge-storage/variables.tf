@@ -31,3 +31,13 @@ variable "worlds" {
     read_only = optional(bool, false)
   }))
 }
+
+variable "broker_state_bucket" {
+  description = "Bucket for the broker's logins and MCP host registrations."
+  type        = string
+}
+
+variable "tenant_bucket_prefix" {
+  description = "Memory tenant bucket name prefix (gs://<prefix><slug>). Scopes the tenant grant."
+  type        = string
+}

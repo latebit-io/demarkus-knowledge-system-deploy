@@ -78,7 +78,7 @@ allowDomains: []
 # URL instead of a native-app loopback. Operator-curated registry, NOT open
 # dynamic registration; native/CLI agents (Claude Code MCP, demarkus-join)
 # never appear here. Each entry must set ALL FOUR keys — clientID,
-# clientSecretHash, redirectURIs, name (name may be "") — the broker
+# clientSecretHash, redirectURIs, name (name may be "") — the knowledge-server
 # ApplicationSet renders with missingkey=error, so an absent key fails the
 # render instead of shipping a half-registered client. clientSecretHash is
 # the sha256-hex of the secret (`printf '%s' "$SECRET" | sha256sum`), not
@@ -106,12 +106,15 @@ webClients:
       - https://library.dev.test:8443/auth/callback
     name: Universe Library (local dev)
 
-# ── Memory-as-a-service (demarkus-memory-broker) ─────────────────────────
-# Public MCP endpoint: https://<memoryDomain>/mcp; OAuth issuer/management
-# API: https://auth.<memoryDomain>. Its own Cloud DNS zone (tofu
-# module.dns_memory) — delegate at the parent like the knowledge zone.
-# Reuses oauthClientId above: add https://auth.<memoryDomain>/auth/callback
-# to that client's redirect URIs in the Google console. (tofu + ArgoCD)
+# Bucket for the broker's logins and MCP host registrations, never a world's
+# bucket. tofu creates it and grants the knowledge-server GSA. (tofu + ArgoCD)
+brokerStateBucket: knowledge-49722-broker-state
+
+# ── Memory-as-a-service (the knowledge server's memory gateway) ──────────
+# Public MCP endpoint: https://<memoryDomain>/mcp; the OAuth issuer is the
+# knowledge broker, https://broker.<domain>. Its own Cloud DNS zone (tofu
+# module.dns_memory), delegated at the parent like the knowledge zone.
+# (tofu + ArgoCD)
 memoryDomain: memory.demarkus.io
 
 memory:

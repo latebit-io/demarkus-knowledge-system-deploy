@@ -1,7 +1,10 @@
-# Shared GCS-backed knowledge server. Storage-enabled deployment worlds share
-# one UDP listener; clients dial the knowledge Service and select the world by
-# TLS SNI (<name>-knowledge.demarkus-knowledge.svc.cluster.local), a name that
-# never resolves in DNS.
+# Shared GCS-backed knowledge server with the broker in process (ADR 0032).
+# Worlds share one UDP listener; clients dial the knowledge Service and select
+# the world by TLS SNI (<name>-knowledge.demarkus-knowledge.svc.cluster.local),
+# a name that never resolves in DNS. The HTTP listener behind the Ingress
+# serves login (broker.<domain>), the knowledge MCP gateway (<domain>) and the
+# memory MCP gateway (<memoryDomain>), whose tenants this process provisions
+# and serves.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -29,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.49.2
+        targetRevision: 0.51.0
         helm:
           releaseName: knowledge
           values: |
@@ -39,33 +42,10 @@ spec:
             replicaCount: 3
 
             image:
-              # 0.32.0: chart gains the per-world token-Secret bootstrap Job
-              # (pre-install/PreSync), so new shared worlds no longer need a
-              # hand-applied <world>-tokens Secret.
-              # 0.35.0 (#426, #428): LOOKUP body match from an in-memory
-              # section index (ADR 0012) and the retuned ranking; 0.35.0 is
-              # the lockstep tag for #431, no server change.
-              # 0.37.0 (#438, #441): an empty bucket becomes a world that
-              # seeds and enforces its own policy, optionally from
-              # policy.file. Inert for these worlds: seeding is create-only
-              # and every one already holds a policy.
-              # 0.43.2 (#489, #491): bounded writes and stream deadlines,
-              # client errors answer bad-request, policy enforced above the
-              # store inside its commit (ADR 0016, 0017). Chart unchanged
-              # since 0.37.0. Inert here: every world holds a valid policy.
-              # 0.46.0 (demarkus #513): chart derives tokenSecret
-              # (<name>-tokens / tokens.toml), so the per-world block is gone.
-              # fullnameOverride keeps resource names; NetworkPolicy stays on.
-              # 0.47.0 (demarkus #518, ADR 0027): worlds open without their
-              # token Secrets and reload as they land; each world mounts
-              # <name>-tokens and <name>-static-tokens optional, so the
-              # bootstrap Job is off below. Existing root-tokens and
-              # root-token-values stay as they are.
-              # 0.49.2 (demarkus #516, #525, #527): WATCH streaming; replicas
-              # notify peers on port 6310 via a headless Service the chart's
-              # NetworkPolicy admits; racing world genesis and writer memory
-              # fixes.
-              tag: "0.49.2"
+              # 0.51.0 (demarkus #532): the knowledge and memory brokers run in
+              # this process; image repository is the chart default,
+              # ghcr.io/latebit-io/demarkus-knowledge.
+              tag: "0.51.0"
 
             # No pre-install Job: the broker creates <world>-tokens on its
             # first mint; no PreSync hook, Secret RBAC or kubectl skew to
@@ -101,9 +81,91 @@ spec:
                 cpu: "1"
                 memory: 1Gi
 
+            broker:
+              # Issuer and management API (RFC 8414 §3.3).
+              publicURL: "https://broker.{{ .domain }}"
+              mcp:
+                publicURL: "https://{{ .domain }}"
+              memory:
+                publicURL: "https://{{ .memoryDomain }}"
+              # Logins and MCP host registrations (ADR 0034); the bucket and
+              # its grant come from tofu module.knowledge_storage.
+              stateBucket: "gs://{{ .brokerStateBucket }}"
+              oidc:
+                issuer: "https://accounts.google.com"
+                clientID: "{{ .oauthClientId }}"
+                existingSecretRef:
+                  name: oidc-client
+                # From OpenBao (external-secrets.yaml here), so the key outlives
+                # the pods and tokens minted before a restart still verify.
+                existingSigningKeyRef:
+                  name: jwks-signing-key
+                redirectURL: "https://broker.{{ .domain }}/auth/callback"
+                # Matched against Google's `hd` claim; empty admits any
+                # verified account (see deployment.yaml allowDomains).
+                allowDomains:
+                {{- range .allowDomains }}
+                  - {{ . | quote }}
+                {{- end }}
+              # The agent publishes with the operator token in root-token-values.
+              agentTokens: []
+              # Confidential web clients from deployment.yaml webClients[]; each
+              # entry sets all four keys so missingkey=error catches a half one.
+              webClients:
+              {{- range .webClients }}
+                - clientID: {{ .clientID | quote }}
+                  clientSecretHash: {{ .clientSecretHash | quote }}
+                  name: {{ .name | quote }}
+                  redirectURIs:
+                  {{- range .redirectURIs }}
+                    - {{ . | quote }}
+                  {{- end }}
+              {{- end }}
+              # An MCP session handshake and the library's universe floor
+              # arrive in bursts; the chart's 10/min suits CLI agents only.
+              rateLimit:
+                tokens:
+                  perMinute: 120
+                  burst: 60
+
+            # Memory tenants: created on first arrival of an allowlisted
+            # identity, recorded in demarkus-memory-broker-registry.
+            provisioning:
+              mode: allowlisted
+              allow:
+                emails:
+                {{- range .memory.allowEmails }}
+                  - {{ . }}
+                {{- end }}
+              maxTenants: {{ .memory.maxTenants }}
+              maxDocumentsPerTenant: {{ .memory.maxDocumentsPerTenant }}
+              bucketProject: "{{ .projectId }}"
+              bucketLocation: "{{ .region }}"
+
+            worldDefaults:
+              # Tenant buckets only: every world below sets its bucket.url.
+              bucketPrefix: "gs://{{ .projectId }}-memory-"
+
+            ingress:
+              enabled: true
+              className: nginx
+              host: "broker.{{ .domain }}"
+              mcp:
+                host: "{{ .domain }}"
+              memory:
+                host: "{{ .memoryDomain }}"
+              tls:
+                certManager:
+                  enabled: true
+                  issuerRef:
+                    kind: ClusterIssuer
+                    name: letsencrypt-prod
+
             {{- $hasStorageWorld := false }}
             {{- range .worlds }}{{- if eq (index . "backend") "shared" }}{{- $hasStorageWorld = true }}{{- end }}{{- end }}
             {{- if not $hasStorageWorld }}{{ fail "deployment.yaml: shared knowledge server requires at least one backend: shared world" }}{{- end }}
+            # allow is the writer list: adminEmails, the world's writerEmails
+            # and writerDomains. Reads pass the org gate alone.
             worlds:
             {{- range .worlds }}
             {{- if eq (index . "backend") "shared" }}
@@ -114,6 +176,19 @@ spec:
                   url: gs://{{ .storage.bucket }}
                   worldID: {{ .storage.worldID }}
                 readOnly: {{ default false (index .storage "readOnly") }}
+                allow:
+                  emails:
+                  {{- range $.adminEmails }}
+                    - {{ . }}
+                  {{- end }}
+                  {{- /* index, not `default list`: sprig-only, absent from the gomplate smoke. index yields nil on a missing key, so range is a no-op. */}}
+                  {{- range (index . "writerEmails") }}
+                    - {{ . }}
+                  {{- end }}
+                  domains:
+                  {{- range $.writerDomains }}
+                    - {{ . | quote }}
+                  {{- end }}
             {{- end }}
             {{- end }}
       destination:
@@ -123,6 +198,14 @@ spec:
         automated:
           prune: true
           selfHeal: true
+        # The old brokers' Ingresses hold these hosts until their apps are
+        # pruned, and the nginx webhook refuses ours until then.
+        retry:
+          limit: 10
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 5m
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true

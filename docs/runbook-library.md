@@ -91,8 +91,8 @@ plaintext and deployment.yaml's hash have drifted — re-pair them (Step 2).
 - **No new Google OAuth config.** The library is a client of the *broker*,
   not of Google; the broker's existing Google client covers the IdP leg.
 - **ESO store reuse.** The ExternalSecret rides the cluster-scoped `openbao`
-  ClusterSecretStore from apps/demarkus-broker — by design (it's
-  cluster-scoped so future apps reuse it). Per-app store isolation is the
+  ClusterSecretStore in platform/external-secrets — by design (it's
+  cluster-scoped so every app reuses it). Per-app store isolation is the
   same deferred option noted in runbook-eso-openbao.md.
 - **Single replica.** Sessions are in-memory; >1 replica produces login
   loops. The chart value is pinned in the ApplicationSet with the rationale.

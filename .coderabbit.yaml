@@ -90,10 +90,10 @@ reviews:
     - path: "apps/**"
       instructions: |
         ArgoCD Application / ApplicationSet manifests for demarkus components.
-        Charts come from ghcr.io/latebit-io/charts (broker, server, agent).
+        Charts come from ghcr.io/latebit-io/charts (knowledge server, server, agent, library).
         - Pin chart targetRevision; never use a moving tag.
         - Secrets come from OpenBao via one of two patterns:
-          - Helm charts with `secretKeyRef`-shaped env (e.g., demarkus-broker):
+          - Helm charts with `secretKeyRef`-shaped env (e.g., demarkus-knowledge-server):
             ESO `ExternalSecret` bridges materialize a native k8s Secret in the
             app's namespace; the chart's `existingSecretRef` consumes it.
           - Bespoke pods with arbitrary env injection: bank-vaults annotations

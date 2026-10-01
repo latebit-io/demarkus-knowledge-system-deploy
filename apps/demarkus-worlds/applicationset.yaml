@@ -4,9 +4,9 @@
 # worlds[] and the agent's crawl seeds, so adding a world is one edit there.
 #
 # Pattern from deploy/k8s/examples/applicationset.yaml in the demarkus
-# monorepo. Per-world isolation via namespace boundary; per-world
-# RBAC for the broker is provisioned by the broker chart's worlds[]
-# list (see apps/demarkus-broker/application.yaml).
+# monorepo. Per-world isolation via namespace boundary. The broker now
+# runs in the knowledge server and serves only shared worlds; a legacy
+# world here is not routed through the MCP gateways.
 #
 # Sync wave: 1 (per bootstrap/root-appset.yaml). Runs in parallel with
 # the broker Application — the broker's per-world Role+RoleBinding apply
@@ -175,8 +175,7 @@ spec:
             storage:
               size: 1Gi
             # Bootstrap admin token publish-only for the same reason the
-            # broker's defaultToken.operations is publish-only (see
-            # apps/demarkus-broker/application.yaml). Any token with
+            # broker's write tokens were publish-only. Any token with
             # `read` in operations flips the world into
             # read-auth-required mode, which breaks the broker's
             # empty-bearer reads. The chart's bootstrap Job writes this

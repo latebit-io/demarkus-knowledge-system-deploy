@@ -1,8 +1,9 @@
 name: broker-smoke
 
-# Pre-merge smoke for the broker chart wiring. Renders the chart at the
-# pinned version and asserts `oidc.allowDomains` and the `webClients`
-# registry flow from deployment.yaml into the rendered config Secret.
+# Pre-merge smoke for the broker wiring in the knowledge-server chart.
+# Renders the chart at the pinned version and asserts `oidc.allowDomains`
+# and the `webClients` registry flow from deployment.yaml into the rendered
+# broker config Secret.
 # Without this, a chart bump that dropped the wiring (or an ApplicationSet
 # edit that dropped a range) silently ships a gate-open broker or an empty
 # web-client registry. See docs/runbook-broker-allow-domains.md and
@@ -17,7 +18,6 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/demarkus-broker/**"
       - "apps/demarkus-agent/**"
       - "apps/demarkus-knowledge-server/**"
       - "apps/demarkus-worlds/**"
@@ -29,7 +29,6 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "apps/demarkus-broker/**"
       - "apps/demarkus-agent/**"
       - "apps/demarkus-knowledge-server/**"
       - "apps/demarkus-worlds/**"
