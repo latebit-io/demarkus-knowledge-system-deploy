@@ -107,8 +107,9 @@ webClients:
     name: Universe Library (local dev)
 
 # Bucket for the broker's logins and MCP host registrations, never a world's
-# bucket. tofu creates it and grants the knowledge-server GSA. (tofu + ArgoCD)
-brokerStateBucket: knowledge-49722-broker-state
+# bucket. tofu creates it and grants the knowledge-server GSA; the name stays
+# under <projectId>-demarkus-, the only prefix tofu-ci may create. (tofu + ArgoCD)
+brokerStateBucket: knowledge-49722-demarkus-broker-state
 
 # ── Memory-as-a-service (the knowledge server's memory gateway) ──────────
 # Public MCP endpoint: https://<memoryDomain>/mcp; the OAuth issuer is the
