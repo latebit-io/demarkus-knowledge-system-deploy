@@ -70,6 +70,8 @@ module "knowledge_storage" {
   kubernetes_namespace       = "demarkus-knowledge"
   kubernetes_service_account = "knowledge"
   worlds                     = local.knowledge_storage_worlds
+  broker_state_bucket        = local.deployment.brokerStateBucket
+  tenant_bucket_prefix       = "${local.project_id}-memory-"
 
   depends_on = [module.project]
 }
@@ -90,16 +92,6 @@ resource "google_dns_managed_zone_iam_member" "external_dns_memory" {
   managed_zone = module.dns_memory.zone_name
   role         = "roles/dns.admin"
   member       = "serviceAccount:${module.platform_iam.external_dns_gsa_email}"
-}
-
-module "memory_storage" {
-  source = "../../modules/memory-storage"
-
-  project_id             = module.project.project_id
-  workload_identity_pool = module.gke.workload_identity_pool
-  bucket_prefix          = "${local.project_id}-memory-"
-
-  depends_on = [module.project]
 }
 
 module "billing_budget" {

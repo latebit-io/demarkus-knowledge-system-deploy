@@ -4,8 +4,9 @@ The broker can be locked to one or more Google Workspace tenants via
 `oidc.allowDomains` (gates every auth surface — `/auth/callback`,
 `/oauth/authorize`, device flow — on the spoof-resistant `hd` claim, not the
 email domain). The cluster-wide list lives in `deployment.yaml` under
-`allowDomains:` and is templated into the broker chart by the
-`apps/demarkus-broker/applicationset.yaml` git-files generator.
+`allowDomains:` and is templated into the knowledge-server chart's
+`broker.oidc.allowDomains` by the
+`apps/demarkus-knowledge-server/applicationset.yaml` git-files generator.
 
 This runbook covers two checks: the PR-time render guard, and the optional
 in-cluster end-to-end verification when the gate is first turned on or the
@@ -50,13 +51,10 @@ After the ArgoCD Application reports `Synced`, confirm the live broker booted
 with the expected allowlist:
 
 ```sh
-# 1. The rendered config Secret on the cluster carries the list.
-kubectl -n demarkus-broker get secret demarkus-broker-config \
+# The rendered config Secret on the cluster carries the list; the pods
+# roll on any change to it (checksum annotation).
+kubectl -n demarkus-knowledge get secret knowledge-broker-config \
   -o jsonpath='{.data.config\.yaml}' | base64 -d | yq '.oidc.allowDomains'
-
-# 2. The pod actually loaded it (the broker logs its effective allowDomains
-#    at startup at info level).
-kubectl -n demarkus-broker logs deploy/demarkus-broker | grep -i allowDomains
 ```
 
 A real end-to-end gate test needs a Google identity outside the allowlist,

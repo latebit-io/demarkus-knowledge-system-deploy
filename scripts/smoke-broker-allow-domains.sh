@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test: the broker chart honours `oidc.allowDomains` end-to-end through
+# Smoke test: the knowledge-server chart honours `broker.oidc.allowDomains` through
 # the ApplicationSet's goTemplate values block — i.e. the list set in
 # `deployment.yaml` actually lands in the rendered broker config Secret. The
 # gate is broker-global, so any drift between deployment.yaml and what the
@@ -8,7 +8,7 @@
 #
 # Cluster-free by design and ApplicationSet-faithful: the values text passed
 # to helm is the LITERAL `spec.template.spec.source.helm.values` from
-# `apps/demarkus-broker/applicationset.yaml`, rendered with gomplate against
+# `apps/demarkus-knowledge-server/applicationset.yaml`, rendered with gomplate against
 # a synthetic deployment.yaml. argocd-applicationset-controller renders that
 # same string with Go text/template + sprig and `missingkey=error`; gomplate
 # uses the same engine + sprig superset, so a wiring drift in the AppSet
@@ -31,7 +31,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-APPSET="apps/demarkus-broker/applicationset.yaml"
+APPSET="apps/demarkus-knowledge-server/applicationset.yaml"
 
 # gomplate is the one piece NOT preinstalled on ubuntu-latest runners; the
 # workflow installs it. Locally: `brew install gomplate` (mac) or a single
@@ -80,8 +80,8 @@ render_values() { # <fixture_deployment_yaml> -> rendered values to stdout
 render_chart() { # <values_file> -> rendered manifests to stdout
   local vfile="$1" errf
   errf="$(mktemp)"
-  if ! helm template demarkus-broker "oci://$REPO/$CHART" \
-        --version "$VERSION" -f "$vfile" --kube-version 1.31.0 2>"$errf"; then
+  if ! helm template knowledge "oci://$REPO/$CHART" \
+        --version "$VERSION" --namespace demarkus-knowledge -f "$vfile" --kube-version 1.31.0 2>"$errf"; then
     { echo "helm render failed for $CHART@$VERSION:"; cat "$errf"; } >&2
     exit 2
   fi
@@ -122,10 +122,25 @@ adminEmails:
 writerDomains: []
 allowDomains: $allow_json
 webClients: []
+brokerStateBucket: example-broker-state
+memoryDomain: memory.example.com
+memory:
+  allowEmails:
+    - operator@example.com
+  maxTenants: 5
+  maxDocumentsPerTenant: 100
 worlds:
   - name: root
     hub: true
+    backend: shared
+    storage:
+      bucket: example-world-root
+      worldID: 11111111-1111-4111-8111-111111111111
   - name: world-a
+    backend: shared
+    storage:
+      bucket: example-world-a
+      worldID: 22222222-2222-4222-8222-222222222222
 EOF
 
   vfile="$TMPD/$label.values.yaml"

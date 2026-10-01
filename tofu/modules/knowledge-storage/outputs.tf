@@ -12,3 +12,8 @@ output "service_account_email" {
   description = "Knowledge-server Google service account email."
   value       = google_service_account.knowledge_server.email
 }
+
+output "broker_state_bucket" {
+  description = "Broker state bucket name."
+  value       = google_storage_bucket.broker_state.name
+}

@@ -84,16 +84,16 @@ Inside the cluster, the ExternalSecret resources reconcile within
 ~1 minute:
 
 ```sh
-kubectl -n demarkus-broker get externalsecret
+kubectl -n demarkus-knowledge get externalsecret
 # NAME               STORE     REFRESH INTERVAL   STATUS         READY
 # oidc-client        openbao   1h                 SecretSynced   True
 # jwks-signing-key   openbao   1h                 SecretSynced   True
 
-kubectl -n demarkus-broker get secret oidc-client jwks-signing-key
+kubectl -n demarkus-knowledge get secret oidc-client jwks-signing-key
 ```
 
-Note: the `demarkus-broker` namespace is created by Argo's
-`CreateNamespace=true` when `apps-demarkus-broker` first syncs. If the
+Note: the `demarkus-knowledge` namespace is created by Argo's
+`CreateNamespace=true` when `demarkus-knowledge-server` first syncs. If the
 namespace doesn't exist yet, that Application hasn't reached the cluster
 — check `kubectl get applications -n argocd`.
 

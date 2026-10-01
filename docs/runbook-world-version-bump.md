@@ -1,6 +1,6 @@
 # Runbook: bumping a world / server chart version
 
-How to roll a `demarkus-server` (world) or `demarkus-broker` version, and how
+How to roll a `demarkus-server` (world) or `demarkus-knowledge-server` version, and how
 to handle the one failure mode that needs a manual step.
 
 ## Normal bump
@@ -14,7 +14,8 @@ to handle the one failure mode that needs a manual step.
    ```
 2. Bump both `targetRevision` and the explicit `image.tag` in
    `apps/demarkus-worlds/applicationset.yaml` (worlds) or
-   `apps/demarkus-broker/application.yaml` (broker).
+   `apps/demarkus-knowledge-server/applicationset.yaml` (knowledge server and
+   broker).
 3. Open the PR. The **apps-immutable-check** workflow renders the chart at the
    base and the head and flags any immutable StatefulSet field change (see
    below). A clean run means ArgoCD can apply the bump in place — merge and

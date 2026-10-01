@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Verifies deployment.yaml routing through shared-server, broker, agent, and
-# legacy-world ApplicationSet templates without cluster credentials.
+# Verifies deployment.yaml routing through the knowledge server (with its
+# broker), agent, and legacy-world ApplicationSet templates without cluster
+# credentials.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -36,16 +37,17 @@ helm template knowledge "oci://$REPO/$CHART" --version "$VERSION" \
 # Expectations derive from deployment.yaml so adding a world cannot
 # silently break this smoke (music and bruno did, twice).
 SHARED_COUNT="$(yq '[.worlds[] | select(.backend == "shared")] | length' deployment.yaml)"
-SHARED_DNS="$(yq '[.worlds[] | select(.backend == "shared") | .name + "-knowledge.demarkus-knowledge.svc.cluster.local"] | sort | join(",")' deployment.yaml)"
-ALL_WORLD_NAMES="$(yq '[.worlds[].name] | sort | join(",")' deployment.yaml)"
+SHARED_NAMES="$(yq '[.worlds[] | select(.backend == "shared") | .name] | sort | join(",")' deployment.yaml)"
 yq -e 'select(.kind == "ConfigMap") | .data["config.yaml"] | from_yaml | .worlds | length == '"$SHARED_COUNT" "$TMPD/shared.yaml" >/dev/null
 yq -e 'select(.kind == "ConfigMap") | .data["config.yaml"] | from_yaml | .worlds | map(select((.bucket.url // "") == "" or (.bucket.worldID // "") == "" or .readOnly != false)) | length == 0' "$TMPD/shared.yaml" >/dev/null
-yq -e 'select(.kind == "Certificate") | .spec.dnsNames | sort | join(",") == "'"$SHARED_DNS"'"' "$TMPD/shared.yaml" >/dev/null
+# The QUIC certificate also carries the memory tenants' authority domain.
+QUIC_DNS="$(yq '[.worlds[] | select(.backend == "shared") | .name + "-knowledge.demarkus-knowledge.svc.cluster.local"] + ["knowledge.demarkus-knowledge.svc.cluster.local", "*.knowledge.demarkus-knowledge.svc.cluster.local"] | sort | join(",")' deployment.yaml)"
+yq -e 'select(.kind == "Certificate" and .metadata.name == "knowledge-tls") | .spec.dnsNames | sort | join(",") == "'"$QUIC_DNS"'"' "$TMPD/shared.yaml" >/dev/null
 yq -e 'select(.kind == "Deployment") | .spec.replicas == 3' "$TMPD/shared.yaml" >/dev/null
 # Image tag comes from the rendered values so an appset image bump can't
 # drift from a second hardcoded pin here (bit 6a67b4b: 0.25.1 vs 0.30.0).
 SHARED_TAG="$(yq -e '.image.tag' "$TMPD/shared-values.yaml")"
-yq -e 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image == "ghcr.io/latebit-io/demarkus-knowledge-server:'"$SHARED_TAG"'"' "$TMPD/shared.yaml" >/dev/null
+yq -e 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image == "ghcr.io/latebit-io/demarkus-knowledge:'"$SHARED_TAG"'"' "$TMPD/shared.yaml" >/dev/null
 # Token Secrets are chart-derived; each shared world projects its optional
 # <name>-tokens and <name>-static-tokens pair, and no bootstrap Job renders.
 SHARED_TOKENS="$(yq '[.worlds[] | select(.backend == "shared") | .name + "-tokens"] | sort | join(",")' deployment.yaml)"
@@ -54,22 +56,21 @@ yq -e 'select(.kind == "Deployment") | [.spec.template.spec.volumes[] | select(.
 yq -e 'select(.kind == "Deployment") | [.spec.template.spec.volumes[] | select(.name | test("^world-token-")) | .projected.sources[1].secret | select(.optional == true) | .name] | sort | join(",") == "'"$SHARED_STATIC_TOKENS"'"' "$TMPD/shared.yaml" >/dev/null
 yq -e '[select(.kind == "Job")] | length == 0' "$TMPD/shared.yaml" >/dev/null
 
-render_field apps/demarkus-broker/applicationset.yaml '.spec.template.spec.source.helm.values' "$TMPD/broker-values.yaml"
-yq -e '.worlds | map(.name) | sort | join(",") == "'"$ALL_WORLD_NAMES"'"' "$TMPD/broker-values.yaml" >/dev/null
-yq -e '.worlds | map(.allow.emails | contains(["fritz@latebit.io"])) | all' "$TMPD/broker-values.yaml" >/dev/null
-yq -e '.worlds[] | select(.name == "ontehfritz" and .namespace == "demarkus-knowledge" and .internalAddress == "ontehfritz-knowledge.demarkus-knowledge.svc.cluster.local:6309" and .dialAddress == "knowledge.demarkus-knowledge.svc.cluster.local:6309")' "$TMPD/broker-values.yaml" >/dev/null
-
-# tokensSecret and defaultToken come from chart defaults: check the rendered
-# broker config, not the values.
-BROKER_APPSET="apps/demarkus-broker/applicationset.yaml"
-BROKER_REPO="$(yq '.spec.template.spec.source.repoURL' "$BROKER_APPSET")"
-BROKER_CHART="$(yq '.spec.template.spec.source.chart' "$BROKER_APPSET")"
-BROKER_VERSION="$(yq '.spec.template.spec.source.targetRevision' "$BROKER_APPSET")"
-helm template demarkus-broker "oci://$BROKER_REPO/$BROKER_CHART" --version "$BROKER_VERSION" \
-  --namespace demarkus-broker -f "$TMPD/broker-values.yaml" > "$TMPD/broker.yaml"
-yq 'select(.kind == "Secret" and .metadata.name == "demarkus-broker-config") | .stringData["config.yaml"]' "$TMPD/broker.yaml" > "$TMPD/broker-config.yaml"
-yq -e '.worlds | map(.tokensSecret == .name + "-tokens" and (.defaultToken.paths | length == 1) and .defaultToken.paths[0] == "/**") | all' "$TMPD/broker-config.yaml" >/dev/null
-yq -e '[.worlds[] | select(.namespace == "demarkus-knowledge") | .dialAddress == "knowledge.demarkus-knowledge.svc.cluster.local:6309"] | all' "$TMPD/broker-config.yaml" >/dev/null
+# The broker in the same process: every shared world local under its writer
+# list, state in the dedicated bucket, tenants under the chart's own domain.
+yq 'select(.kind == "Secret" and .metadata.name == "knowledge-broker-config") | .stringData["config.yaml"]' "$TMPD/shared.yaml" > "$TMPD/broker-config.yaml"
+ADMIN_EMAIL="$(yq '.adminEmails[0]' deployment.yaml)"
+yq -e '.worlds | map(.name) | sort | join(",") == "'"$SHARED_NAMES"'"' "$TMPD/broker-config.yaml" >/dev/null
+yq -e '.worlds | map(.local == true and .profile == "knowledge" and .tokensSecret == .name + "-tokens" and .internalAddress == .name + "-knowledge.demarkus-knowledge.svc.cluster.local:6309" and (.allow.emails | contains(["'"$ADMIN_EMAIL"'"]))) | all' "$TMPD/broker-config.yaml" >/dev/null
+for world in $(yq '.worlds[] | select(.backend == "shared" and has("writerEmails")) | .name' deployment.yaml); do
+  WRITERS="$(yq -o=json -I=0 '.worlds[] | select(.name == "'"$world"'") | .writerEmails' deployment.yaml)"
+  yq -e '.worlds[] | select(.name == "'"$world"'") | .allow.emails | contains('"$WRITERS"')' "$TMPD/broker-config.yaml" >/dev/null
+done
+yq -e '.server.stateBucket == "gs://'"$(yq '.brokerStateBucket' deployment.yaml)"'"' "$TMPD/broker-config.yaml" >/dev/null
+yq -e 'has("agentTokens") | not' "$TMPD/broker-config.yaml" >/dev/null
+yq -e '.provisioning.mode == "allowlisted" and .provisioning.authorityDomain == "knowledge.demarkus-knowledge.svc.cluster.local" and .provisioning.bucketPrefix == "'"$(yq '.projectId' deployment.yaml)"'-memory-" and .provisioning.registrySecret == "demarkus-memory-broker-registry"' "$TMPD/broker-config.yaml" >/dev/null
+INGRESS_HOSTS="$(yq '["broker." + .domain, .domain, .memoryDomain] | sort | join(",")' deployment.yaml)"
+yq -e 'select(.kind == "Ingress") | [.spec.rules[].host] | sort | join(",") == "'"$INGRESS_HOSTS"'"' "$TMPD/shared.yaml" >/dev/null
 
 AGENT_APPSET="apps/demarkus-agent/applicationset.yaml"
 render_field "$AGENT_APPSET" '.spec.template.spec.source.helm.values' "$TMPD/agent-values.yaml"

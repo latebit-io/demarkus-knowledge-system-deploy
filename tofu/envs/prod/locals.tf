@@ -22,7 +22,7 @@ locals {
   # Cloud DNS zones are fully-qualified with a trailing dot.
   dns_name = "${local.deployment.domain}."
 
-  # Memory-as-a-service zone (memory broker). Same parent-delegation flow
+  # Memory-as-a-service zone (memory gateway). Same parent-delegation flow
   # as the knowledge zone: register the output name servers at Cloudflare.
   memory_dns_name = "${local.deployment.memoryDomain}."
 
