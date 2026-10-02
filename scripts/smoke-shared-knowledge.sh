@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Verifies deployment.yaml routing through the knowledge server (with its
-# broker), agent, and legacy-world ApplicationSet templates without cluster
-# credentials.
+# broker and federation) and legacy-world ApplicationSet templates without
+# cluster credentials.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -61,60 +61,20 @@ yq -e '[select(.kind == "Job")] | length == 0' "$TMPD/shared.yaml" >/dev/null
 yq 'select(.kind == "Secret" and .metadata.name == "knowledge-broker-config") | .stringData["config.yaml"]' "$TMPD/shared.yaml" > "$TMPD/broker-config.yaml"
 ADMIN_EMAIL="$(yq '.adminEmails[0]' deployment.yaml)"
 yq -e '.worlds | map(.name) | sort | join(",") == "'"$SHARED_NAMES"'"' "$TMPD/broker-config.yaml" >/dev/null
-yq -e '.worlds | map(.local == true and .profile == "knowledge" and .tokensSecret == .name + "-tokens" and .internalAddress == .name + "-knowledge.demarkus-knowledge.svc.cluster.local:6309" and (.allow.emails | contains(["'"$ADMIN_EMAIL"'"]))) | all' "$TMPD/broker-config.yaml" >/dev/null
+yq -e '.worlds | map(.local == true and .profile == "knowledge" and .internalAddress == .name + "-knowledge.demarkus-knowledge.svc.cluster.local:6309" and (.allow.emails | contains(["'"$ADMIN_EMAIL"'"]))) | all' "$TMPD/broker-config.yaml" >/dev/null
 for world in $(yq '.worlds[] | select(.backend == "shared" and has("writerEmails")) | .name' deployment.yaml); do
   WRITERS="$(yq -o=json -I=0 '.worlds[] | select(.name == "'"$world"'") | .writerEmails' deployment.yaml)"
   yq -e '.worlds[] | select(.name == "'"$world"'") | .allow.emails | contains('"$WRITERS"')' "$TMPD/broker-config.yaml" >/dev/null
 done
 yq -e '.server.stateBucket == "gs://'"$(yq '.brokerStateBucket' deployment.yaml)"'"' "$TMPD/broker-config.yaml" >/dev/null
 yq -e 'has("agentTokens") | not' "$TMPD/broker-config.yaml" >/dev/null
+# Federation: the one world marked hub, derived in process with no token.
+HUB="$(yq '[.worlds[] | select(.hub == true) | .name] | join(",")' deployment.yaml)"
+[[ "$HUB" =~ ^[a-z0-9-]+$ ]] || { echo "exactly one world must be marked hub, got [$HUB]" >&2; exit 1; }
+yq -e '.federation.hub == "'"$HUB"'"' "$TMPD/broker-config.yaml" >/dev/null
 yq -e '.provisioning.mode == "allowlisted" and .provisioning.authorityDomain == "knowledge.demarkus-knowledge.svc.cluster.local" and .provisioning.bucketPrefix == "'"$(yq '.projectId' deployment.yaml)"'-memory-" and .provisioning.registrySecret == "demarkus-memory-broker-registry"' "$TMPD/broker-config.yaml" >/dev/null
 INGRESS_HOSTS="$(yq '["broker." + .domain, .domain, .memoryDomain] | sort | join(",")' deployment.yaml)"
 yq -e 'select(.kind == "Ingress") | [.spec.rules[].host] | sort | join(",") == "'"$INGRESS_HOSTS"'"' "$TMPD/shared.yaml" >/dev/null
-
-AGENT_APPSET="apps/demarkus-agent/applicationset.yaml"
-render_field "$AGENT_APPSET" '.spec.template.spec.source.helm.values' "$TMPD/agent-values.yaml"
-
-AGENT_TEMPLATE="$TMPD/agent-values.yaml.tmpl"
-yq '.spec.template.spec.source.helm.values' "$AGENT_APPSET" > "$AGENT_TEMPLATE"
-expect_agent_render_failure() { # <case> <deployment yq expression>
-  local name="$1" expression="$2" config="$TMPD/agent-$1.json" output
-  yq -o=json "$expression" deployment.yaml > "$config"
-  if output="$(gomplate --missing-key error --context ".=$config" --file "$AGENT_TEMPLATE" 2>&1)"; then
-    echo "agent hub validation accepted invalid case: $name" >&2
-    exit 1
-  fi
-  if [[ "$output" != *"exactly one hub is required and it must be named root"* ]]; then
-    echo "agent hub validation failed unexpectedly for case: $name" >&2
-    echo "$output" >&2
-    exit 1
-  fi
-}
-expect_agent_render_failure no-hub 'del(.worlds[].hub)'
-expect_agent_render_failure multiple-hubs '.worlds[1].hub = true'
-expect_agent_render_failure wrong-hub-name '.worlds[0].name = "not-root"'
-
-SEEDS="$(yq '[.worlds[] | select(.hub != true) | "mark://" + .name] | sort | join(",")' deployment.yaml)"
-yq -e '.config.seeds | sort | join(",") == "'"$SEEDS"'"' "$TMPD/agent-values.yaml" >/dev/null
-yq -e '.config.hubs | join(",") == "mark://root"' "$TMPD/agent-values.yaml" >/dev/null
-# Every shared world dials the one knowledge Service and presents its own SNI.
-for world in $(yq '.worlds[] | select(.backend == "shared") | .name' deployment.yaml); do
-  yq -e '.config.endpoints["'"$world"'"].dialAddress == "knowledge.demarkus-knowledge.svc.cluster.local:6309" and .config.endpoints["'"$world"'"].serverName == "'"$world"'-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent-values.yaml" >/dev/null
-done
-
-AGENT_REPO="$(yq '.spec.template.spec.source.repoURL' "$AGENT_APPSET")"
-AGENT_CHART="$(yq '.spec.template.spec.source.chart' "$AGENT_APPSET")"
-AGENT_VERSION="$(yq '.spec.template.spec.source.targetRevision' "$AGENT_APPSET")"
-helm template demarkus-agent "oci://$AGENT_REPO/$AGENT_CHART" --version "$AGENT_VERSION" \
-  --namespace demarkus-agent -f "$TMPD/agent-values.yaml" > "$TMPD/agent.yaml"
-yq 'select(.kind == "ConfigMap") | .data["agent.toml"]' "$TMPD/agent.yaml" > "$TMPD/agent.toml"
-yq -p=toml -oy -e '.endpoints.root.dial_address == "knowledge.demarkus-knowledge.svc.cluster.local:6309" and .endpoints.root.server_name == "root-knowledge.demarkus-knowledge.svc.cluster.local"' "$TMPD/agent.toml" >/dev/null
-# Publish token: ESO copies root-token-values:admin verbatim (no template);
-# the chart projects that key to tokens.d/root:6309 as a required source.
-yq -e '.spec.target | has("template") | not' apps/demarkus-agent/external-secret.yaml >/dev/null
-yq -e '.spec.data[0].secretKey == "admin" and .spec.data[0].remoteRef.key == "root-token-values" and .spec.data[0].remoteRef.property == "admin"' apps/demarkus-agent/external-secret.yaml >/dev/null
-yq -e '.tokens.fromWorldSecrets[0].hostPort == "root:6309" and .tokens.fromWorldSecrets[0].secret == "demarkus-agent-hub-tokens"' "$TMPD/agent-values.yaml" >/dev/null
-yq -e 'select(.kind == "Deployment") | .spec.template.spec.volumes[] | select(.name == "tokens") | .projected.sources[] | select(.secret.name == "demarkus-agent-hub-tokens") | ((.secret | has("optional") | not) and .secret.items[0].key == "admin" and .secret.items[0].path == "tokens.d/root:6309")' "$TMPD/agent.yaml" >/dev/null
 
 render_field apps/demarkus-worlds/applicationset.yaml '.spec.generators[0].matrix.generators[1].list.elementsYaml' "$TMPD/legacy-worlds.yaml"
 yq -e 'length == 0' "$TMPD/legacy-worlds.yaml" >/dev/null

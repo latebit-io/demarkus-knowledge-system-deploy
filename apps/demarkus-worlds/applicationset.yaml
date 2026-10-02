@@ -1,7 +1,7 @@
 # Legacy file-backed worlds. One Argo Application per deployment.yaml world
 # not using backend: shared; shared worlds retain storage during rollback.
 # deployment.yaml is the single source — the same list drives the broker's
-# worlds[] and the agent's crawl seeds, so adding a world is one edit there.
+# worlds[] and the federation hub, so adding a world is one edit there.
 #
 # Pattern from deploy/k8s/examples/applicationset.yaml in the demarkus
 # monorepo. Per-world isolation via namespace boundary. The broker now
@@ -186,11 +186,10 @@ spec:
               admin:
                 operations: ["publish"]
                 # Recursive write path (chart default is `/*`, root-level
-                # only). The federation agent (apps/demarkus-agent) reuses
-                # this raw admin token to publish its hash index under
-                # `/index/<host>.md` on the `root` hub — a subpath that `/*`
-                # would reject (Go path.Match treats `/` as a separator). `/**`
-                # is recursive. Harmless for the other worlds: nothing
+                # only). The retired federation agent reused this raw admin
+                # token to publish under `/index/<host>.md` on the `root` hub,
+                # a subpath that `/*` would reject (Go path.Match treats `/` as
+                # a separator). `/**` is recursive. Harmless for the other worlds: nothing
                 # publishes with their admin token directly (the broker mints
                 # its own `/**` write token), and operations stays
                 # publish-only so the read surface remains public.
