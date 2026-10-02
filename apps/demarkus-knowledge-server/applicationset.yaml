@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.52.0
+        targetRevision: 0.52.1
         helm:
           releaseName: knowledge
           values: |
@@ -45,7 +45,9 @@ spec:
               # 0.52.0 (demarkus #536): the federation graph is derived in this
               # process into the hub world, with no agent or token; image
               # repository is the chart default, ghcr.io/latebit-io/demarkus-knowledge.
-              tag: "0.52.0"
+              # 0.52.1 (demarkus #537): the federation leader holds its in-process
+              # watches instead of reopening them every 20 ms.
+              tag: "0.52.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
