@@ -23,8 +23,7 @@ Application per directory under `platform/` and `apps/`, ordered by sync wave:
 | -2 | cert-manager | TLS (Let's Encrypt + selfsigned issuers) |
 | -1 | OpenBao, bank-vaults webhook | secrets store (file backend, GCP KMS auto-unseal) + env injection |
 | 0 | external-dns, ingress-nginx, external-secrets, dex, oauth2-proxy | DNS records, ingress, OpenBao→k8s secret bridge, admin SSO |
-| 1 | demarkus-knowledge-server, demarkus-worlds, backups | the knowledge server with the broker, both MCP gateways and memory tenants in process; one Application per legacy world; CSI snapshot CronJob |
-| 2 | demarkus-agent | federation crawler — indexes every world's content-hashes into the `root` hub for cross-world discovery |
+| 1 | demarkus-knowledge-server, demarkus-worlds, backups | the knowledge server with the broker, both MCP gateways, memory tenants and the federation graph (checkpointed into the `root` hub) in process; one Application per legacy world; CSI snapshot CronJob |
 
 **Auth:** broker user login is Google OIDC; admin UIs (ArgoCD, OpenBao) are gated
 by [Dex](docs/runbook-dex-sso.md) federating GitHub-org membership.
@@ -59,7 +58,7 @@ tofu/
   envs/prod/             # knowledge.demarkus.io — fill terraform.tfvars (gitignored)
 bootstrap/               # argocd-values.yaml + root-appset.yaml (tofu applies post-cluster)
 platform/                # cluster prerequisites (Argo-managed)
-apps/                    # demarkus-knowledge-server, demarkus-worlds, demarkus-agent, demarkus-library, backups (Argo-managed)
+apps/                    # demarkus-knowledge-server, demarkus-worlds, demarkus-library, backups (Argo-managed)
 docs/                    # runbooks + instantiate guide
 .github/workflows/       # tofu-plan (PR) + tofu-apply (merge)
 ```
