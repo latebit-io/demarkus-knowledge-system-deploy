@@ -167,12 +167,3 @@ worlds:
       bucket: knowledge-49722-demarkus-music
       worldID: d14acd92-0991-420f-88a8-22480a09bd8f
       readOnly: false
-  - name: bruno
-    backend: shared
-    writerEmails:
-      - bruno.lima@nesto.ca
-    storage:
-      # Bruno's personal publishing world.
-      bucket: knowledge-49722-demarkus-bruno
-      worldID: 32d27172-5797-4df1-acdd-301f27589f45
-      readOnly: false

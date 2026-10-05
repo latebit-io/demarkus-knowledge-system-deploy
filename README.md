@@ -73,5 +73,6 @@ docs/                    # runbooks + instantiate guide
 - [runbook-backup-restore.md](docs/runbook-backup-restore.md) — backups + restore drill
 - [runbook-broker-allow-domains.md](docs/runbook-broker-allow-domains.md) — broker OIDC domain allowlist
 - [runbook-broker-web-clients.md](docs/runbook-broker-web-clients.md) — broker confidential web clients
+- [runbook-commit-log-rollout.md](docs/runbook-commit-log-rollout.md) — knowledge 0.54.0 commit-log store: wipe, bump, verify, rollback
 
 Master plan: `mark://soul.demarkus.io/plans/knowledge-system-gke-deploy.md`.
