@@ -39,10 +39,7 @@ spec:
             fullnameOverride: knowledge
 
             # Exercise one knowledge-server replica per current cluster node.
-            # 0 for the commit-log rollout window (docs/runbook-commit-log-rollout.md):
-            # the world buckets are wiped while nothing runs, then a follow-up
-            # PR sets this back to 3.
-            replicaCount: 0
+            replicaCount: 3
 
             image:
               # 0.52.0 (demarkus #536): the federation graph is derived in this
