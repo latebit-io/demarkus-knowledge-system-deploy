@@ -32,14 +32,17 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.52.1
+        targetRevision: 0.54.0
         helm:
           releaseName: knowledge
           values: |
             fullnameOverride: knowledge
 
             # Exercise one knowledge-server replica per current cluster node.
-            replicaCount: 3
+            # 0 for the commit-log rollout window (docs/runbook-commit-log-rollout.md):
+            # the world buckets are wiped while nothing runs, then a follow-up
+            # PR sets this back to 3.
+            replicaCount: 0
 
             image:
               # 0.52.0 (demarkus #536): the federation graph is derived in this
@@ -47,7 +50,10 @@ spec:
               # repository is the chart default, ghcr.io/latebit-io/demarkus-knowledge.
               # 0.52.1 (demarkus #537): the federation leader holds its in-process
               # watches instead of reopening them every 20 ms.
-              tag: "0.52.1"
+              # 0.54.0 (demarkus #538 to #543, ADR 0036): the commit-log bucket
+              # store. No migration: a schema 1 bucket is refused at open, so the
+              # world buckets are emptied first (docs/runbook-commit-log-rollout.md).
+              tag: "0.54.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
