@@ -34,8 +34,10 @@ the new pods are ready, about an hour including the wipe.
    ```
 
    The bucket stays in GCP, orphaned; delete it by hand once its soft-deleted
-   objects have aged out (step 10). Re-run the PR's `tofu-plan` afterwards; it
-   must show no destroy.
+   objects have aged out (step 10). PR #167 merged before this ran, so its
+   `tofu-apply` failed on the destroy without changing anything; after the
+   state removal, rerun it (`gh run rerun <run id>` on the failed
+   `tofu-apply`); it must show 0 to destroy.
 
 3. Confirm the chart and image exist in GHCR (both listed 0.54.0 on 2026-10-05):
 
@@ -55,12 +57,14 @@ the new pods are ready, about an hour including the wipe.
 
 ## The window
 
-5. Merge the rollout PR (pins to 0.54.0, `replicaCount: 0`, `bruno` removed).
-   Argo scales the knowledge Deployment to zero and prunes the `bruno`
-   objects; no pod starts on 0.54.0 yet. Confirm nothing runs:
+5. State of main after PR #167: the chart refuses `replicaCount: 0`
+   ("replicaCount must be at least 2"), so Argo holds the knowledge app in
+   `ComparisonError` and syncs nothing; the old pods keep serving. That is the
+   lever: while Argo cannot render, self-heal cannot revert a manual scale.
 
    ```sh
-   kubectl -n demarkus-knowledge get pods -l app.kubernetes.io/name=demarkus-knowledge-server
+   kubectl -n demarkus-knowledge scale deployment knowledge --replicas=0
+   kubectl -n demarkus-knowledge get pods -l app.kubernetes.io/name=demarkus-knowledge-server   # none
    ```
 
    Do not wipe while an old pod runs: an old server that opens an empty bucket
@@ -75,11 +79,12 @@ the new pods are ready, about an hour including the wipe.
    for w in $WORLDS; do echo "== $w"; gcloud storage ls "gs://knowledge-49722-demarkus-$w/**" | wc -l; done   # all 0
    ```
 
-7. Open and merge the follow-up PR: `replicaCount: 3` in
-   `apps/demarkus-knowledge-server/applicationset.yaml`, nothing else. The
-   pods open every world, each logs `created a new world in an empty bucket`
-   once per world (the second and third pods find the marker), write
-   checkpoint zero and the seeded policy.
+7. Merge the follow-up PR: `replicaCount: 3` in
+   `apps/demarkus-knowledge-server/applicationset.yaml`, nothing else. Argo
+   renders again, syncs chart 0.54.0 and scales the new ReplicaSet to 3; the
+   old one stays at 0. The pods open every world, each logs
+   `created a new world in an empty bucket` once per world (the second and
+   third pods find the marker), write checkpoint zero and the seeded policy.
 
 8. Verify:
    - 3 of 3 pods ready; `/readyz` green on each.
@@ -108,7 +113,8 @@ the new pods are ready, about an hour including the wipe.
 
 ## Rollback (within 7 days)
 
-Scale to zero as in step 5, restore the soft-deleted objects, pin back, scale up:
+Scale to zero (`kubectl scale`, or a PR if Argo renders at that point),
+restore the soft-deleted objects, pin back, scale up:
 
 ```sh
 for w in $WORLDS; do gcloud storage restore "gs://knowledge-49722-demarkus-$w/**"; done
