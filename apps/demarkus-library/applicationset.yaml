@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.33.0
+        targetRevision: 0.34.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -312,7 +312,7 @@ spec:
             # 0.33.0 (library #82) drops the visible "Universe" heading (the
             # pane head names it); screen readers keep it.
             image:
-              tag: "0.33.0"
+              tag: "0.34.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
