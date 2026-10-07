@@ -164,6 +164,10 @@ spec:
                 size: 1Gi
                 mountPath: /openbao/audit
 
+              # Single replica holding the secrets store: never on Spot.
+              nodeSelector:
+                cloud.google.com/gke-provisioning: standard
+
               resources:
                 requests:
                   cpu: 25m
