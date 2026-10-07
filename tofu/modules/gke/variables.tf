@@ -58,7 +58,7 @@ variable "release_channel" {
 variable "node_count" {
   description = "Fixed number of nodes in the pool (no autoscaling)."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "spot_node_count" {
