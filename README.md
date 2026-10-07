@@ -7,7 +7,7 @@ knowledge system on GKE, managed entirely by GitOps. It doubles as a **GitHub
 template** — fork it to stand up your own.
 
 - **Cloud:** GCP / GKE Standard, single zonal cluster in `northamerica-northeast2` (Toronto)
-- **IaC:** [OpenTofu](https://opentofu.org/) · **Secrets:** [OpenBao](https://openbao.org/) + bank-vaults · **GitOps:** ArgoCD · **Charts:** `ghcr.io/latebit-io/charts`
+- **IaC:** [OpenTofu](https://opentofu.org/) · **Secrets:** [OpenBao](https://openbao.org/) · **GitOps:** ArgoCD · **Charts:** `ghcr.io/latebit-io/charts`
 
 To run your own, see **[docs/instantiate.md](docs/instantiate.md)**.
 
@@ -21,7 +21,7 @@ Application per directory under `platform/` and `apps/`, ordered by sync wave:
 |------|-----------|------|
 | — (tofu) | project, network + Cloud NAT, Cloud DNS, GKE, KMS + Workload Identity, budget | GCP substrate |
 | -2 | cert-manager | TLS (Let's Encrypt + selfsigned issuers) |
-| -1 | OpenBao, bank-vaults webhook | secrets store (file backend, GCP KMS auto-unseal) + env injection |
+| -1 | OpenBao | secrets store (file backend, GCP KMS auto-unseal) |
 | 0 | external-dns, ingress-nginx, external-secrets, dex, oauth2-proxy | DNS records, ingress, OpenBao→k8s secret bridge, admin SSO |
 | 1 | demarkus-knowledge-server, demarkus-worlds, backups | the knowledge server with the broker, both MCP gateways, memory tenants and the federation graph (checkpointed into the `root` hub) in process; one Application per legacy world; CSI snapshot CronJob |
 

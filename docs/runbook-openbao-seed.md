@@ -4,8 +4,7 @@ One-shot runbook to make OpenBao ready for the broker. Run once per env, by
 a human, against an already-initialized + auto-unsealed OpenBao
 (`platform/openbao/application.yaml` is the deployment).
 
-After this completes, Phase 7 can install the broker chart with `vault:`
-env refs and the bank-vaults webhook will fetch the secrets at pod start.
+After this completes, ExternalSecrets can read the seeded paths.
 
 ## Prereqs
 
