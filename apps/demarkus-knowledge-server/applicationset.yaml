@@ -76,6 +76,16 @@ spec:
             networkPolicy:
               allowUnrestrictedHTTPS: true
 
+            # Spot pool is tainted; replicas are stateless, so preemption only
+            # reschedules them.
+            nodeSelector:
+              cloud.google.com/gke-spot: "true"
+            tolerations:
+              - key: cloud.google.com/gke-spot
+                operator: Equal
+                value: "true"
+                effect: NoSchedule
+
             # Pilot sizing fits the current saturated e2-medium pool. Increase
             # node capacity before raising these to chart production defaults.
             resources:
