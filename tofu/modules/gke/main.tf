@@ -119,9 +119,10 @@ resource "google_container_node_pool" "primary" {
   }
 }
 
-# Spot nodes for stateless workloads (knowledge, library). Tainted so only
-# workloads that tolerate preemption land here. Secure boot is off to match
-# the pool created with gcloud; flipping it replaces the pool.
+# Spot nodes for everything except ingress-nginx and openbao, which select
+# gke-provisioning=standard. Untainted so system pods can land here too.
+# Secure boot is off to match the pool created with gcloud; flipping it
+# replaces the pool.
 resource "google_container_node_pool" "spot" {
   project    = var.project_id
   name       = "spot"
@@ -141,12 +142,6 @@ resource "google_container_node_pool" "spot" {
 
     service_account = google_service_account.nodes.email
     oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
-
-    taint {
-      key    = "cloud.google.com/gke-spot"
-      value  = "true"
-      effect = "NO_SCHEDULE"
-    }
 
     workload_metadata_config {
       mode = "GKE_METADATA"
