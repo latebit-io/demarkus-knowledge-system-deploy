@@ -125,7 +125,7 @@ resource "google_container_node_pool" "primary" {
 resource "google_container_node_pool" "spot" {
   project    = var.project_id
   name       = "spot"
-  cluster    = google_container_cluster.this.id
+  cluster    = google_container_cluster.this.name # import stores the name; .id forces a replace
   node_count = var.spot_node_count
 
   node_config {
