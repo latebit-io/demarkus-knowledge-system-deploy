@@ -61,6 +61,12 @@ variable "node_count" {
   default     = 3
 }
 
+variable "spot_node_count" {
+  description = "Fixed number of Spot nodes in the spot pool."
+  type        = number
+  default     = 2
+}
+
 variable "machine_type" {
   description = "GCE machine type for worker nodes."
   type        = string

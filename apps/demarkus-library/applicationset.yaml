@@ -319,6 +319,16 @@ spec:
             # store (or sticky sessions) ships.
             replicaCount: 1
 
+            # Spot pool is tainted. Preemption drops in-memory sessions, so
+            # readers log in again.
+            nodeSelector:
+              cloud.google.com/gke-spot: "true"
+            tolerations:
+              - key: cloud.google.com/gke-spot
+                operator: Equal
+                value: "true"
+                effect: NoSchedule
+
             library:
               transport: broker
               # Follow mark:// links beyond the home knowledge system —
