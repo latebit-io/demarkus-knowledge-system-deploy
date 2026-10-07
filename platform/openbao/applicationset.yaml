@@ -7,7 +7,7 @@
 #   - openbao/openbao KSA is WI-bound to that GSA
 #   - gcpckms seal stanza below references the same key
 #
-# Sync wave: -1. Bank-vaults webhook (5f) depends on this.
+# Sync wave: -1.
 #
 # ────────────────────────────────────────────────────────────────────────
 # ONE-TIME INIT AFTER FIRST DEPLOY (cannot be automated — bao operator
@@ -225,8 +225,7 @@ spec:
                       - openbao.{{ .domain }}
                     secretName: openbao-tls
 
-            # The Kubernetes injector ships with this chart but we use
-            # bank-vaults (Phase 5f) instead, which is more flexible.
+            # The chart's Kubernetes injector is unused; ESO reads secrets.
             injector:
               enabled: false
 

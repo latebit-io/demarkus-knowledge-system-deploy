@@ -64,10 +64,11 @@ resource "google_container_cluster" "this" {
 
   deletion_protection = var.deletion_protection
 
-  # Leave default add-ons (HTTP LB, HPA) on; everything else off for cost.
+  # HPA stays on. HTTP LB is off: ingress is nginx on a Network LB, so the
+  # GCE ingress controller and its default backend are unused.
   addons_config {
     http_load_balancing {
-      disabled = false
+      disabled = true
     }
     horizontal_pod_autoscaling {
       disabled = false
