@@ -55,12 +55,6 @@ variable "release_channel" {
   default     = "REGULAR"
 }
 
-variable "node_count" {
-  description = "Fixed number of nodes in the pool (no autoscaling)."
-  type        = number
-  default     = 1
-}
-
 variable "spot_node_count" {
   description = "Fixed number of Spot nodes in the spot pool."
   type        = number
