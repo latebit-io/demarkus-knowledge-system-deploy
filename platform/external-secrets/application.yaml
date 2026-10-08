@@ -70,6 +70,8 @@ spec:
         serviceAccount:
           create: true
           name: external-secrets
+          annotations:
+            iam.gke.io/gcp-service-account: external-secrets@knowledge-49722.iam.gserviceaccount.com
 
         # Install the bundled CRDs — ClusterSecretStore, SecretStore,
         # ExternalSecret. SkipDryRunOnMissingResource on the root
