@@ -82,9 +82,9 @@ reviews:
     - path: "platform/**"
       instructions: |
         Kubernetes manifests / Helm values for cluster prerequisites (cert-manager,
-        OpenBao, external-secrets operator, external-dns, ingress).
+        external-secrets operator, external-dns, ingress).
         - Never inline secret values or commit Kubernetes Secret manifests with
-          literal data. Secret material lives in OpenBao; pods consume it via one
+          literal data. Secret material lives in GCP Secret Manager; pods consume it via one
           of the two patterns documented under apps/**.
         - Pin chart versions and image tags; never use `:latest`.
     - path: "apps/**"
@@ -92,13 +92,13 @@ reviews:
         ArgoCD Application / ApplicationSet manifests for demarkus components.
         Charts come from ghcr.io/latebit-io/charts (knowledge server, server, agent, library).
         - Pin chart targetRevision; never use a moving tag.
-        - Secrets come from OpenBao via ESO: an `ExternalSecret` materializes a
+        - Secrets come from GCP Secret Manager via ESO (ClusterSecretStore `gcp-sm`): an `ExternalSecret` materializes a
           native k8s Secret in the app's namespace; the chart's
           `existingSecretRef` consumes it.
         - Runtime-generated demarkus token state is the exception: a chart-owned
           `*-token-values` Secret may be reshaped by ESO's Kubernetes provider
           when RBAC restricts access with `resourceNames` to that one Secret.
-          Do not request an OpenBao copy; it would create a second token source.
+          Do not request a Secret Manager copy; it would create a second token source.
         - Never inline secret values or commit literal Secret manifests.
 
   tools:

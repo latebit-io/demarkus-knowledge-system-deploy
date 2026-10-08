@@ -58,7 +58,8 @@ this repo's test fixtures or docs examples — only the production
    empty / single / multi cases).
 
 5. **Hand the plaintext secret to the web app's deployment** (its own
-   Secret store — not OpenBao here, not this repo).
+   secret, e.g. a Secret Manager secret bridged by ESO per
+   `runbook-secrets.md`; never this repo).
 
 ## In-cluster: after a registry change lands
 

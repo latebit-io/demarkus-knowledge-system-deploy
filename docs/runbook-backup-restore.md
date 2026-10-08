@@ -12,12 +12,10 @@ A daily CronJob (`backups/demarkus-backup`, 02:00 America/Toronto) snapshots
 **every PVC in any namespace labeled `demarkus.io/backup=true`**:
 
 - `world-a/content-world-a-0` — world content + hash chain (the crown jewels)
-- `openbao/data-openbao-0` — KMS-sealed secrets store
-- `openbao/audit-openbao-0` — audit log
 
 World namespaces get the label automatically from the worlds ApplicationSet's
 `managedNamespaceMetadata`, so **every future world is backed up with no extra
-config**. The openbao namespace is labeled the same way.
+config**.
 
 Retention is **age-based, `RETENTION_DAYS=30`** (env on the CronJob): snapshots
 older than the cutoff are pruned, and the class's `deletionPolicy: Delete`
@@ -37,6 +35,15 @@ if you want 7d/4w/6m tiered retention, replace the CronJob with the
   `fullnameOverride` was set — not attached to any pod. The CronJob will
   snapshot it until it's cleaned up: `kubectl delete pvc -n world-a
   content-world-a-demarkus-server-0` (confirm it's unbound first).
+- **Secrets are not on a PVC.** They live in GCP Secret Manager, which keeps
+  its own versions. Nothing to snapshot; restore by re-enabling or re-adding a
+  version (`runbook-secrets.md`).
+- **Leftover OpenBao snapshots.** Two GCE disk snapshots,
+  `openbao-data-final-20261008-0051` and `openbao-audit-final-20261008-0051`,
+  were taken by hand before OpenBao was removed and have no consumer. Delete
+  them with `gcloud compute snapshots delete` once you are sure nothing needs
+  them. The data inside is encrypted under OpenBao's own barrier key, which was
+  wrapped by the `openbao-unseal` KMS key; keep that key until they are gone.
 - **CMEK**: snapshots inherit the source disk's encryption (Google-managed
   keys today). Client-controlled CMEK off the `demarkus-platform` KMS key would
   require recreating the source disks with a CMEK StorageClass — not done here.
@@ -95,15 +102,6 @@ Then mount `restore-test` in a throwaway pod (or a transient demarkus-server
 pointed at it), and **verify the hash chain** over the restored content — that
 end-to-end verification is the actual deliverable for Phase 9, not just the
 snapshot existing. Tear down `restore-test` afterward.
-
-### Restore OpenBao
-
-OpenBao's data is sealed; restoring `data-openbao-0` from a snapshot is safe
-because auto-unseal uses the same KMS key (`demarkus-platform/openbao-unseal`),
-which is **not** in the snapshot. Procedure: scale the `openbao` StatefulSet to
-0, replace its PVC with one restored from the snapshot, scale back to 1; it
-auto-unseals via gcpckms. (For routine OpenBao DR, prefer this over hand-editing
-the file backend.)
 
 ## Failure modes
 

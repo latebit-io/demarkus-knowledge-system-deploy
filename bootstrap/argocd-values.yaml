@@ -46,8 +46,7 @@ redis-ha:
   enabled: false
 
 # ArgoCD's bundled Dex stays disabled — we run a STANDALONE Dex
-# (platform/dex/) that ArgoCD + OpenBao both consume as a shared OIDC
-# identity provider. ArgoCD points at the standalone Dex via
+# (platform/dex/) that ArgoCD consumes as its OIDC identity provider. ArgoCD points at the standalone Dex via
 # configs.cm.oidc.config below, not at its bundled copy.
 dex:
   enabled: false

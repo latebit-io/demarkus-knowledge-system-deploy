@@ -7,7 +7,7 @@ knowledge system on GKE, managed entirely by GitOps. It doubles as a **GitHub
 template** — fork it to stand up your own.
 
 - **Cloud:** GCP / GKE Standard, single zonal cluster in `northamerica-northeast2` (Toronto)
-- **IaC:** [OpenTofu](https://opentofu.org/) · **Secrets:** [OpenBao](https://openbao.org/) · **GitOps:** ArgoCD · **Charts:** `ghcr.io/latebit-io/charts`
+- **IaC:** [OpenTofu](https://opentofu.org/) · **Secrets:** [GCP Secret Manager](https://cloud.google.com/secret-manager) + External Secrets · **GitOps:** ArgoCD · **Charts:** `ghcr.io/latebit-io/charts`
 
 To run your own, see **[docs/instantiate.md](docs/instantiate.md)**.
 
@@ -21,11 +21,10 @@ Application per directory under `platform/` and `apps/`, ordered by sync wave:
 |------|-----------|------|
 | — (tofu) | project, network + Cloud NAT, Cloud DNS, GKE, KMS + Workload Identity, budget | GCP substrate |
 | -2 | cert-manager | TLS (Let's Encrypt + selfsigned issuers) |
-| -1 | OpenBao | secrets store (file backend, GCP KMS auto-unseal) |
-| 0 | external-dns, ingress-nginx, external-secrets, dex, oauth2-proxy | DNS records, ingress, OpenBao→k8s secret bridge, admin SSO |
+| 0 | external-dns, ingress-nginx, external-secrets, dex, oauth2-proxy | DNS records, ingress, Secret Manager→k8s secret bridge, admin SSO |
 | 1 | demarkus-knowledge-server, demarkus-worlds, backups | the knowledge server with the broker, both MCP gateways, memory tenants and the federation graph (checkpointed into the `root` hub) in process; one Application per legacy world; CSI snapshot CronJob |
 
-**Auth:** broker user login is Google OIDC; admin UIs (ArgoCD, OpenBao) are gated
+**Auth:** broker user login is Google OIDC; admin UIs (ArgoCD) are gated
 by [Dex](docs/runbook-dex-sso.md) federating GitHub-org membership.
 **CI:** `tofu plan` on PR / `tofu apply` on merge via Workload Identity
 Federation, no long-lived keys ([docs/runbook-ci-wif.md](docs/runbook-ci-wif.md)).
@@ -66,8 +65,7 @@ docs/                    # runbooks + instantiate guide
 ## Runbooks
 
 - [instantiate.md](docs/instantiate.md) — fork → live, end to end
-- [runbook-openbao-seed.md](docs/runbook-openbao-seed.md) — OpenBao init + seed secrets
-- [runbook-eso-openbao.md](docs/runbook-eso-openbao.md) — OpenBao → k8s Secret bridge
+- [runbook-secrets.md](docs/runbook-secrets.md) — Secret Manager secrets + External Secrets
 - [runbook-dex-sso.md](docs/runbook-dex-sso.md) — admin SSO via Dex + GitHub
 - [runbook-ci-wif.md](docs/runbook-ci-wif.md) — CI via Workload Identity Federation
 - [runbook-backup-restore.md](docs/runbook-backup-restore.md) — backups + restore drill

@@ -14,7 +14,7 @@
 #
 # NOT here (by design):
 #   • Secrets (billing account, OAuth client *secret*, world tokens) — those
-#     stay in gitignored terraform.tfvars / OpenBao. This file is committed
+#     stay in gitignored terraform.tfvars / GCP Secret Manager. This file is committed
 #     and world-readable, so only non-secret identity belongs here.
 #   • The OpenTofu state bucket + bootstrap project — those configure the
 #     `backend.tf` block, which OpenTofu evaluates *before* any variable, so
@@ -27,7 +27,7 @@
 domain: knowledge.demarkus.io
 
 # GCP project id OpenTofu creates and everything runs in. Also threaded into
-# the Workload-Identity SA annotations + OpenBao KMS seal. (tofu + ArgoCD)
+# the Workload-Identity SA annotations. (tofu + ArgoCD)
 projectId: knowledge-49722
 
 # Default GCP region. The GKE zone is derived as "<region>-a". (tofu)
@@ -37,7 +37,7 @@ region: northamerica-northeast2
 # into the root ApplicationSet at bring-up. (tofu + ArgoCD)
 repoURL: https://github.com/latebit-io/demarkus-knowledge-system-deploy.git
 
-# GitHub org whose membership gates the admin UIs (ArgoCD, OpenBao) via Dex. (ArgoCD)
+# GitHub org whose membership gates the admin UIs (ArgoCD) via Dex. (ArgoCD)
 githubOrg: latebit-io
 
 # external-dns TXT-record ownership marker. Must be UNIQUE per cluster — if two
@@ -47,7 +47,7 @@ githubOrg: latebit-io
 dnsTxtOwnerId: knowledge-demarkus
 
 # Google OAuth *client id* for broker user login. Public identifier (the
-# matching secret lives in OpenBao). (ArgoCD)
+# matching secret lives in Secret Manager). (ArgoCD)
 oauthClientId: 941447371620-ihfmbrgip3dlaunqaa7e8675uoh6fs7v.apps.googleusercontent.com
 
 # Admin allowlist — broker world-mint allowlist + ArgoCD admin RBAC. (ArgoCD)

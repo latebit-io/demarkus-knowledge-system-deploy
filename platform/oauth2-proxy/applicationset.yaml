@@ -1,5 +1,5 @@
-# oauth2-proxy: GitHub OAuth gate for admin surfaces (argocd + openbao
-# admin UIs, and any future admin host under *.<domain>).
+# oauth2-proxy: GitHub OAuth gate for admin surfaces (argocd
+# admin UI, and any future admin host under *.<domain>).
 #
 # Config-driven: this ApplicationSet's git-files generator reads the repo-root
 # deployment.yaml and interpolates `domain` (auth host + cookie/whitelist
@@ -22,12 +22,11 @@
 #   1. Create a GitHub OAuth App (org settings if you want it under the
 #      org account, or personal settings):
 #        Authorization callback URL: https://auth.<domain>/oauth2/callback
-#   2. Seed OpenBao at secret/oauth2-proxy/github-client with three keys:
+#   2. Seed Secret Manager secret oauth2-proxy-github-client with three keys
+#      (see docs/runbook-secrets.md):
 #        client_id      = <from GitHub OAuth App>
 #        client_secret  = <from GitHub OAuth App>
 #        cookie_secret  = $(openssl rand -base64 32 | tr -d '=' | tr -- '+/' '-_')
-#   3. Extend the `external-secrets` OpenBao policy to allow read on
-#      secret/data/oauth2-proxy/* (see docs/runbook-eso-openbao.md §Step 1).
 #
 # Full operator runbook: docs/runbook-oauth2-proxy.md.
 # ────────────────────────────────────────────────────────────────────────
@@ -80,7 +79,7 @@ spec:
                 email_domains = ["*"]
                 github_org = "{{ .githubOrg }}"
                 # Cookie scoped to the parent domain so a single GitHub
-                # session covers argocd.*, openbao.*, and any future admin
+                # session covers argocd.* and any future admin
                 # subdomain. Cookie attributes are production-safe by
                 # default (Secure, HttpOnly, SameSite=lax).
                 cookie_domains = [".{{ .domain }}"]

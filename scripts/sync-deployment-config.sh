@@ -23,6 +23,7 @@ REPO_URL="$(yq -r '.repoURL' deployment.yaml)"
 [ -n "$REPO_URL" ] && [ "$REPO_URL" != "null" ] || { echo "deployment.yaml: repoURL is required" >&2; exit 2; }
 
 echo "deployment.yaml repoURL = $REPO_URL"
+echo "projectId = $(yq -r '.projectId' deployment.yaml), region = $(yq -r '.region' deployment.yaml)"
 echo "Propagating to ApplicationSet git generators…"
 
 changed=0
@@ -38,5 +39,24 @@ while IFS= read -r f; do
     changed=$((changed + 1))
   fi
 done < <(grep -rlE 'repoURL:[[:space:]]*https://github\.com/[^[:space:]]+\.git' apps platform bootstrap 2>/dev/null)
+
+# External Secrets store: its project, cluster location and the ESO service
+# account annotation are literals (no templating for a plain Application).
+PROJECT_ID="$(yq -r '.projectId' deployment.yaml)"
+REGION="$(yq -r '.region' deployment.yaml)"
+[ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "null" ] || { echo "deployment.yaml: projectId is required" >&2; exit 2; }
+[ -n "$REGION" ] && [ "$REGION" != "null" ] || { echo "deployment.yaml: region is required" >&2; exit 2; }
+
+STORE=platform/external-secrets/cluster-secret-store-gcp.yaml
+ESO_APP=platform/external-secrets/application.yaml
+before="$(cat "$STORE" "$ESO_APP")"
+P="$PROJECT_ID" L="${REGION}-a" yq -i \
+  '.spec.provider.gcpsm.projectID = strenv(P) | .spec.provider.gcpsm.auth.workloadIdentity.clusterLocation = strenv(L)' "$STORE"
+sed -E -i.bak "s#(iam\.gke\.io/gcp-service-account:[[:space:]]*external-secrets@)[^.[:space:]]+(\.iam\.gserviceaccount\.com)#\1${PROJECT_ID}\2#" "$ESO_APP"
+rm -f "$ESO_APP.bak"
+if [ "$before" != "$(cat "$STORE" "$ESO_APP")" ]; then
+  echo "  updated: $STORE, $ESO_APP"
+  changed=$((changed + 1))
+fi
 
 echo "Done — ${changed} file(s) updated ($([ "$changed" -eq 0 ] && echo 'already in sync' || echo 'committed by you'))."

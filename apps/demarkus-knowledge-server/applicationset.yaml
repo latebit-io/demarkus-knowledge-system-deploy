@@ -111,7 +111,7 @@ spec:
                 clientID: "{{ .oauthClientId }}"
                 existingSecretRef:
                   name: oidc-client
-                # From OpenBao (external-secrets.yaml here), so the key outlives
+                # From Secret Manager (external-secrets.yaml here), so the key outlives
                 # the pods and tokens minted before a restart still verify.
                 existingSigningKeyRef:
                   name: jwks-signing-key

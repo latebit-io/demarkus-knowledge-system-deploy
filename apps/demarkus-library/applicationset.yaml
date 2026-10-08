@@ -6,7 +6,7 @@
 # (broker origin, ingress host, redirect URI). The library is the registered
 # `library-web` confidential web client (deployment.yaml `webClients[]`, broker
 # ADR 0001): the broker holds the sha256 of the client secret + the exact
-# redirect URI; the plaintext secret reaches this pod via ESO from OpenBao
+# redirect URI; the plaintext secret reaches this pod via ESO from Secret Manager
 # (external-secret.yaml + docs/runbook-library.md).
 #
 # Topology notes:
@@ -353,7 +353,7 @@ spec:
                 # and this app is one specific client of it.
                 clientID: library-web
                 # Plaintext OAuth client secret, materialized by ESO from
-                # OpenBao (secret/library/oauth-client) — external-secret.yaml.
+                # Secret Manager (library-oauth-client) — external-secret.yaml.
                 # Never the cleartext `clientSecret` values path.
                 existingSecretRef:
                   name: library-oauth-client
@@ -370,8 +370,8 @@ spec:
 
               # The AI librarian (Phase 4), live on MiniMax: keyEnv selects
               # nib's builtin minimax profile (api.minimax.io, OpenAI-
-              # compatible); the key is materialized by ESO from OpenBao
-              # (secret/library/llm) — external-secret.yaml. Model pinned
+              # compatible); the key is materialized by ESO from Secret
+              # Manager (library-llm) — external-secret.yaml. Model pinned
               # explicitly so a nib default change can't silently swap it.
               librarian:
                 keyEnv: MINIMAX_API_KEY

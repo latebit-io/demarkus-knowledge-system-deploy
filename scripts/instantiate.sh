@@ -4,7 +4,7 @@
 # Phased and idempotent. The CONFIG phase only writes files (safe, re-runnable).
 # The CLOUD phases (bootstrap state, tofu apply) mutate real GCP resources and
 # are each gated behind an explicit y/N. The irreducibly-MANUAL steps (Google /
-# GitHub OAuth apps, DNS delegation, OpenBao seed) can't be safely automated —
+# GitHub OAuth apps, DNS delegation, secret seed) can't be safely automated —
 # the script pauses and points you at the exact runbook + commands.
 #
 # Re-run any time: already-done steps are detected and skipped. Nothing here is
@@ -53,7 +53,7 @@ need() { command -v "$1" >/dev/null 2>&1 || { warn "missing required tool: $1"; 
 preflight() {
   phase "Preflight — tools + auth"
   MISSING=0
-  for t in gcloud tofu kubectl helm yq bao; do need "$t"; done
+  for t in gcloud tofu kubectl helm yq; do need "$t"; done
   [ "${MISSING:-0}" = 0 ] || { warn "install the missing tools and re-run."; exit 2; }
   ok "tools present"
   if ! gcloud auth application-default print-access-token >/dev/null 2>&1; then
@@ -134,7 +134,7 @@ collect_config() {
   STATE_BUCKET="$(ask 'State bucket name (globally unique)' "")"
 
   # Fail fast on missing required inputs — before writing files or touching the
-  # cloud. (oauthClientId may be blank now and filled in before the OpenBao seed.)
+  # cloud. (oauthClientId may be blank now and filled in before the secret seed.)
   local missing=()
   [ -n "$DOMAIN" ] || missing+=("domain")
   [ -n "$PROJECT_ID" ] || missing+=("projectId")
@@ -264,16 +264,16 @@ guide_manual() {
   info "  gcloud dns record-sets list --zone <zone> --project $PROJECT_ID --filter type=NS"
   pause "Delegate NS + wait for propagation (cert-manager + external-dns need it)."
 
-  bold "  b) Seed OpenBao (Google OAuth client first)"
+  bold "  b) Seed secrets (Google OAuth client first)"
   info "Create a Google OAuth client (redirect https://broker.$DOMAIN/auth/callback),"
   info "put its id in deployment.yaml's oauthClientId, then seed secrets:"
-  info "  → docs/runbook-openbao-seed.md   (scripts/seed-openbao.sh helps)"
-  pause "Init + seed OpenBao (broker OIDC secret, signing key, world tokens)."
+  info "  → docs/runbook-secrets.md   (scripts/seed-secrets.sh helps)"
+  pause "Seed Secret Manager (broker OIDC secret, signing key)."
 
   bold "  c) Admin SSO (Dex + a GitHub OAuth app)"
   info "Create a GitHub OAuth app (callback https://dex.$DOMAIN/callback), seed its"
-  info "client into OpenBao, wire Dex.  → docs/runbook-dex-sso.md"
-  pause "Wire Dex SSO for the ArgoCD + OpenBao admin UIs."
+  info "client into Secret Manager, wire Dex.  → docs/runbook-dex-sso.md"
+  pause "Wire Dex SSO for the ArgoCD admin UI."
 
   bold "  d) CI (optional but recommended)"
   info "Bootstrap Workload Identity Federation so PRs plan + merges apply, no keys."
@@ -289,14 +289,14 @@ verify() {
   if curl -fsS "https://$DOMAIN/.well-known/oauth-protected-resource" >/dev/null 2>&1; then
     ok "$DOMAIN is serving RFC 9728 resource metadata — the MCP gateway is live."
   else
-    warn "$DOMAIN not answering yet — normal until DNS + ArgoCD + OpenBao seed are done."
+    warn "$DOMAIN not answering yet — normal until DNS + ArgoCD + secret seed are done."
   fi
   info "curl -fsS https://broker.$DOMAIN/.well-known/oauth-authorization-server | jq ."
   if curl -fsS "https://broker.$DOMAIN/.well-known/oauth-authorization-server" >/dev/null 2>&1; then
     ok "broker.$DOMAIN is serving RFC 8414 OAuth metadata — the issuer is live."
     info "Finish: /knowledge-join from a Claude Code plugin should complete the device flow."
   else
-    warn "broker.$DOMAIN not answering yet — normal until DNS + ArgoCD + OpenBao seed are done."
+    warn "broker.$DOMAIN not answering yet — normal until DNS + ArgoCD + secret seed are done."
   fi
 }
 

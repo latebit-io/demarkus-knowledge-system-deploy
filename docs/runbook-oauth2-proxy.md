@@ -1,20 +1,20 @@
 # oauth2-proxy GitHub admin auth runbook
 
 One-shot operator runbook for putting GitHub OAuth in front of the admin
-UIs (argocd, openbao, and any future host under `*.knowledge.demarkus.io`).
+UIs (argocd, and any future host under `*.knowledge.demarkus.io`).
 Run once per env, after `platform-oauth2-proxy` lands as an Argo
 Application (the manifests in `platform/oauth2-proxy/` ship the
 Application + ExternalSecret; the runbook covers the GitHub-side setup
-and the OpenBao seed that ESO bridges from).
+and the Secret Manager value that ESO bridges from).
 
 ## Prereqs
 
-- Phase 6 (`runbook-openbao-seed.md`) and Phase 7b
-  (`runbook-eso-openbao.md`) are complete — kv-v2 at `secret/`, ESO
-  installed with a working kubernetes-auth role.
+- Secret Manager + ESO working: `ClusterSecretStore` `gcp-sm` is Ready
+  and the `oauth2-proxy-github-client` secret container exists
+  (`tofu/modules/platform-iam`). See `runbook-secrets.md`.
 - Admin access to GitHub org `latebit-io` (or whichever org you're
   gating admission on).
-- `kubectl` + `bao` CLI on PATH (or shell into `openbao-0` for `bao`).
+- `kubectl` and `gcloud` on PATH, with write access to Secret Manager.
 
 ## Step 1 — Create the GitHub OAuth App
 
@@ -46,63 +46,30 @@ authorization (OAuth) during installation** on the org App settings.
 Otherwise the first login will prompt the user to authorize the
 `read:org` scope; this is fine, just an extra click.
 
-## Step 2 — Seed OpenBao
-
-Port-forward + token from `runbook-openbao-seed.md` Step 0 / Step 1:
-
-```sh
-kubectl -n openbao port-forward svc/openbao 8200:8200 &
-export BAO_ADDR=http://127.0.0.1:8200
-export BAO_TOKEN=<root>
-```
+## Step 2 — Store the values in Secret Manager
 
 Generate a fresh cookie-encryption secret (32 bytes, base64url, no
-padding — what oauth2-proxy expects):
+padding, what oauth2-proxy expects):
 
 ```sh
 COOKIE_SECRET=$(openssl rand -base64 32 | tr -d '=' | tr -- '+/' '-_')
 ```
 
-Write the three fields:
+Secret `oauth2-proxy-github-client` holds one JSON object with
+`client_id`, `client_secret` (from the GitHub OAuth App) and
+`cookie_secret`. Value via stdin, never on the command line:
 
 ```sh
-bao kv put secret/oauth2-proxy/github-client \
-  client_id="<from GitHub OAuth App>" \
-  client_secret="<from GitHub OAuth App>" \
-  cookie_secret="$COOKIE_SECRET"
+printf '%s' "{\"client_id\":\"<id>\",\"client_secret\":\"<secret>\",\"cookie_secret\":\"$COOKIE_SECRET\"}" \
+  | gcloud secrets versions add oauth2-proxy-github-client \
+      --project <project> --data-file=-
 ```
 
-Verify:
+The secret container and the `external-secrets` GSA's secretAccessor
+binding come from `tofu/modules/platform-iam`. Verify and troubleshoot
+per `runbook-secrets.md`.
 
-```sh
-bao kv get secret/oauth2-proxy/github-client
-```
-
-## Step 3 — Extend the ESO policy
-
-The `external-secrets` policy currently only allows `read` on
-`secret/data/broker/*`. ESO needs to read `secret/data/oauth2-proxy/*`
-too. Update the policy (the `bao policy write` command overwrites
-existing — the new policy below is the full body):
-
-```sh
-bao policy write external-secrets - <<'POLICY'
-path "secret/data/broker/*" {
-  capabilities = ["read"]
-}
-path "secret/data/oauth2-proxy/*" {
-  capabilities = ["read"]
-}
-POLICY
-```
-
-Verify:
-
-```sh
-bao policy read external-secrets
-```
-
-## Step 4 — Force the ExternalSecret to sync
+## Step 3 — Force the ExternalSecret to sync
 
 ```sh
 kubectl -n oauth2-proxy annotate externalsecret github-client \
@@ -113,10 +80,10 @@ kubectl -n oauth2-proxy get secret github-client
 # expect 3 data keys
 ```
 
-## Step 5 — Verify the auth flow
+## Step 4 — Verify the auth flow
 
-Open `https://argocd.knowledge.demarkus.io` (or
-`https://openbao.knowledge.demarkus.io`) in a browser:
+Open `https://argocd.knowledge.demarkus.io` (or any other host gated by
+oauth2-proxy) in a browser:
 
 1. Should redirect to `https://auth.knowledge.demarkus.io/oauth2/start?rd=...`
 2. Which redirects to GitHub for OAuth login
@@ -126,23 +93,17 @@ Open `https://argocd.knowledge.demarkus.io` (or
 6. On success: sets a `_oauth2_proxy` cookie scoped to
    `.knowledge.demarkus.io` and redirects to the original `rd=` target
 7. ingress-nginx now sees a valid cookie via `auth-url` → forwards to
-   ArgoCD / OpenBao
+   the upstream
 
-Subsequent visits to either admin host within the cookie's lifetime
+Subsequent visits to any gated admin host within the cookie's lifetime
 (default 168h) skip the OAuth dance entirely.
-
-## Step 6 — Tear down
-
-```sh
-unset BAO_TOKEN BAO_ADDR
-# Ctrl-C the port-forward.
-```
 
 ## Operational notes
 
 - **Rotation:** to rotate the GitHub client_secret, generate a new one
-  in the GitHub OAuth App settings, then `bao kv put` overwrites the
-  existing entry and ESO refreshes within 1h (or force-sync). Cookie
+  in the GitHub OAuth App settings, then add a new version of
+  `oauth2-proxy-github-client` (all three keys; see `runbook-secrets.md`).
+  ESO refreshes within 1h (or force-sync). Cookie
   secret rotation invalidates all active sessions — users will be
   redirected through GitHub on next request.
 - **Adding admins:** add the user to the `latebit-io` org. No deploy
@@ -161,8 +122,8 @@ unset BAO_TOKEN BAO_ADDR
   storage — session is the cookie body. Switching to redis is a
   scale concern (large admin user base, very long sessions) that
   doesn't apply here.
-- **Per-host RBAC inside the apps.** ArgoCD has its own RBAC; OpenBao
-  has its own auth tokens. oauth2-proxy gates *access* to the ingress,
+- **Per-host RBAC inside the apps.** ArgoCD has its own RBAC.
+  oauth2-proxy gates *access* to the ingress,
   not what you can do once in. Future hardening could wire ArgoCD's
   OIDC config to read the `X-Auth-Request-User` header the ingress
   forwards.

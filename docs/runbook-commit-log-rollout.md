@@ -108,8 +108,8 @@ the new pods are ready, about an hour including the wipe.
 10. Soak 24 hours: writer replica memory, `checkpoint written` on the cadence,
     no `checkpoint failed` or `reloading from the newest checkpoint`. Then
     delete the orphaned `bruno` bucket once `gcloud storage ls --soft-deleted`
-    shows nothing left in it, and remove the `bruno` entries from OpenBao and
-    the ExternalSecrets if any remain.
+    shows nothing left in it, and remove any `bruno` Secret Manager secrets
+    (`gcloud secrets delete`) and ExternalSecrets that remain.
 
 ## Rollback (within 7 days)
 
