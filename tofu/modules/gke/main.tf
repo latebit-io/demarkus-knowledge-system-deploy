@@ -79,47 +79,6 @@ resource "google_container_cluster" "this" {
   }
 }
 
-resource "google_container_node_pool" "primary" {
-  project    = var.project_id
-  name       = "primary"
-  cluster    = google_container_cluster.this.id
-  node_count = var.node_count
-
-  node_config {
-    machine_type = var.machine_type
-    disk_size_gb = var.disk_size_gb
-    disk_type    = var.disk_type
-    image_type   = "COS_CONTAINERD"
-
-    metadata = {
-      "disable-legacy-endpoints" = "true"
-    }
-
-    service_account = google_service_account.nodes.email
-    oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
-
-    workload_metadata_config {
-      mode = "GKE_METADATA"
-    }
-
-    shielded_instance_config {
-      enable_secure_boot          = true
-      enable_integrity_monitoring = true
-    }
-  }
-
-  management {
-    auto_upgrade = true
-    auto_repair  = true
-  }
-
-  upgrade_settings {
-    strategy        = "SURGE"
-    max_surge       = 1
-    max_unavailable = 0
-  }
-}
-
 # Spot nodes for every workload, system pods included (untainted). A preempted
 # node briefly interrupts whatever ran on it, ingress-nginx included.
 # Secure boot is off to match the pool created with gcloud; flipping it
