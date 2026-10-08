@@ -1,0 +1,29 @@
+# Admits the library's server-side broker calls on the in-cluster HTTP
+# listener (apps/demarkus-library: library.broker.internalURL). The chart's
+# own policy admits :8080 from ingress-nginx only; NetworkPolicies are
+# additive, so this stays outside the chart. Scope is the library pods, not
+# the whole namespace.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: knowledge-http-from-library
+  namespace: demarkus-knowledge
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: knowledge
+      app.kubernetes.io/name: demarkus-knowledge-server
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: demarkus-library
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: demarkus-library
+              app.kubernetes.io/name: demarkus-library
+      ports:
+        - protocol: TCP
+          port: 8080

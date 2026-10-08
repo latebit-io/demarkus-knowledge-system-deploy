@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.34.0
+        targetRevision: 0.36.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -311,8 +311,11 @@ spec:
             # featured documents, with the world's own name, logo, and accent.
             # 0.33.0 (library #82) drops the visible "Universe" heading (the
             # pane head names it); screen readers keep it.
+            # 0.36.0 (library #85, #86) routes server-side broker calls to
+            # the in-cluster knowledge Service (broker.internalURL below) and
+            # opens the matching NetworkPolicy egress.
             image:
-              tag: "0.34.0"
+              tag: "0.36.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
@@ -348,6 +351,12 @@ spec:
                 # MCP gateway origin — serves the RFC 8414 metadata AND /mcp.
                 # The metadata routes authorize/token to broker.{{ .domain }}.
                 url: "https://{{ .domain }}"
+                # Server-side calls (discovery, token, revoke, /mcp) go to the
+                # knowledge Service directly, not out through the edge
+                # allowlist; the public hosts stay the identity (Host
+                # header, issuer checks). Plain http inside the cluster.
+                # Paired with networkpolicy-library.yaml in the knowledge app.
+                internalURL: http://knowledge.demarkus-knowledge.svc.cluster.local:8080
                 # webClients registry entry in deployment.yaml. Plain literal
                 # (not templated from webClients[]) — the registry is a list
                 # and this app is one specific client of it.
