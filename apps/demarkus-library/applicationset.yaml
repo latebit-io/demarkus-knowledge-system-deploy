@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.36.0
+        targetRevision: 0.37.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -314,8 +314,11 @@ spec:
             # 0.36.0 (library #85, #86) routes server-side broker calls to
             # the in-cluster knowledge Service (broker.internalURL below) and
             # opens the matching NetworkPolicy egress.
+            # 0.37.0 (library #87) forwards the reader's IP on token calls
+            # (broker.forwardReaderIP below) so the broker's per-IP limits key
+            # per reader, not on the library pod.
             image:
-              tag: "0.36.0"
+              tag: "0.37.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
@@ -357,6 +360,11 @@ spec:
                 # header, issuer checks). Plain http inside the cluster.
                 # Paired with networkpolicy-library.yaml in the knowledge app.
                 internalURL: http://knowledge.demarkus-knowledge.svc.cluster.local:8080
+                # Reader IP (ingress-nginx's X-Real-IP) as X-Forwarded-For on
+                # token exchange, refresh and revoke: the broker trusts XFF
+                # (rateLimit.trustForwardedFor) and would otherwise bucket
+                # every reader on this pod's address.
+                forwardReaderIP: true
                 # webClients registry entry in deployment.yaml. Plain literal
                 # (not templated from webClients[]) — the registry is a list
                 # and this app is one specific client of it.
