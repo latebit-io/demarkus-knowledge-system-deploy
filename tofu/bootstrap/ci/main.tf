@@ -113,6 +113,7 @@ resource "google_project_iam_member" "tofu_ci_prod" {
     "roles/resourcemanager.projectIamAdmin",
     "roles/iam.serviceAccountUser",
     "roles/cloudkms.admin",
+    "roles/secretmanager.admin",
     "roles/monitoring.notificationChannelEditor",
   ])
 
