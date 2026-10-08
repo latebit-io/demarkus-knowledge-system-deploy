@@ -64,7 +64,7 @@ variable "node_count" {
 variable "spot_node_count" {
   description = "Fixed number of Spot nodes in the spot pool."
   type        = number
-  default     = 3
+  default     = 4
 }
 
 variable "machine_type" {

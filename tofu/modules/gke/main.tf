@@ -120,8 +120,8 @@ resource "google_container_node_pool" "primary" {
   }
 }
 
-# Spot nodes for everything except ingress-nginx and openbao, which select
-# gke-provisioning=standard. Untainted so system pods can land here too.
+# Spot nodes for every workload, system pods included (untainted). A preempted
+# node briefly interrupts whatever ran on it, ingress-nginx included.
 # Secure boot is off to match the pool created with gcloud; flipping it
 # replaces the pool.
 resource "google_container_node_pool" "spot" {

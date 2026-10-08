@@ -53,10 +53,6 @@ spec:
             limits:
               memory: 256Mi
 
-          # Single replica, so keep it off preemptible Spot nodes.
-          nodeSelector:
-            cloud.google.com/gke-provisioning: standard
-
           # No HPA, no PDB — single replica intentionally.
           autoscaling:
             enabled: false
