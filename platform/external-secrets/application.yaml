@@ -1,28 +1,12 @@
-# External Secrets Operator (ESO). Bridges OpenBao secrets into native
-# Kubernetes Secrets so helm charts that expect `secretKeyRef`-shaped env
-# (like demarkus-knowledge-server) can consume them without modification.
+# External Secrets Operator (ESO). Bridges GCP Secret Manager secrets into
+# native Kubernetes Secrets so helm charts that expect `secretKeyRef`-shaped
+# env (like demarkus-knowledge-server) can consume them without modification.
 #
-# Sync wave: -1. ESO doesn't depend on OpenBao to install — it only calls
-# OpenBao when an ExternalSecret resource references a ClusterSecretStore
-# backed by it. The store itself is cluster-secret-store.yaml here.
-#
-# ────────────────────────────────────────────────────────────────────────
-# ONE-TIME OPENBAO WIRING (after this Application is Synced+Healthy):
-#
-#   kubectl -n openbao exec -ti openbao-0 -- /bin/sh -c '
-#     export BAO_TOKEN=<root>
-#     bao policy write external-secrets - <<POLICY
-#   path "secret/data/broker/*" { capabilities = ["read"] }
-#   POLICY
-#     bao write auth/kubernetes/role/external-secrets \
-#       bound_service_account_names="external-secrets" \
-#       bound_service_account_namespaces="external-secrets" \
-#       policies="external-secrets" \
-#       ttl="1h"
-#   '
-#
-# See docs/runbook-eso-openbao.md for the operator-facing version.
-# ────────────────────────────────────────────────────────────────────────
+# Sync wave: -1. ESO only calls Secret Manager when an ExternalSecret
+# references the `gcp-sm` ClusterSecretStore (cluster-secret-store-gcp.yaml).
+# Auth is Workload Identity: the KSA below is annotated with the
+# external-secrets GSA (tofu/modules/platform-iam), which has secretAccessor
+# on each listed secret. Values are added with `gcloud secrets versions add`.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -62,11 +46,9 @@ spec:
         certController:
           replicaCount: 1
 
-        # ServiceAccount name is the identity OpenBao's kubernetes-auth
-        # role binds against (bound_service_account_names=external-secrets,
-        # bound_service_account_namespaces=external-secrets). Explicit so
-        # a future chart default change can't silently break the auth
-        # binding.
+        # ServiceAccount name is the identity the Workload Identity binding
+        # in tofu targets (external-secrets/external-secrets). Explicit so
+        # a future chart default change can't silently break it.
         serviceAccount:
           create: true
           name: external-secrets
