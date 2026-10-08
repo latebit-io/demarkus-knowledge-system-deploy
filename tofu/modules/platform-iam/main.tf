@@ -1,26 +1,20 @@
-# ─── KMS key formerly used for OpenBao auto-unseal ───────────────────────────
-# OpenBao is gone, but the final data snapshots (openbao-*-final-*) are
-# encrypted under this key. Keep the key until those snapshots are deleted,
-# then remove it from tofu with a `removed` block (KMS keys cannot be deleted,
-# only their versions scheduled for destruction).
-
-resource "google_kms_key_ring" "platform" {
-  project  = var.project_id
-  name     = var.kms_key_ring_name
-  location = var.region
+# The OpenBao unseal key ring and key are no longer managed here. Both stay in
+# GCP (KMS keys cannot be deleted); `destroy = false` only forgets them. Key
+# version 1 is scheduled for destruction by hand with `gcloud kms keys
+# versions destroy`.
+removed {
+  from = google_kms_crypto_key.openbao_unseal
 
   lifecycle {
-    prevent_destroy = true
+    destroy = false
   }
 }
 
-resource "google_kms_crypto_key" "openbao_unseal" {
-  name     = var.openbao_unseal_key_name
-  key_ring = google_kms_key_ring.platform.id
-  purpose  = "ENCRYPT_DECRYPT"
+removed {
+  from = google_kms_key_ring.platform
 
   lifecycle {
-    prevent_destroy = true
+    destroy = false
   }
 }
 
