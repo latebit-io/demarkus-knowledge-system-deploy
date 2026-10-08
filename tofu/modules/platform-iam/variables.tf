@@ -18,18 +18,6 @@ variable "workload_identity_pool" {
   type        = string
 }
 
-variable "openbao_namespace" {
-  description = "Kubernetes namespace OpenBao runs in."
-  type        = string
-  default     = "openbao"
-}
-
-variable "openbao_ksa" {
-  description = "Kubernetes service account name OpenBao runs as."
-  type        = string
-  default     = "openbao"
-}
-
 variable "external_dns_namespace" {
   description = "Kubernetes namespace external-dns runs in."
   type        = string
@@ -76,13 +64,8 @@ variable "kms_key_ring_name" {
 }
 
 variable "openbao_unseal_key_name" {
-  description = "Name of the KMS key used for OpenBao auto-unseal."
+  description = "Name of the retained KMS key that encrypts the final OpenBao snapshots."
   type        = string
   default     = "openbao-unseal"
 }
 
-variable "openbao_unseal_key_rotation_period" {
-  description = "Rotation period for the unseal key (Google duration string). Auto-unseal supports key rotation transparently."
-  type        = string
-  default     = "7776000s" # 90 days
-}
