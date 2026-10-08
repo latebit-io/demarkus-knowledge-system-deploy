@@ -59,6 +59,9 @@ module "platform_iam" {
   region                 = local.region
   dns_zone_name          = module.dns.zone_name
   workload_identity_pool = module.gke.workload_identity_pool
+
+  # The Secret Manager API is enabled by the project module.
+  depends_on = [module.project]
 }
 
 module "knowledge_storage" {

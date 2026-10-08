@@ -37,6 +37,7 @@ variable "apis" {
     "storage.googleapis.com",
     "iam.googleapis.com",
     "cloudkms.googleapis.com",
+    "secretmanager.googleapis.com",
     "billingbudgets.googleapis.com",
   ]
 }
