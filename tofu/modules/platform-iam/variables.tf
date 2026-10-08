@@ -3,11 +3,6 @@ variable "project_id" {
   type        = string
 }
 
-variable "region" {
-  description = "Region for the KMS key ring."
-  type        = string
-}
-
 variable "dns_zone_name" {
   description = "Cloud DNS managed zone name that external-dns is allowed to write to."
   type        = string
@@ -56,16 +51,3 @@ variable "secret_manager_secrets" {
     "oauth2-proxy-github-client",
   ]
 }
-
-variable "kms_key_ring_name" {
-  description = "Name of the KMS key ring."
-  type        = string
-  default     = "demarkus-platform"
-}
-
-variable "openbao_unseal_key_name" {
-  description = "Name of the retained KMS key that encrypts the final OpenBao snapshots."
-  type        = string
-  default     = "openbao-unseal"
-}
-

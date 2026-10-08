@@ -56,7 +56,6 @@ module "platform_iam" {
   source = "../../modules/platform-iam"
 
   project_id             = module.project.project_id
-  region                 = local.region
   dns_zone_name          = module.dns.zone_name
   workload_identity_pool = module.gke.workload_identity_pool
 
