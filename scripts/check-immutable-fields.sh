@@ -201,7 +201,6 @@ process_app() {
 # StatefulSet-bearing apps. The Helm-source path prefix is derived per-manifest
 # from its kind inside process_app (Application vs ApplicationSet).
 process_app worlds  apps/demarkus-worlds/applicationset.yaml world
-process_app openbao platform/openbao/applicationset.yaml openbao
 
 if [ ! -s "$FINDINGS" ]; then
   echo "✅ No immutable StatefulSet field changes between $BASE and HEAD."

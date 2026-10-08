@@ -1,6 +1,6 @@
 # Daily CSI snapshot backup of every PVC in a namespace labeled
 # `demarkus.io/backup=true` (set on world namespaces by the worlds
-# ApplicationSet's managedNamespaceMetadata, and on the openbao namespace).
+# ApplicationSet's managedNamespaceMetadata).
 # New worlds are covered automatically — no per-world config.
 #
 # Retention is simple age-based (RETENTION_DAYS): snapshots created by this
