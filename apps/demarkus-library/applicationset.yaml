@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.37.0
+        targetRevision: 0.37.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -317,8 +317,11 @@ spec:
             # 0.37.0 (library #87) forwards the reader's IP on token calls
             # (broker.forwardReaderIP below) so the broker's per-IP limits key
             # per reader, not on the library pod.
+            # 0.37.1 (library #88) reads every metadata key again (the margin
+            # had been empty of tags, type and agent since the lean fetch
+            # envelope) and shows the writer's email as user beside agent.
             image:
-              tag: "0.37.0"
+              tag: "0.37.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
