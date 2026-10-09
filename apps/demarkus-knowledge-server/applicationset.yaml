@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.54.0
+        targetRevision: 0.55.2
         helm:
           releaseName: knowledge
           values: |
@@ -50,7 +50,13 @@ spec:
               # 0.54.0 (demarkus #538 to #543, ADR 0036): the commit-log bucket
               # store. No migration: a schema 1 bucket is refused at open, so the
               # world buckets are emptied first (docs/runbook-commit-log-rollout.md).
-              tag: "0.54.0"
+              # 0.55.2 (demarkus #551, ADR 0038): a write carries the verified
+              # email as user and the MCP client name as agent; the commit-log
+              # entry gains an optional user field. 0.54.0 pods decode slots
+              # strictly, so during the roll an old pod stops following slots a
+              # new pod wrote, and there is no rollback to 0.54.0 once a 0.55.2
+              # write lands.
+              tag: "0.55.2"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
@@ -140,6 +146,14 @@ spec:
                 tokens:
                   perMinute: 120
                   burst: 60
+                # Readers reach the broker from the VPN's egress address, and
+                # the library forwards that as X-Forwarded-For, so the IP
+                # bucket on /device/token and /token/revoke is per company.
+                # Sized for a login wave of a few hundred people plus hourly
+                # refresh churn.
+                login:
+                  perMinute: 600
+                  burst: 200
 
             # Memory tenants: created on first arrival of an allowlisted
             # identity, recorded in demarkus-memory-broker-registry.
