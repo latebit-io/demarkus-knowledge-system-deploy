@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.55.2
+        targetRevision: 0.56.0
         helm:
           releaseName: knowledge
           values: |
@@ -56,7 +56,9 @@ spec:
               # strictly, so during the roll an old pod stops following slots a
               # new pod wrote, and there is no rollback to 0.54.0 once a 0.55.2
               # write lands.
-              tag: "0.55.2"
+              # 0.56.0 (demarkus #556): mark_fetch and mark_explore return every
+              # metadata key, no verbose argument. No store format change.
+              tag: "0.56.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
