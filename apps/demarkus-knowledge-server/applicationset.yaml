@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.56.0
+        targetRevision: 0.61.2
         helm:
           releaseName: knowledge
           values: |
@@ -58,7 +58,13 @@ spec:
               # write lands.
               # 0.56.0 (demarkus #556): mark_fetch and mark_explore return every
               # metadata key, no verbose argument. No store format change.
-              tag: "0.56.0"
+              # 0.61.2 (demarkus #559 to #568, ADR 0035): graph observed on
+              # write, budgeted lookup with hops, content-addressed fetch and
+              # the mark_resolve and mark_index tools removed, pre-1.0 shims
+              # dropped. The body-hash index lived only in the in-memory
+              # snapshot; checkpoints and slots are unchanged, so 0.56.0 pods
+              # follow the log during the roll and rollback stays open.
+              tag: "0.61.2"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
