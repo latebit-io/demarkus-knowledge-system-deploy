@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.61.2
+        targetRevision: 0.63.0
         helm:
           releaseName: knowledge
           values: |
@@ -64,7 +64,13 @@ spec:
               # dropped. The body-hash index lived only in the in-memory
               # snapshot; checkpoints and slots are unchanged, so 0.56.0 pods
               # follow the log during the roll and rollback stays open.
-              tag: "0.61.2"
+              # 0.63.0 (demarkus #570, #572, ADR 0040): the standalone
+              # federation agent and its NetworkPolicy ingress rule are gone
+              # (the hub derives in process since 0.52.0); mark_publish runs
+              # the style gate and answers with a note; mark_doctor,
+              # mark_curate and mark_promote join the gateway. No store
+              # format change; the policy parser reads the same lines.
+              tag: "0.63.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
