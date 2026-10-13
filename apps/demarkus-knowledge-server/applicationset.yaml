@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.63.0
+        targetRevision: 0.63.1
         helm:
           releaseName: knowledge
           values: |
@@ -70,7 +70,11 @@ spec:
               # the style gate and answers with a note; mark_doctor,
               # mark_curate and mark_promote join the gateway. No store
               # format change; the policy parser reads the same lines.
-              tag: "0.63.0"
+              # 0.63.1 (demarkus #574): mark_doctor Markdown caps each check
+              # at 20 findings so a whole-world audit fits one MCP result;
+              # the journal route dates by the gateway's local day. No store
+              # format change.
+              tag: "0.63.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
