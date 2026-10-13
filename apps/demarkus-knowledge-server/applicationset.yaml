@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.63.1
+        targetRevision: 0.64.0
         helm:
           releaseName: knowledge
           values: |
@@ -74,7 +74,11 @@ spec:
               # at 20 findings so a whole-world audit fits one MCP result;
               # the journal route dates by the gateway's local day. No store
               # format change.
-              tag: "0.63.1"
+              # 0.64.0 (demarkus #577, ADR 0041): the gateway serves the hub's
+              # four branding documents at /worlds/<hub>/.well-known/library/
+              # without a bearer, cached a minute per document, so a cold
+              # library pod brands its sign-in page. No store format change.
+              tag: "0.64.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.

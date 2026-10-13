@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.38.0
+        targetRevision: 0.38.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -323,8 +323,13 @@ spec:
             # 0.38.0 (library #89) draws the graph, world map and universe
             # as neurons: curved axons with boutons, somas with dendrites,
             # directories as lobes and ganglia. Rendering only; no new values.
+            # 0.38.1 (library #90, #91) brands cold pods: the hub's branding
+            # is read over the knowledge gateway's public route (0.64.0) via
+            # the same broker URL, falling back to the reader's bearer on an
+            # older gateway; theme assets carry a live session's bearer. No
+            # new values.
             image:
-              tag: "0.38.0"
+              tag: "0.38.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
