@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.64.0
+        targetRevision: 0.65.0
         helm:
           releaseName: knowledge
           values: |
@@ -78,7 +78,15 @@ spec:
               # four branding documents at /worlds/<hub>/.well-known/library/
               # without a bearer, cached a minute per document, so a cold
               # library pod brands its sign-in page. No store format change.
-              tag: "0.64.0"
+              # 0.65.0 (demarkus #583): the hub world's write policy is the
+              # floor every other world's policy is merged over (floorWorld,
+              # rendered from hub: true); every write is scanned for secrets
+              # (refused, never overridable) and personal data (contentCheck.pii
+              # block by default); allow_tags.<axis> lists a tag axis's values;
+              # the style guide is seeded on the hub create-only, so root's
+              # hand-published style.md stays and mark_doctor reports it stale
+              # until its rule table is pasted in. No store format change.
+              tag: "0.65.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
