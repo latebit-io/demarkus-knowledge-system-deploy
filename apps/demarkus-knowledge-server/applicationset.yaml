@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.65.0
+        targetRevision: 0.65.1
         helm:
           releaseName: knowledge
           values: |
@@ -86,7 +86,10 @@ spec:
               # the style guide is seeded on the hub create-only, so root's
               # hand-published style.md stays and mark_doctor reports it stale
               # until its rule table is pasted in. No store format change.
-              tag: "0.65.0"
+              # 0.65.1 (demarkus #586): mark_doctor fetches the style guide by
+              # path, since LIST hides .well-known/, so the stale-guide check
+              # reaches root. No store format change.
+              tag: "0.65.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
