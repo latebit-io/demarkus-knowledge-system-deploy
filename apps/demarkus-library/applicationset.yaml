@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.38.1
+        targetRevision: 0.38.2
         helm:
           releaseName: demarkus-library
           values: |
@@ -328,8 +328,12 @@ spec:
             # the same broker URL, falling back to the reader's bearer on an
             # older gateway; theme assets carry a live session's bearer. No
             # new values.
+            # 0.38.2 (library #92) mints trail URLs without `//` (`~~` after a
+            # listing), which slash-merging proxies turned into a silent 400,
+            # and shows error pages instead of swallowing failed clicks. No
+            # new values.
             image:
-              tag: "0.38.1"
+              tag: "0.38.2"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
