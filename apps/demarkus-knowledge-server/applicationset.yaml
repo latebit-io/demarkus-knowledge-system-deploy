@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.65.1
+        targetRevision: 0.74.1
         helm:
           releaseName: knowledge
           values: |
@@ -89,7 +89,15 @@ spec:
               # 0.65.1 (demarkus #586): mark_doctor fetches the style guide by
               # path, since LIST hides .well-known/, so the stale-guide check
               # reaches root. No store format change.
-              tag: "0.65.1"
+              # 0.74.1 (demarkus #604 to #637, ADR 0037 and 0045): a landed
+              # write's response carries a `warning` key with what the gate let
+              # through (a PII warn, a warn-level policy miss) instead of a log
+              # line; a world can live on a directory (dir in place of bucket,
+              # unused here); demarkus-knowledge serves the worlds alone when
+              # given no broker config; the worlds-only binary is gone. The
+              # config keeps today's defaults (policy seeded, health on 8081,
+              # certificate pair). No store format change.
+              tag: "0.74.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
