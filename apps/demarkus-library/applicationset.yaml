@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.38.2
+        targetRevision: 0.39.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -332,8 +332,12 @@ spec:
             # listing), which slash-merging proxies turned into a silent 400,
             # and shows error pages instead of swallowing failed clicks. No
             # new values.
+            # 0.38.3 (library #93) bumps the demarkus client to v0.60.3.
+            # 0.39.0 (library #94, #95) copies a document's mark:// address
+            # (and a heading's #anchor) to the clipboard: icon beside the
+            # pane address, `c` hotkey, icons on headings. No new values.
             image:
-              tag: "0.38.2"
+              tag: "0.39.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
