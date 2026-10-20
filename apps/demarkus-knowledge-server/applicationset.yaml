@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.74.1
+        targetRevision: 0.74.2
         helm:
           releaseName: knowledge
           values: |
@@ -97,7 +97,12 @@ spec:
               # given no broker config; the worlds-only binary is gone. The
               # config keeps today's defaults (policy seeded, health on 8081,
               # certificate pair). No store format change.
-              tag: "0.74.1"
+              # 0.74.2 (demarkus #640): mark_doctor reads a world's own
+              # absolute links (mark://<world>/...) as internal, so flat
+              # collections stop reading as orphans; a landed PUBLISH or
+              # APPEND answers with etag and content-hash. No config or
+              # store format change.
+              tag: "0.74.2"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
