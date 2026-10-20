@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.74.2
+        targetRevision: 0.75.0
         helm:
           releaseName: knowledge
           values: |
@@ -102,7 +102,10 @@ spec:
               # collections stop reading as orphans; a landed PUBLISH or
               # APPEND answers with etag and content-hash. No config or
               # store format change.
-              tag: "0.74.2"
+              # 0.75.0 (demarkus #643): plugin host tools in the shared tool
+              # class table, nothing the gateway serves. No config or store
+              # format change.
+              tag: "0.75.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
