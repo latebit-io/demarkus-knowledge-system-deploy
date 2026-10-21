@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.75.0
+        targetRevision: 0.75.2
         helm:
           releaseName: knowledge
           values: |
@@ -105,7 +105,16 @@ spec:
               # 0.75.0 (demarkus #643): plugin host tools in the shared tool
               # class table, nothing the gateway serves. No config or store
               # format change.
-              tag: "0.75.0"
+              # 0.75.2 (demarkus #646 to #652): memory worlds are `gated`
+              # (served only through the bearer listener and in process; the
+              # provisioner writes the key into the worlds fragment and the
+              # chart renders it from `profile: memory`, so chart and image
+              # move together, the loader is strict); each gateway dispatches
+              # only its profile's worlds; a dynamically registered client
+              # with an https redirect sees a consent page before its code;
+              # the floor policy is read without the floor's lock. No store
+              # format change.
+              tag: "0.75.2"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
