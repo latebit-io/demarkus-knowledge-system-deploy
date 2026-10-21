@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.75.4
+        targetRevision: 0.76.0
         helm:
           releaseName: knowledge
           values: |
@@ -128,7 +128,13 @@ spec:
               # checkpoints. Format relaxation: a widened root (shard bits
               # above the count rule) is refused by an older image, so no
               # rollback past a widened checkpoint. No config change.
-              tag: "0.75.4"
+              # 0.76.0 (demarkus #664): near-duplicate gate on every PUBLISH
+              # and APPEND, warn only, named on the `warning` key; LOOKUP
+              # `match: similar` for the promote dry run; the doctor's near
+              # tier. Signatures live in the in-memory section index, so the
+              # first write after a roll is unchecked until it is built. No
+              # config or store format change.
+              tag: "0.76.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
