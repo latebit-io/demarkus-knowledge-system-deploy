@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.75.3
+        targetRevision: 0.75.4
         helm:
           releaseName: knowledge
           values: |
@@ -120,7 +120,15 @@ spec:
               # publish no longer shows stale with revision-conflict; a hub
               # bullet added on publish joins the section listing the
               # document's siblings. No config or store format change.
-              tag: "0.75.3"
+              # 0.75.4 (demarkus #658, issue #542): a content object the
+              # bucket rejects fails the publish instead of acknowledging a
+              # version over a missing blob; heading-derived titles are capped
+              # at the metadata limit; checkpoint shards are measured against
+              # a byte budget and the layout widens, kept on later
+              # checkpoints. Format relaxation: a widened root (shard bits
+              # above the count rule) is refused by an older image, so no
+              # rollback past a widened checkpoint. No config change.
+              tag: "0.75.4"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
