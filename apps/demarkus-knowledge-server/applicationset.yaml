@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.75.2
+        targetRevision: 0.75.3
         helm:
           releaseName: knowledge
           values: |
@@ -114,7 +114,13 @@ spec:
               # with an https redirect sees a consent page before its code;
               # the floor policy is read without the floor's lock. No store
               # format change.
-              tag: "0.75.2"
+              # 0.75.3 (demarkus #655): a checkpoint row seeded into the gateway
+              # graph carries the world's address as its source, the same the
+              # gateway records for its own writes, so a backlink read after a
+              # publish no longer shows stale with revision-conflict; a hub
+              # bullet added on publish joins the section listing the
+              # document's siblings. No config or store format change.
+              tag: "0.75.3"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
