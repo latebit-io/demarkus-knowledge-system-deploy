@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.39.0
+        targetRevision: 0.39.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -336,8 +336,11 @@ spec:
             # 0.39.0 (library #94, #95) copies a document's mark:// address
             # (and a heading's #anchor) to the clipboard: icon beside the
             # pane address, `c` hotkey, icons on headings. No new values.
+            # 0.39.1 (library #96) retries 429/529 model calls with backoff
+            # and resumes a librarian ask across an SSE reconnect instead of
+            # "this ask expired"; keepalive frames every 15s. No new values.
             image:
-              tag: "0.39.0"
+              tag: "0.39.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
