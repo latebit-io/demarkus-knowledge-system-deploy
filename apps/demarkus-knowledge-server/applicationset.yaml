@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.76.0
+        targetRevision: 0.77.0
         helm:
           releaseName: knowledge
           values: |
@@ -134,7 +134,13 @@ spec:
               # tier. Signatures live in the in-memory section index, so the
               # first write after a roll is unchecked until it is built. No
               # config or store format change.
-              tag: "0.76.0"
+              # 0.77.0 (demarkus #666): the write gate warms each writable
+              # world's section index at open, so a pod's first write after a
+              # roll is judged instead of passing while the index is cold; a
+              # cold index is waited for up to the one-second freshness bound.
+              # One index build per writable world per pod start, in the
+              # background. No config or store format change.
+              tag: "0.77.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
