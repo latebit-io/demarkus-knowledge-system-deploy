@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.78.0
+        targetRevision: 0.79.0
         helm:
           releaseName: knowledge
           values: |
@@ -144,9 +144,12 @@ spec:
               # metadata near-duplicate-override with a reason keeps both. Block
               # mode reads the index covering its snapshot, waited for within the
               # freshness bound; a cold index past it still lets the write land.
+              # 0.79.0 (demarkus #672): mark_doctor reads near-duplicate-override:
+              # an overridden document files its own findings with the reason and
+              # no remedy, and glues no cluster. Doctor only; no config change.
               # One index build per writable world per pod start, in the
               # background. No config or store format change.
-              tag: "0.78.0"
+              tag: "0.79.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
