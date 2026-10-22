@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.79.0
+        targetRevision: 0.79.1
         helm:
           releaseName: knowledge
           values: |
@@ -149,7 +149,10 @@ spec:
               # no remedy, and glues no cluster. Doctor only; no config change.
               # One index build per writable world per pod start, in the
               # background. No config or store format change.
-              tag: "0.79.0"
+              # 0.79.1 (demarkus #675): mark_archive takes expected_docs, the live
+              # count the caller gated; a moved count refuses a recursive sweep.
+              # Gateway tool list only; no config or store format change.
+              tag: "0.79.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
