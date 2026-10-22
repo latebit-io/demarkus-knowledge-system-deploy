@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.77.0
+        targetRevision: 0.78.0
         helm:
           releaseName: knowledge
           values: |
@@ -138,9 +138,15 @@ spec:
               # world's section index at open, so a pod's first write after a
               # roll is judged instead of passing while the index is cold; a
               # cold index is waited for up to the one-second freshness bound.
+              # 0.78.0 (demarkus #669, ADR 0046): the near-duplicate gate refuses
+              # by default (contentCheck.nearDuplicate block, the chart default);
+              # a reworded copy answers bad-request naming the document, and
+              # metadata near-duplicate-override with a reason keeps both. Block
+              # mode reads the index covering its snapshot, waited for within the
+              # freshness bound; a cold index past it still lets the write land.
               # One index build per writable world per pod start, in the
               # background. No config or store format change.
-              tag: "0.77.0"
+              tag: "0.78.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
