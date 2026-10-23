@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.41.1
+        targetRevision: 0.42.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -343,8 +343,10 @@ spec:
             # panes; librarian recent and map tools; backlinks and the graph
             # union the hub graph.md so a cold pod shows durable edges, cached
             # per reader. No new values.
+            # 0.42.0 (library #100): a rendered mermaid diagram pops out into a
+            # full-viewport overlay with zoom and pan. No new values.
             image:
-              tag: "0.41.1"
+              tag: "0.42.0"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
