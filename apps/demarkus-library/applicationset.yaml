@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.39.1
+        targetRevision: 0.41.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -339,8 +339,12 @@ spec:
             # 0.39.1 (library #96) retries 429/529 model calls with backoff
             # and resumes a librarian ask across an SSE reconnect instead of
             # "this ask expired"; keepalive frames every 15s. No new values.
+            # 0.41.1 (library #97, #98, #99): an answer's citations open as
+            # panes; librarian recent and map tools; backlinks and the graph
+            # union the hub graph.md so a cold pod shows durable edges, cached
+            # per reader. No new values.
             image:
-              tag: "0.39.1"
+              tag: "0.41.1"
 
             # Sessions are in-memory — a reader's cookie is only valid against
             # the replica that minted it. Stay at 1 until a shared session
