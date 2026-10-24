@@ -48,6 +48,7 @@ variable "secret_manager_secrets" {
     "dex-github-client",
     "library-llm",
     "library-oauth-client",
+    "library-session-key",
     "oauth2-proxy-github-client",
   ]
 }

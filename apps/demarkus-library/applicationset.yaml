@@ -6,8 +6,8 @@
 # (broker origin, ingress host, redirect URI). The library is the registered
 # `library-web` confidential web client (deployment.yaml `webClients[]`, broker
 # ADR 0001): the broker holds the sha256 of the client secret + the exact
-# redirect URI; the plaintext secret reaches this pod via ESO from OpenBao
-# (external-secret.yaml + docs/runbook-library.md).
+# redirect URI; the plaintext secret reaches this pod via ESO from Secret
+# Manager (external-secret.yaml).
 #
 # Topology notes:
 #   - broker.url is the MCP GATEWAY origin (`https://<domain>`), NOT the
@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.42.0
+        targetRevision: 0.43.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -345,16 +345,34 @@ spec:
             # per reader. No new values.
             # 0.42.0 (library #100): a rendered mermaid diagram pops out into a
             # full-viewport overlay with zoom and pan. No new values.
+            # 0.43.0 (library #101): sessions ride in a sealed cookie
+            # (library.broker.sessionKey), so replicas are interchangeable and
+            # updates roll; a librarian answer resumes live after a reconnect.
             image:
-              tag: "0.42.0"
+              tag: "0.43.0"
 
-            # Sessions are in-memory — a reader's cookie is only valid against
-            # the replica that minted it. Stay at 1 until a shared session
-            # store (or sticky sessions) ships.
-            replicaCount: 1
+            # Sessions cross replicas on the shared sealing key; the
+            # librarian's conversations stay per pod, pinned by the Ingress
+            # cookie affinity below.
+            replicaCount: 2
 
-            # Spot pool is tainted. Preemption drops in-memory sessions, so
-            # readers log in again.
+            # Keep one reader-facing pod through drains and spot reclaims.
+            podDisruptionBudget:
+              enabled: true
+              minAvailable: 1
+
+            # Spot pool is tainted. Spread the replicas across nodes so one
+            # preemption takes at most one; sessions survive either way.
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      topologyKey: kubernetes.io/hostname
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/name: demarkus-library
+                          app.kubernetes.io/instance: demarkus-library
             nodeSelector:
               cloud.google.com/gke-spot: "true"
             tolerations:
@@ -398,7 +416,7 @@ spec:
                 # and this app is one specific client of it.
                 clientID: library-web
                 # Plaintext OAuth client secret, materialized by ESO from
-                # OpenBao (secret/library/oauth-client) — external-secret.yaml.
+                # Secret Manager (library-oauth-client), external-secret.yaml.
                 # Never the cleartext `clientSecret` values path.
                 existingSecretRef:
                   name: library-oauth-client
@@ -412,11 +430,17 @@ spec:
                 world: root
                 scopes: mark.read
                 cookieSecure: true
+                # Cookie sealing key every replica shares, materialized by ESO
+                # from Secret Manager (library-session-key).
+                sessionKey:
+                  existingSecretRef:
+                    name: library-session-key
+                    key: sessionKey
 
               # The AI librarian (Phase 4), live on MiniMax: keyEnv selects
               # nib's builtin minimax profile (api.minimax.io, OpenAI-
-              # compatible); the key is materialized by ESO from OpenBao
-              # (secret/library/llm) — external-secret.yaml. Model pinned
+              # compatible); the key is materialized by ESO from Secret
+              # Manager (library-llm), external-secret.yaml. Model pinned
               # explicitly so a nib default change can't silently swap it.
               librarian:
                 keyEnv: MINIMAX_API_KEY
@@ -429,6 +453,13 @@ spec:
               enabled: true
               className: nginx
               host: library.{{ .domain }}
+              # Pin a reader to one pod so the librarian keeps their
+              # conversation and in-flight answer.
+              annotations:
+                nginx.ingress.kubernetes.io/affinity: cookie
+                nginx.ingress.kubernetes.io/affinity-mode: persistent
+                nginx.ingress.kubernetes.io/session-cookie-name: demarkus_library_route
+                nginx.ingress.kubernetes.io/session-cookie-samesite: Lax
               tls:
                 certManager:
                   enabled: true
