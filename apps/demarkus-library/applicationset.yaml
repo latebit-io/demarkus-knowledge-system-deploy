@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.43.0
+        targetRevision: 0.43.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -348,8 +348,10 @@ spec:
             # 0.43.0 (library #101): sessions ride in a sealed cookie
             # (library.broker.sessionKey), so replicas are interchangeable and
             # updates roll; a librarian answer resumes live after a reconnect.
+            # 0.43.1 (library #102): per-pod caches keyed by reader, so one
+            # reader's permission mask never serves another. No new values.
             image:
-              tag: "0.43.0"
+              tag: "0.43.1"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
