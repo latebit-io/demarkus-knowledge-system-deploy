@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.43.2
+        targetRevision: 0.43.3
         helm:
           releaseName: demarkus-library
           values: |
@@ -353,8 +353,11 @@ spec:
             # 0.43.2 (library #103): the shared link map and hub edges are
             # masked per reader, and floor portals never name a world the
             # reader cannot read. No new values.
+            # 0.43.3 (library #104): reading room polish; catalog titles no
+            # longer render as math, and pane maps keep readable labels.
+            # No new values.
             image:
-              tag: "0.43.2"
+              tag: "0.43.3"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
