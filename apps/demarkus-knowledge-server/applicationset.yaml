@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.79.1
+        targetRevision: 0.81.0
         helm:
           releaseName: knowledge
           values: |
@@ -152,7 +152,15 @@ spec:
               # 0.79.1 (demarkus #675): mark_archive takes expected_docs, the live
               # count the caller gated; a moved count refuses a recursive sweep.
               # Gateway tool list only; no config or store format change.
-              tag: "0.79.1"
+              # 0.80.0 (demarkus #680): memory gateway prompts soul-context and
+              # soul-journal render from the plugins' prompt-source. Gateway
+              # only; no config or store format change.
+              # 0.81.0 (demarkus #682): memory gateway serves every memory
+              # command as an MCP prompt (soul-export included); mark_worlds
+              # prints `system: <host>` and promote apply `via: <host>`, the
+              # identity prompt-served promote stamps. No chart, config or
+              # store format change.
+              tag: "0.81.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
