@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.81.0
+        targetRevision: 0.81.1
         helm:
           releaseName: knowledge
           values: |
@@ -160,7 +160,11 @@ spec:
               # prints `system: <host>` and promote apply `via: <host>`, the
               # identity prompt-served promote stamps. No chart, config or
               # store format change.
-              tag: "0.81.0"
+              # 0.81.1 (demarkus #684): mark_curate split topics meet the write
+              # policy, and the near-duplicate gate skips the document a write's
+              # curated-from names, so topics land before the hub. No chart,
+              # config or store format change.
+              tag: "0.81.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
