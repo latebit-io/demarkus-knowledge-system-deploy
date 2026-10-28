@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.81.1
+        targetRevision: 0.82.0
         helm:
           releaseName: knowledge
           values: |
@@ -164,7 +164,10 @@ spec:
               # policy, and the near-duplicate gate skips the document a write's
               # curated-from names, so topics land before the hub. No chart,
               # config or store format change.
-              tag: "0.81.1"
+              # 0.82.0 (demarkus #688): provenance drift from rel-based-on pins;
+              # an unversioned path or GitHub pin is an unpinned-source policy
+              # violation. No chart, config or store format change.
+              tag: "0.82.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
