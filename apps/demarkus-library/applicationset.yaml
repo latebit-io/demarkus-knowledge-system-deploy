@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.44.0
+        targetRevision: 0.45.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -359,8 +359,12 @@ spec:
             # binding (knowledge >= 0.83.0): a write evicts cached views at
             # once and the focused pane shows a live-edition banner. New value
             # library.watch, default true.
+            # 0.45.0 (library #106): the edit desk warns of a newer edition
+            # before save, branding reloads on a change, the librarian notes
+            # sources that moved on, and focused listings stream. Live streams
+            # renew before their bearer expires. No new values.
             image:
-              tag: "0.44.0"
+              tag: "0.45.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
