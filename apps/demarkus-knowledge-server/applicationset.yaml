@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.82.0
+        targetRevision: 0.83.0
         helm:
           releaseName: knowledge
           values: |
@@ -167,7 +167,10 @@ spec:
               # 0.82.0 (demarkus #688): provenance drift from rel-based-on pins;
               # an unversioned path or GitHub pin is an unpinned-source policy
               # violation. No chart, config or store format change.
-              tag: "0.82.0"
+              # 0.83.0 (demarkus #691, ADR 0047): WATCH over MCP resource
+              # subscriptions (subscriptions/listen, protocol 2026-07-28) on
+              # both gateways. No config or store format change.
+              tag: "0.83.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
@@ -287,6 +290,10 @@ spec:
             ingress:
               enabled: true
               className: nginx
+              # A subscriptions/listen holds one request open up to the 15 min
+              # bearer life; nginx's 60 s default would cut idle listens early.
+              annotations:
+                nginx.ingress.kubernetes.io/proxy-read-timeout: "1000"
               host: "broker.{{ .domain }}"
               mcp:
                 host: "{{ .domain }}"
