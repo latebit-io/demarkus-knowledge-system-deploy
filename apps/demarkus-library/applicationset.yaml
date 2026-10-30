@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.46.0
+        targetRevision: 0.47.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -367,8 +367,11 @@ spec:
             # activity in the worlds the reader sees, with person and agent
             # badges; the librarian's stale-source note now reaches a pane's
             # first answer. No new values.
+            # 0.47.0 (library #108): an activity pane (header key v) lists
+            # recent activity beside any pane; generated graph writes leave
+            # the pulse, and badges keep the writer's case. No new values.
             image:
-              tag: "0.46.0"
+              tag: "0.47.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
