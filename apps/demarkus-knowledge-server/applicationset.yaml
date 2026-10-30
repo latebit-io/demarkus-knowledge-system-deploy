@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.83.0
+        targetRevision: 0.84.0
         helm:
           releaseName: knowledge
           values: |
@@ -170,7 +170,11 @@ spec:
               # 0.83.0 (demarkus #691, ADR 0047): WATCH over MCP resource
               # subscriptions (subscriptions/listen, protocol 2026-07-28) on
               # both gateways. No config or store format change.
-              tag: "0.83.0"
+              # 0.84.0 (demarkus #694, ADR 0048): LOOKUP weights importance by
+              # the status: tag (accepted 1.0, none/draft/wip 0.8, archived,
+              # superseded, deprecated 0.3). No chart, config or store format
+              # change.
+              tag: "0.84.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
