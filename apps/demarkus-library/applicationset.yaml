@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.45.0
+        targetRevision: 0.46.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -363,8 +363,12 @@ spec:
             # before save, branding reloads on a change, the librarian notes
             # sources that moved on, and focused listings stream. Live streams
             # renew before their bearer expires. No new values.
+            # 0.46.0 (library #107): the universe floor streams recent
+            # activity in the worlds the reader sees, with person and agent
+            # badges; the librarian's stale-source note now reaches a pane's
+            # first answer. No new values.
             image:
-              tag: "0.45.0"
+              tag: "0.46.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
