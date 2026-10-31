@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.47.1
+        targetRevision: 0.48.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -373,8 +373,11 @@ spec:
             # 0.47.1 (library #109): a quiet world's broker watch resyncs on
             # every reopen without a cursor (demarkus client 0.72.1), and the
             # universe floor shows the installed version. No new values.
+            # 0.48.0 (library #110): a focused document whose new edition
+            # only appends grows in place (journal tail); other edits still
+            # raise the banner. No new values.
             image:
-              tag: "0.47.1"
+              tag: "0.48.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
