@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.84.0
+        targetRevision: 0.85.0
         helm:
           releaseName: knowledge
           values: |
@@ -174,7 +174,14 @@ spec:
               # the status: tag (accepted 1.0, none/draft/wip 0.8, archived,
               # superseded, deprecated 0.3). No chart, config or store format
               # change.
-              tag: "0.84.0"
+              # 0.85.0 (demarkus #700): prompt-injection gates. A write with
+              # steering text lands with a warning (contentCheck.injection
+              # warn, the chart default); reads frame bodies and re-check them.
+              # No classifier (classifier.kind ""). Knowledge worlds restrict
+              # /.well-known/demarkus/ writes to a govern token, so broker
+              # identities, agents included, are refused; the policy seed
+              # writes the store directly. No store format change.
+              tag: "0.85.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
