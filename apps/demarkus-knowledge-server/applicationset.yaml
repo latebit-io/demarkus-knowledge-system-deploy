@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.85.0
+        targetRevision: 0.86.0
         helm:
           releaseName: knowledge
           values: |
@@ -181,7 +181,11 @@ spec:
               # /.well-known/demarkus/ writes to a govern token, so broker
               # identities, agents included, are refused; the policy seed
               # writes the store directly. No store format change.
-              tag: "0.85.0"
+              # 0.86.0 (demarkus #703): broker.governors. A governor's broker
+              # writes carry govern, so admins publish /.well-known/demarkus/
+              # through the gateway; worlds restrict only while the list is
+              # non-empty. No store format change.
+              tag: "0.86.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
@@ -237,6 +241,12 @@ spec:
               # Logins and MCP host registrations (ADR 0034); the bucket and
               # its grant come from tofu module.knowledge_storage.
               stateBucket: "gs://{{ .brokerStateBucket }}"
+              # Admins govern: their writes carry govern on knowledge worlds,
+              # which restrict policy writes to them while this is non-empty.
+              governors:
+              {{- range .adminEmails }}
+                - {{ . | quote }}
+              {{- end }}
               oidc:
                 issuer: "https://accounts.google.com"
                 clientID: "{{ .oauthClientId }}"
