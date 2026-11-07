@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.86.0
+        targetRevision: 0.86.2
         helm:
           releaseName: knowledge
           values: |
@@ -185,7 +185,10 @@ spec:
               # writes carry govern, so admins publish /.well-known/demarkus/
               # through the gateway; worlds restrict only while the list is
               # non-empty. No store format change.
-              tag: "0.86.0"
+              # 0.86.2 (demarkus #706, #710): Go 1.27 and dependency sweep
+              # (mcp-go 1.5.0, quic-go 0.65); lookup refuses a document scope,
+              # curate split fixes. No values or store format change.
+              tag: "0.86.2"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
