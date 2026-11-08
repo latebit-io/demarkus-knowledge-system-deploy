@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.86.2
+        targetRevision: 0.87.1
         helm:
           releaseName: knowledge
           values: |
@@ -188,7 +188,10 @@ spec:
               # 0.86.2 (demarkus #706, #710): Go 1.27 and dependency sweep
               # (mcp-go 1.5.0, quic-go 0.65); lookup refuses a document scope,
               # curate split fixes. No values or store format change.
-              tag: "0.86.2"
+              # 0.87.1 (demarkus #713, #716): mark_curate applies a
+              # self-contained edit without the gate (approval: none); a split
+              # keeps every link. No values or store format change.
+              tag: "0.87.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
