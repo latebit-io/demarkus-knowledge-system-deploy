@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.87.1
+        targetRevision: 0.88.0
         helm:
           releaseName: knowledge
           values: |
@@ -191,7 +191,12 @@ spec:
               # 0.87.1 (demarkus #713, #716): mark_curate applies a
               # self-contained edit without the gate (approval: none); a split
               # keeps every link. No values or store format change.
-              tag: "0.87.1"
+              # 0.88.0 (demarkus #721, #723, ADR 0051): stored versions carry
+              # a store-owned path; retention deletes pruned blobs via prune
+              # manifests (24h fence); checkpoint fallback. Store format
+              # change: a 0.87 replica answers integrity errors for new
+              # versions, so mid-roll and on rollback. No values change.
+              tag: "0.88.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
