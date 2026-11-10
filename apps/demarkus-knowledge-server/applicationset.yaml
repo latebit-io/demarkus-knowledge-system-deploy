@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.88.0
+        targetRevision: 0.88.1
         helm:
           releaseName: knowledge
           values: |
@@ -196,7 +196,12 @@ spec:
               # manifests (24h fence); checkpoint fallback. Store format
               # change: a 0.87 replica answers integrity errors for new
               # versions, so mid-roll and on rollback. No values change.
-              tag: "0.88.0"
+              # 0.88.1 (demarkus #725): generated graph documents (/graph.md,
+              # /graph/manifest.md, /graph/shards/, /graph/worlds/) leave
+              # LOOKUP, the section index and the link graph; the deriver
+              # rewrites world shards that still name them; mark_graph_publish
+              # takes /graph.md only. No values or store format change.
+              tag: "0.88.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
