@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.49.0
+        targetRevision: 0.51.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -379,8 +379,16 @@ spec:
             # 0.49.0 (library #111): an open graph overlay pulses a written
             # node in place and fades an archived one, replaying writes made
             # since the drawing was read. No new values.
+            # 0.49.1 (library #112): the live graph marks every copy of a
+            # written node, not just the first. No new values.
+            # 0.50.0 (library #113): the universe map draws each world as a
+            # brain lobe, or its branded logo when one is declared. No new
+            # values.
+            # 0.51.0 (library #114): the map's logo reads share 16 room-wide
+            # slots under a 3s budget; a slow read keeps the cached or
+            # manifest logo instead of stalling the map. No new values.
             image:
-              tag: "0.49.0"
+              tag: "0.51.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
