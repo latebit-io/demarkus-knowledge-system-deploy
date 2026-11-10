@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.51.0
+        targetRevision: 0.52.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -387,8 +387,12 @@ spec:
             # 0.51.0 (library #114): the map's logo reads share 16 room-wide
             # slots under a 3s budget; a slow read keeps the cached or
             # manifest logo instead of stalling the map. No new values.
+            # 0.52.0 (library #115): the palette ranks matches (title, tags,
+            # path), reads a cached index instead of the catalog per
+            # keystroke, lists section-text matches and can search every
+            # world; client 0.75.1, built on Go 1.27. No new values.
             image:
-              tag: "0.51.0"
+              tag: "0.52.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
