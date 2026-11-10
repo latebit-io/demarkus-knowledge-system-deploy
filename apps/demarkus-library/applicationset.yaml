@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.52.0
+        targetRevision: 0.53.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -391,8 +391,13 @@ spec:
             # path), reads a cached index instead of the catalog per
             # keystroke, lists section-text matches and can search every
             # world; client 0.75.1, built on Go 1.27. No new values.
+            # 0.53.0 (library #116): collapsed panes are book spines with a
+            # thumb index and a peek card; / opens the librarian beside the
+            # universe floor when one is on duty; the librarian pane fills
+            # its height. Saved reading positions move to a new session key,
+            # so open tabs start their panes at the top once. No new values.
             image:
-              tag: "0.52.0"
+              tag: "0.53.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
