@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.88.1
+        targetRevision: 0.88.3
         helm:
           releaseName: knowledge
           values: |
@@ -201,7 +201,14 @@ spec:
               # LOOKUP, the section index and the link graph; the deriver
               # rewrites world shards that still name them; mark_graph_publish
               # takes /graph.md only. No values or store format change.
-              tag: "0.88.1"
+              # 0.88.3 (demarkus #729, #728): the server seeds a memory
+              # tenant's policy, so the worlds fragment gains `seed: memory`.
+              # 0.88.1 parses the fragment strictly: a 0.88.1 pod restarted
+              # mid-roll fails to start, and so does a rollback until the key
+              # is taken out of the fragment Secret. A gated tenant is
+              # withdrawn from the ungated hub's graph. New broker.maxLoginAge
+              # (off). No values or store format change.
+              tag: "0.88.3"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
