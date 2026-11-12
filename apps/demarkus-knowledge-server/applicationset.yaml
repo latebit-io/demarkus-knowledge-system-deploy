@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.88.3
+        targetRevision: 0.89.1
         helm:
           releaseName: knowledge
           values: |
@@ -208,7 +208,15 @@ spec:
               # is taken out of the fragment Secret. A gated tenant is
               # withdrawn from the ungated hub's graph. New broker.maxLoginAge
               # (off). No values or store format change.
-              tag: "0.88.3"
+              # 0.89.1 (demarkus #737, #738): the knowledge gateway no longer
+              # serves mark_graph_publish; generated graph data (/graph.md,
+              # /graph/manifest.md, /graph/shards/, /graph/worlds/) is written
+              # by the federation deriver alone: the write tools refuse it and
+              # a world refuses an identity's write there (not-permitted). A
+              # 0.88 replica still accepts one mid-roll. A static operator
+              # token keeps its own scope. No values or store format change,
+              # rollback to 0.88.3 safe.
+              tag: "0.89.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
