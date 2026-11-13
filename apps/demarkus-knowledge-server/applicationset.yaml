@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.89.1
+        targetRevision: 0.93.0
         helm:
           releaseName: knowledge
           values: |
@@ -216,7 +216,16 @@ spec:
               # 0.88 replica still accepts one mid-roll. A static operator
               # token keeps its own scope. No values or store format change,
               # rollback to 0.88.3 safe.
-              tag: "0.89.1"
+              # 0.93.0 (demarkus #741 to #745): promote and split stamp
+              # rel-based-on pins; mark_doctor reports a Freshness baseline and
+              # the owner of each Source drift finding; mark_fetch adds a
+              # drift line when a pinned source moved; broker.driftReport
+              # (below) writes each world's /reports/drift.md under a new
+              # Lease the chart adds to the Role. The broker config loader is
+              # strict: a 0.89.1 pod restarted mid-roll fails on driftReport,
+              # and a rollback reverts this change whole, key and image
+              # together. No store format change.
+              tag: "0.93.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
@@ -306,6 +315,15 @@ spec:
                     - {{ . | quote }}
                   {{- end }}
               {{- end }}
+              # Drift reports (demarkus #745): one replica audits each world
+              # daily and writes its /reports/drift.md, the documents whose
+              # pinned sources moved, by owner. No model; reads are paced at
+              # 5 a second. A report is an ordinary write with no user: it
+              # lands with a warning under root's warn policy, and music
+              # (strictness block) refuses it, logged each pass, until both
+              # root's and music's policy.md list `exempt: /reports/**`.
+              driftReport:
+                enabled: true
               # An MCP session handshake and the library's universe floor
               # arrive in bursts; the chart's 10/min suits CLI agents only.
               rateLimit:
