@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.95.0
+        targetRevision: 0.95.1
         helm:
           releaseName: knowledge
           values: |
@@ -236,7 +236,10 @@ spec:
               # (tool, world or worlds, found), no query text or identity.
               # No values, config or store format change; rollback to 0.94.0
               # safe.
-              tag: "0.95.0"
+              # 0.95.1 (demarkus #750): the memory gateway no longer serves the
+              # soul-export prompt. No values, config or store format change;
+              # rollback to 0.95.0 safe.
+              tag: "0.95.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
