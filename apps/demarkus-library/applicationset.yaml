@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.53.0
+        targetRevision: 0.53.1
         helm:
           releaseName: demarkus-library
           values: |
@@ -396,8 +396,11 @@ spec:
             # universe floor when one is on duty; the librarian pane fills
             # its height. Saved reading positions move to a new session key,
             # so open tabs start their panes at the top once. No new values.
+            # 0.53.1 (library #117): client 0.81.2. A world watch renews only
+            # on a fresher bearer (demarkus #753): one listen per bearer
+            # cycle, not two. No new values.
             image:
-              tag: "0.53.0"
+              tag: "0.53.1"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
