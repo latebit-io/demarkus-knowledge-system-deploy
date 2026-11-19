@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.53.1
+        targetRevision: 0.53.2
         helm:
           releaseName: demarkus-library
           values: |
@@ -399,8 +399,11 @@ spec:
             # 0.53.1 (library #117): client 0.81.2. A world watch renews only
             # on a fresher bearer (demarkus #753): one listen per bearer
             # cycle, not two. No new values.
+            # 0.53.2 (library #119): a refreshed bearer starts with its reader's
+            # world list, so world watches renew before the old bearer lapses
+            # instead of being cut and resynced each cycle. No new values.
             image:
-              tag: "0.53.1"
+              tag: "0.53.2"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
