@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.53.2
+        targetRevision: 0.54.0
         helm:
           releaseName: demarkus-library
           values: |
@@ -402,8 +402,13 @@ spec:
             # 0.53.2 (library #119): a refreshed bearer starts with its reader's
             # world list, so world watches renew before the old bearer lapses
             # instead of being cut and resynced each cycle. No new values.
+            # 0.54.0 (library #120): the focused floor and activity pane list
+            # who used the knowledge system lately, from the broker's
+            # mark_presence (knowledge 0.97.0), refreshed every 2 min while
+            # the tab is visible; activity rows show the day. A broker
+            # without the tool shows no list. No new values.
             image:
-              tag: "0.53.2"
+              tag: "0.54.0"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress

@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.95.1
+        targetRevision: 0.97.0
         helm:
           releaseName: knowledge
           values: |
@@ -239,7 +239,16 @@ spec:
               # 0.95.1 (demarkus #750): the memory gateway no longer serves the
               # soul-export prompt. No values, config or store format change;
               # rollback to 0.95.0 safe.
-              tag: "0.95.1"
+              # 0.96.0 (demarkus #754): a write's outcome log line carries
+              # duration_ms. 0.96.1 (#756) changes the watch client only.
+              # 0.97.0 (demarkus #758): mark_presence lists who used the
+              # gateway in the last 20 min (idTokenTTL + 5m), by email and
+              # client name, to any signed-in member. Replicas share
+              # sightings as "note" lines on the peer port; an older replica
+              # mid-roll logs each as a rejected hint (WARN) and lists only
+              # its own callers. No values, config or store format change;
+              # rollback to 0.95.1 safe.
+              tag: "0.97.0"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
