@@ -32,7 +32,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-knowledge-server
-        targetRevision: 0.97.0
+        targetRevision: 0.97.1
         helm:
           releaseName: knowledge
           values: |
@@ -248,7 +248,14 @@ spec:
               # mid-roll logs each as a rejected hint (WARN) and lists only
               # its own callers. No values, config or store format change;
               # rollback to 0.95.1 safe.
-              tag: "0.97.0"
+              # 0.97.1 (demarkus #761): publisher metadata cap 1024 -> 4096
+              # bytes, user and classifier outside it; mark_promote dry_run
+              # sizes what apply sends; metadata refusals are audit-logged
+              # with a detail. No values or config change. Store format: a
+              # version with over 1024 bytes of metadata is unreadable by
+              # 0.97.0, on a replica mid-roll and after a rollback, so
+              # rollback to 0.97.0 is safe only until one is written.
+              tag: "0.97.1"
 
             # No pre-install Job: writes go through the gateway and the
             # federation deriver in process, so no world needs a token Secret.
