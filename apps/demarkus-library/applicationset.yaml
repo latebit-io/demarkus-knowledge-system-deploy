@@ -55,7 +55,7 @@ spec:
       source:
         repoURL: ghcr.io/latebit-io/charts
         chart: demarkus-library
-        targetRevision: 0.54.2
+        targetRevision: 0.54.3
         helm:
           releaseName: demarkus-library
           values: |
@@ -414,8 +414,10 @@ spec:
             # 0.54.2 (library #124): a trail URL's #fragment scrolls only the
             # focused pane to its heading; the room and nav stay put. No new
             # values.
+            # 0.54.3 (library #125): Enter in the address bar on the same
+            # #fragment URL scrolls only the focused pane too. No new values.
             image:
-              tag: "0.54.2"
+              tag: "0.54.3"
 
             # Sessions cross replicas on the shared sealing key; the
             # librarian's conversations stay per pod, pinned by the Ingress
